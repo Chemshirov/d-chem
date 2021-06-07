@@ -1,0 +1,13 @@
+{
+	"name": "chem_dockerrun",
+	"version": "0.0.1",
+	"main": "Start.js",
+	"scripts": {
+		"start": "node Start.js"
+	},
+	"dependencies": {
+		"amqplib": "latest",
+		"ioredis": "latest",
+		"dockerstats": "latest"
+	}
+}

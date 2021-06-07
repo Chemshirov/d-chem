@@ -1,0 +1,64 @@
+version: '3.5'
+
+services:
+  routerS:
+    restart: unless-stopped
+    image: ${PREFIX}${LABEL}_${NAME}
+    container_name: ${PREFIX}${LABEL}_${NAME}S
+    hostname: ${PREFIX}${LABEL}_${NAME}S
+    environment:
+        - STAGE=${STAGE}
+        - PREFIX=${PREFIX}
+        - LABEL=${LABEL}
+        - NAME=${NAME}
+        - TYPE=S
+        - TILDA=/usr/nodejs/tilda/
+        - AFTER_TILDA=${AFTER_TILDA}
+    networks:
+      - tilda
+    volumes:
+      - ~/:/usr/nodejs/tilda/
+      - /mnt/sda:/usr/nodejs/sda/
+  
+  routerD:
+    restart: unless-stopped
+    image: ${PREFIX}${LABEL}_${NAME}
+    container_name: ${PREFIX}${LABEL}_${NAME}D
+    hostname: ${PREFIX}${LABEL}_${NAME}D
+    environment:
+        - STAGE=${STAGE}
+        - PREFIX=${PREFIX}
+        - LABEL=${LABEL}
+        - NAME=${NAME}
+        - TYPE=D
+        - TILDA=/usr/nodejs/tilda/
+        - AFTER_TILDA=${AFTER_TILDA}
+    networks:
+      - tilda
+    volumes:
+      - ~/:/usr/nodejs/tilda/
+      - /mnt/sda:/usr/nodejs/sda/
+  
+  routerW:
+    restart: unless-stopped
+    image: ${PREFIX}${LABEL}_${NAME}
+    container_name: ${PREFIX}${LABEL}_${NAME}W
+    hostname: ${PREFIX}${LABEL}_${NAME}W
+    environment:
+        - STAGE=${STAGE}
+        - PREFIX=${PREFIX}
+        - LABEL=${LABEL}
+        - NAME=${NAME}
+        - TYPE=W
+        - TILDA=/usr/nodejs/tilda/
+        - AFTER_TILDA=${AFTER_TILDA}
+    networks:
+      - tilda
+    volumes:
+      - ~/:/usr/nodejs/tilda/
+      - /mnt/sda:/usr/nodejs/sda/
+
+networks:
+  tilda:
+    external:
+      name: tilda

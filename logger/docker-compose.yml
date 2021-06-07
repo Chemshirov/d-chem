@@ -1,0 +1,24 @@
+version: '3.5'
+
+services:
+  dockerrun:
+    restart: unless-stopped
+    image: ${PREFIX}${NAME}
+    container_name: ${PREFIX}${NAME}
+    hostname: ${PREFIX}${NAME}
+    environment:
+        - STAGE=${STAGE}
+        - PREFIX=${PREFIX}
+        - NAME=${NAME}
+        - TILDA=/usr/nodejs/tilda/
+        - AFTER_TILDA=${AFTER_TILDA}
+    networks:
+      - tilda
+    volumes:
+      - ~/:/usr/nodejs/tilda/
+      - /mnt/sda:/usr/nodejs/sda/
+
+networks:
+  tilda:
+    external:
+      name: tilda
