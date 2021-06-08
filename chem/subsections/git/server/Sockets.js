@@ -1,31 +1,27 @@
 class Sockets {
-	constructor(o) {
-		this.o = o
-		this.label = 'git'
+	constructor(onError, commonObject, websockets) {
+		this._onError = onError
+		this.o = commonObject
+		this._websockets = websockets
+		
+		this.label = this.constructor.name
+		this.socketLabel = 'git'
+		
 		this._init()
 	}
 	
 	_init() {
-		this.io = require('socket.io')(917)
-		this.io.on('connection', socket => {
-			socket.on(this.label, object => {
+		this._websockets.on('connection', socket => {
+			socket.on(this.socketLabel, object => {
 				if (object) {
 					this._func(socket, object)
-					socket.emit(this.label, {ok: true})
 				}
 			})
 		})
-		this.io.adapter(
-			require('socket.io-redis')({
-				host: this.o.Server.ip,
-				port: 6379
-			})
-		)
 	}
 	
 	emit(data, socket) {
-		// socket.emit doesn't work somehow
-		this.io.emit(this.label, data)
+		this._websockets.emit(this.socketLabel, data)
 	}
 	
 	_func(socket, data) {

@@ -50,14 +50,15 @@ class Main {
 	_setSocket() {
 		return new Promise(success => {
 			if (window.io) {
-				let socket = window.io({
-					transports: ["websocket"]
-				})
+				let socket = window.io()
 				socket.open()
 				socket.on(this.label, data => {
 					if (data) {
 						this._socketFunction(data)
 					}
+				})
+				socket.on('connect', () => {
+					socket.emit(this.label, {connected: Date.now()})
 				})
 				this.socket = socket
 			} else {
@@ -66,7 +67,7 @@ class Main {
 				}, 2000)
 			}
 		}).catch(err => {
-			console.log(err, 5)
+			console.log(err)
 		})
 	}
 	
@@ -165,10 +166,12 @@ class Main {
 	}
 	
 	emit(object) {
+		console.log('emit', object)
 		this.socket.emit(this.label, object)
 	}
 	
 	_socketFunction(data) {
+		console.log('_socketFunction', data)
 		if (data.reload) {
 			this._saveToStorage()
 			location.reload()

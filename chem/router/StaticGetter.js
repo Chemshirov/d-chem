@@ -18,6 +18,7 @@ class StaticGetter {
 				url = url.split('#')[0]
 			
 			let fileProps = await this._getFile(url)
+			console.log(url, fileProps)
 			if (fileProps) {
 				let statusCode = 200
 				let encoder = this._getEncoder(request)
@@ -36,14 +37,14 @@ class StaticGetter {
 				}
 				if (encoder === 'gzip') {
 					response.setHeader('Content-Encoding', encoder)
-					if (fileProps.gzip) {
+					if (fileProps.gzip && fileProps.eTag) {
 						response.writeHead(statusCode, headers)
 						response.write(fileProps.gzip)
 						response.end()
 					} else {
 						response.writeHead(statusCode, headers)
 						let readStream = fs.createReadStream(fileProps.fileString)
-						readStream.pipe(zlib.createGzip()).pipe(response).end()
+						readStream.pipe(zlib.createGzip()).pipe(response)
 					}
 				} else if (encoder === 'deflate') {
 					response.setHeader('Content-Encoding', encoder)
@@ -59,7 +60,8 @@ class StaticGetter {
 			} else {
 				response.statusCode = 400
 				response.setHeader('Content-Type', 'text/html; charset=utf-8')
-				response.end('Sorry, there is no such file.')
+				response.write('Sorry, there is no such file.')
+				response.end()
 			}
 		} catch (err) {
 			this._onError(this.label, 'sendFile', err)
@@ -100,11 +102,14 @@ class StaticGetter {
 	}
 	
 	_getMimeType(url) {
+		if (!this.mimeTypes) {
+			this.mimeTypes = Settings.staticMimeTypes
+		}
 		let reverseUrl = url.split('').reverse().join('')
 		let revertedExt = reverseUrl.split('.')[0]
 		let ext = '.' + revertedExt.split('').reverse().join('')
 		let type = 'text/plain'
-		let knownType = Settings.mimeTypes[ext]
+		let knownType = this.mimeTypes[ext]
 		if (knownType) {
 			type = knownType
 		}

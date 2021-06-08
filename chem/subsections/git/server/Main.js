@@ -1,27 +1,44 @@
 const child_process = require('child_process')
+const Settings = require('../../../../_common/Settings.js')
+
+const Html = require('./Html.js')
+const Servers = require('./Servers.js')
+const Projects = require('./Projects.js')
+const CopyToProduction = require('./CopyToProduction.js')
+const Watcher = require('./Watcher.js')
+
+const sda = '/usr/nodejs/sda/'
+const Logins = require(sda + process.env.STAGE + '/' + process.env.LABEL + '/Logins.js')
 
 class Main {
-	constructor(onError) {
-		this.label = this.constructor.name
+	constructor(onError, rabbitMQ) {
 		this._onError = onError
+		this.rabbitMQ = rabbitMQ
+		
+		this.label = this.constructor.name
+		
+		this.sda = sda
+		this.startDate = Date.now()
 	}
 	
 	async start() {
 		try{
+			await this.rabbitMQ.subscribe(this._onFileChanged.bind(this))
 			await this._configGit()
+			this.o = {}
+			this.o.Main = this
+			
+			this.servers = new Servers(this.setError.bind(this))
+			await this.servers.start(this.o, [Settings.port])
+			
+			this.o.Html = new Html(this.o)
+			this.o.Projects = new Projects(this.o)
+			await this.o.Projects.start()
+			
+			this.o.CopyToProduction = new CopyToProduction(this.o)
 		} catch(err) {
-			this._onError(this.label, 'start', err)
+			this.setError(this.label, 'start', err)
 		}
-	}
-	
-	_configGit() {
-		return new Promise(async success => {
-			await this.exec(`git config --global user.email 'Konstantin@Chemshirov.ru'`, true)
-			await this.exec(`git config --global user.name 'Konstantin Chemshirov'`, true)
-			success()
-		}).catch(err => {
-			this._onError(this.label, '_configGit', err)
-		})
 	}
 	
 	exec(cmd, isGit) {
@@ -47,7 +64,7 @@ class Main {
 						}
 					}
 					if (!ok) {
-						this._onError(this.label, 'child_process.exec ' + cmd, err)
+						this.setError(this.label, 'child_process.exec ' + cmd, err)
 					}
 				}
 				let result = stdin
@@ -57,7 +74,45 @@ class Main {
 				success(result.toString())
 			})
 		}).catch(err => {
-			this._onError(this.label, '_exec', err)
+			this.setError(this.label, '_exec', err)
+		})
+	}
+	
+	sendReload(renewHtml) {
+		return new Promise(async success => {
+			if (renewHtml) {
+				await this.o.Html.renew()
+			}
+			this.o.Sockets.emit({reload: true})
+		}).catch(err => {
+			this.setError(this.label, 'sendReload', err)
+		})
+	}
+	
+	setError(className, func, error) {
+		if (!this.errorObject) {
+			this.errorObject = {}
+		}
+		this.errorObject[Date.now()] = {className, func, error}
+		this._onError(className, func, error)
+	}
+	
+	_onFileChanged(object) {
+		let path = [process.env.STAGE, process.env.LABEL, 'subsections', process.env.NAME, 'www'].join('/')
+		if (object.directory.includes(path)) {
+			this.sendReload(false)
+		} else {
+			this.sendReload(true)
+		}
+	}
+	
+	_configGit() {
+		return new Promise(async success => {
+			await this.exec(`git config --global user.email '${Logins.chemshirovEmail}'`, true)
+			await this.exec(`git config --global user.name '${Logins.chemshirovFullName}'`, true)
+			success()
+		}).catch(err => {
+			this.setError(this.label, '_configGit', err)
 		})
 	}
 }

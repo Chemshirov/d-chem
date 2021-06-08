@@ -1,7 +1,9 @@
+const ProjectClass = require('./Project.js')
+
 class Projects {
 	constructor(object) {
 		this.o = object
-		this.projectClass = require(this.o.Server.files + 'server/Project.js')
+		this.files = this.o.Main.sda + process.env.STAGE + '/'
 		this.projects = {}
 	}
 	
@@ -9,17 +11,16 @@ class Projects {
 		this.projects = {}
 		return new Promise(async success => {
 			await this._getNames()
-			await this._getBares()
 			let array = Object.keys(this.projects)
 			for (let i = 0; i < array.length; i++) {
 				let name = array[i]
-				let Project = new this.projectClass(this.o, name, this.projects[name])
+				let Project = new ProjectClass(this.o, name, this.projects[name])
 				this.projects[name].Project = Project
 				await Project.renew()
 			}
 			success()
 		}).catch(err => {
-			this.o.Server.setError('Projects', '_init', err)
+			this.o.Main.setError('Projects', '_init', err)
 		})
 	}
 	
@@ -33,14 +34,14 @@ class Projects {
 			}
 			success()
 		}).catch(err => {
-			this.o.Server.setError('Projects', '_init', err)
+			this.o.Main.setError('Projects', '_init', err)
 		})
 	}
 	
 	_getNames() {
 		return new Promise(success => {
-			let cmd = `find ${this.o.Server.files} -type d -maxdepth 1`
-			this.o.Server.exec(cmd).then(stdin => {
+			let cmd = `find ${this.files} -type d -maxdepth 1`
+			this.o.Main.exec(cmd).then(stdin => {
 				let dirs = stdin.toString().trim().split('\n')
 				dirs.forEach(dir => {
 					let {path, name} = this._pathSplit(dir)
@@ -53,26 +54,7 @@ class Projects {
 				success()
 			})
 		}).catch(err => {
-			this.o.Server.setError('Projects', '_getNames', err)
-		})
-	}
-	
-	_getBares() {
-		return new Promise(success => {
-			let cmd = `find ${this.o.Server.files + 'bare'} -type d -maxdepth 1`
-			this.o.Server.exec(cmd).then(stdin => {
-				let dirs = stdin.toString().trim().split('\n')
-				dirs.forEach(dir => {
-					let {path, name} = this._pathSplit(dir)
-					let projectName = name.replace(/_bare\.git/, '')
-					if (this.projects[projectName]) {
-						this.projects[projectName].barePath = path + name
-					}
-				})
-				success()
-			})
-		}).catch(err => {
-			this.o.Server.setError('Projects', '_getBares', err)
+			this.o.Main.setError('Projects', '_getNames', err)
 		})
 	}
 	

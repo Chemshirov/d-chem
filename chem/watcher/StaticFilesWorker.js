@@ -30,29 +30,25 @@ class StaticFilesWorker {
 	_getFiles(path) {
 		return new Promise(success => {
 			let cmd = `find ${path} -type f`
-			child_process.exec(cmd, (err, stdout, stderr) => {
-				if (err) {
-					this._onError(this.label, '_getLiraries child_process', err)
-				} else {
-					let array = stdout.split('\n')
-					array.forEach(fileString => {
-						if (!(/\.(mp[3-4]|map)$/).test(fileString)) {
-							Object.keys(this._routeTable).forEach(beginning => {
-								let regExp = new RegExp('^' + beginning)
-								if ((regExp).test(fileString)) {
-									let replacement = this._routeTable[beginning]
-									if (typeof replacement === 'object') {
-										replacement.forEach(toClientsPath => {
-											let clientsPath = fileString.replace(regExp, toClientsPath)
-											this._addRoute.work(clientsPath, fileString)
-											this.count++
-										})
-									}
+			child_process.exec(cmd, async (err, stdout, stderr) => {
+				try {
+					if (err) {
+						this._onError(this.label, '_getFiles child_process', err)
+					} else {
+						let array = stdout.split('\n')
+						for (let i = 0; i < array.length; i++) {
+							let fileString = array[i]
+							if (fileString && !(/\.(mp[3-4]|map)$/).test(fileString)) {
+								let answer = await this._addRoute.add(fileString)
+								if (answer.fileString !== fileString) {
+									console.log(fileString, answer)
 								}
-							})
+							}
 						}
-					})
-					success()
+						success()
+					}
+				} catch(err) {
+					this._onError(this.label, '_getFiles child_process', err)
 				}
 			})
 		}).catch(err => {

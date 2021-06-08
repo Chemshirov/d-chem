@@ -102,6 +102,7 @@ class Logger {
 	
 	_rabbitMQreceive(object, onDone) {
 		this._addToQueue(object)
+		console.log(Date.now(), object)
 		onDone(true)
 	}
 	

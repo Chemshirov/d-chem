@@ -55,10 +55,14 @@ class Onrequest {
 	async _startDockers() {
 		try {
 			let prePath = process.env.STAGE + '/' + process.env.LABEL + '/'
+			console.log(1)
 			await this.rabbitMQ.send('dockerrun', {type: 'start', path: prePath + 'watcher/'})
-			await this.rabbitMQ.send('dockerrun', {type: 'start', path: prePath + 'router/'})
+			console.log(2)
 			await this.rabbitMQ.send('dockerrun', {type: 'start', path: prePath + 'subsections/finance6/'})
+			console.log(4)
 			await this.rabbitMQ.send('dockerrun', {type: 'start', path: prePath + 'subsections/git/'})
+			console.log(5)
+			await this.rabbitMQ.send('dockerrun', {type: 'start', path: prePath + 'router/'})
 		} catch(err) {
 			this._onError(this.label, '_startDockers', err)
 		}
@@ -108,7 +112,7 @@ class Onrequest {
 			if (url.split('.').length < 2) {
 				type = 'dynamic'
 			} if (url.split('/').length < 3) {
-				type = 'dynamic'
+				// type = 'dynamic'
 			} else {
 				let reverseUrl = url.split('').reverse().join('')
 				let ext = reverseUrl.split('.')[0].split('').reverse().join('')
@@ -130,7 +134,6 @@ class Onrequest {
 				} else {
 					let ip = result.toString().trim()
 					let domainName = siteSettings.nameByIp(ip)
-					console.log('domainName', domainName)
 					this.domain = domainName
 					success()
 				}

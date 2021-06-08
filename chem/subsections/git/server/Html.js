@@ -1,6 +1,8 @@
+const Settings = require('../../../../_common/Settings.js')
+
 class Html {
-	constructor(object, path) {
-		this.o = object
+	constructor(commonObject) {
+		this.o = commonObject
 		this.mainHtml = ''
 	}
 	
@@ -28,16 +30,16 @@ class Html {
 		this._setHeader()
 		this._setMain()
 		this._setErrors()
-		let origin = this.o.Server.origin
 		let html = `
 			<!DOCTYPE html>
 			<html lang="en">
 				<head>
 					<meta charset="utf-8">
-					<link rel="stylesheet" type="text/css" href="${origin}/bootstrap431/css/bootstrap.min.css">
-					<link rel="stylesheet" type="text/css" href="/git/www/main.css">
-					<script async type="module" src="/git/www/Main.js"></script>
-					<script src="${origin}/socket.io/socket.io.min.js"></script>
+					<title>Git</title>
+					<link rel="stylesheet" type="text/css" href="/bootstrap431/css/bootstrap.min.css">
+					<link rel="stylesheet" type="text/css" href="/git/main.css">
+					<script async type="module" src="/git/Main.js"></script>
+					<script src="/socket.io/socket.io.js"></script>
 				</head>
 				<body>
 					${this.header}
@@ -51,16 +53,16 @@ class Html {
 	
 	_setMain() {
 		this.mainHtml = ``
-		Object.keys(this.o.Projects.projects).forEach(name => {
-			let Project = this.o.Projects.projects[name]['Project']
-			this._setProject(Project)
-		})
+		if (this.o.Projects && this.o.Projects.projects) {
+			Object.keys(this.o.Projects.projects).forEach(name => {
+				let Project = this.o.Projects.projects[name]['Project']
+				this._setProject(Project)
+			})
+		}
 	}
 	
 	_setProject(Project) {
-		let serverPath = (Project.workingDirectory || '').replace(this.o.Server.tilda, '~/')
-		let bareRegExp = new RegExp('^' + this.o.Server.files + '(.+)')
-		let barePath = (Project.barePath || '').replace(bareRegExp, `tom@${this.o.Server.host}:/home/tom/git/$1`)
+		let serverPath = Project.workingDirectory || ''
 		let setBranch = this._setBranch(Project)
 		let ableToBePulled = this._setPullable(Project.ableToBePulled)
 		let cliResult = this._setCliResult(Project.cliResult)
@@ -104,10 +106,6 @@ class Html {
 					<div>
 						<span class="font-weight-light">Git: </span>
 						<span>${Project.gitPath}</span>
-					</div>
-					<div>
-						<span class="font-weight-light">Bare: </span>
-						<span>${barePath}</span>
 					</div>
 				</div>
 				${changedFiles}
@@ -370,8 +368,7 @@ class Html {
 	}
 	
 	_setHeader() {
-		let startDate = this.o.Server.startDate
-		let readableDate = this.o.Server.getDate(this.o.Server.startDate)
+		let readableDate = this._getDate(this.o.Main.startDate)
 		this.header = `
 			<div class="container-fluid text-right">
 				<small class="text-muted">
@@ -381,39 +378,48 @@ class Html {
 		`
 	}
 	
+	_getDate(date) {
+		let dateString = new Date(+date + 1000 * 60 * 60 * 3).toISOString()
+			dateString = dateString.replace(/T/, ' ').replace(/Z/, '')
+			dateString = dateString.replace(/\.[0-9]+$/, '')
+		return dateString
+	}
+	
 	_setErrors() {
-		let errorHtml = ''
-		Object.keys(this.o.Server.errorObject).forEach(date => {
-			let object = this.o.Server.errorObject[date]
-			errorHtml += `
-				<div class="d-flex flex-column">
-					<div class="d-flex">
-						<div class="p-2 flex-fill">
-							${this.o.Server.getDate(date)}
-						</div>
-						<div class="p-2 flex-fill">
-							${object.className}
-						</div>
-						<div class="p-2 flex-fill">
-							${object.func}
-						</div>
-					</div>
-					<div class="d-flex">
-						${object.error.toString()}
-					</div>
-				</div>
-			`
-		})
 		this.errors = ''
-		if (errorHtml) {
-			this.errors = `
-				<div class="container-fluid">
-					<h4 class="pt-4">Errors</h4>
-					<div class="container">
-						${errorHtml}
+		let errorHtml = ''
+		if (this.o.Main.errorObject) {
+			Object.keys(this.o.Main.errorObject).forEach(date => {
+				let object = this.o.Main.errorObject[date]
+				errorHtml += `
+					<div class="d-flex flex-column">
+						<div class="d-flex">
+							<div class="p-2 flex-fill">
+								${this._getDate(date)}
+							</div>
+							<div class="p-2 flex-fill">
+								${object.className}
+							</div>
+							<div class="p-2 flex-fill">
+								${object.func}
+							</div>
+						</div>
+						<div class="d-flex">
+							${object.error.toString()}
+						</div>
 					</div>
-				</div>
-			`
+				`
+			})
+			if (errorHtml) {
+				this.errors = `
+					<div class="container-fluid">
+						<h4 class="pt-4">Errors</h4>
+						<div class="container">
+							${errorHtml}
+						</div>
+					</div>
+				`
+			}
 		}
 	}
 }

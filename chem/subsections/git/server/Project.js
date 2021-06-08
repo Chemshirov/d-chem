@@ -5,12 +5,8 @@ class Project {
 		Object.keys(props).forEach(prop => {
 			this[prop] = props[prop]
 		})
-		this.gitDirsString = ''
-		if ((/^chem/).test(this.name)) {
-			this.gitDirsString = 'server www'
-			this.superRepository = 'server www'
-		}
 		
+		this.label = this.constructor.name
 		this._init()
 		this._setFetchInterval()
 	}
@@ -19,18 +15,18 @@ class Project {
 		return new Promise(success => {
 			this.gitCmd = `git --git-dir='${this.gitPath}'`
 			let cmd = this.gitCmd + ` remote`
-			this.o.Server.exec(cmd, true).then(stdin => {
+			this.o.Main.exec(cmd, true).then(stdin => {
 				if ((/origin/).test(stdin.toString())) {
 					success()
 				} else {
 					let cmd = this.gitCmd + ` remote add origin ` + this.barePath
-					this.o.Server.exec(cmd).then(() => {
+					this.o.Main.exec(cmd).then(() => {
 						success()
 					})
 				}
 			})
 		}).catch(err => {
-			this.o.Server.setError('Project', '_init', err)
+			this.o.Main.setError(this.label, '_init', err)
 		})
 	}
 	
@@ -44,14 +40,14 @@ class Project {
 			await this.getAbleToPush()
 			success()
 		}).catch(err => {
-			this.o.Server.setError('Project', 'renew', err)
+			this.o.Main.setError(this.label, 'renew', err)
 		})
 	}
 	
 	_getWorkingDirectory() {
 		return new Promise(async success => {
 			let cmd = this.gitCmd + ` rev-parse --show-cdup`
-			this.o.Server.exec(cmd, true).then(result => {
+			this.o.Main.exec(cmd, true).then(result => {
 				let string = result.replace(/\n/g, '')
 				this.workingDirectory = string
 				if (!(/\-\-work\-tree/).test(this.gitCmd)) {
@@ -60,14 +56,14 @@ class Project {
 				success()
 			})
 		}).catch(err => {
-			this.o.Server.setError('Project', '_getWorkingDirectory', err)
+			this.o.Main.setError(this.label, '_getWorkingDirectory', err)
 		})
 	}
 	
 	_getGitHubPath() {
 		return new Promise(async success => {
 			let cmd = this.gitCmd + ` remote get-url --push origin`
-			this.o.Server.exec(cmd, true).then(result => {
+			this.o.Main.exec(cmd, true).then(result => {
 				let string = result.replace(/\n/g, '')
 				if ((/^git@github\.com/).test(string)) {
 					if (!this.barePath) {
@@ -77,20 +73,20 @@ class Project {
 				success()
 			})
 		}).catch(err => {
-			this.o.Server.setError('Project', '_getWorkingDirectory', err)
+			this.o.Main.setError(this.label, '_getGitHubPath', err)
 		})
 	}
 	
 	_getBranch() {
 		return new Promise(async success => {
 			let cmd = this.gitCmd + ` rev-parse --abbrev-ref HEAD`
-			this.o.Server.exec(cmd, true).then(result => {
+			this.o.Main.exec(cmd, true).then(result => {
 				let string = result.replace(/\n/g, '')
 				this.currentBranch = string
 				success()
 			})
 		}).catch(err => {
-			this.o.Server.setError('Project', '_getBranch', err)
+			this.o.Main.setError(this.label, '_getBranch', err)
 		})
 	}
 	
@@ -98,9 +94,9 @@ class Project {
 		return new Promise(async success => {
 			if (this.barePath) {
 				let fetchCmd = this.gitCmd + ` fetch --all`
-				await this.o.Server.exec(fetchCmd, true)
+				await this.o.Main.exec(fetchCmd, true)
 				let cmd = this.gitCmd + ` diff origin/master`
-				this.o.Server.exec(cmd, true).then(result => {
+				this.o.Main.exec(cmd, true).then(result => {
 					let mark = '!@!@!@!'
 					let regExp = /diff --git a([^@ ]+)[^@]+@@/gm
 					let string = result.replace(regExp, mark + '$1\n@@')
@@ -112,7 +108,7 @@ class Project {
 					if (this.pullSha256 !== pullSha256) {
 						this.pullSha256 = pullSha256
 						if (sendReload) {
-							this.o.Server.sendReload(true)
+							this.o.Main.sendReload(true)
 						}
 					}
 					success()
@@ -121,14 +117,14 @@ class Project {
 				success()
 			}
 		}).catch(err => {
-			this.o.Server.setError('Project', 'getChanged', err)
+			this.o.Main.setError(this.label, '_getAbleToPull', err)
 		})
 	}
 	
 	getChanged() {
 		return new Promise(success => {
-			let cmd = this.gitCmd + ` add ${this.gitDirsString} -u -n`
-			this.o.Server.exec(cmd, true).then(stdin => {
+			let cmd = this.gitCmd + ` add ${this.workingDirectory} -u -n`
+			this.o.Main.exec(cmd, true).then(stdin => {
 				let changedFiles = []
 				if (stdin) {
 					let array = stdin.toString().split('\n')
@@ -143,14 +139,14 @@ class Project {
 				success()
 			})
 		}).catch(err => {
-			this.o.Server.setError('Project', 'getChanged', err)
+			this.o.Main.setError(this.label, 'getChanged', err)
 		})
 	}
 	
 	getAbleToPush() {
 		return new Promise(success => {
 			let cmd = this.gitCmd + ` cherry -v`
-			this.o.Server.exec(cmd, true).then(result => {
+			this.o.Main.exec(cmd, true).then(result => {
 				if ((/[a-f0-9]{32,}/).test(result)) {
 					this.ableToBePushed = result.split(/\n/)
 				} else {
@@ -159,7 +155,7 @@ class Project {
 				success()
 			})
 		}).catch(err => {
-			this.o.Server.setError('Project', 'getChanged', err)
+			this.o.Main.setError(this.label, 'getAbleToPush', err)
 		})
 	}
 	
@@ -169,13 +165,13 @@ class Project {
 			data.files.forEach(file => {
 				addCmd += this.gitCmd + ` add ` + file + `; `
 			})
-			await this.o.Server.exec(addCmd, true)
+			await this.o.Main.exec(addCmd, true)
 			let text = (data.text + '').replace(/'/g, '’')
 			let commitCmd = this.gitCmd + ` commit -m '${text}'`
-			await this.o.Server.exec(commitCmd, true)
+			await this.o.Main.exec(commitCmd, true)
 			success()
 		}).catch(err => {
-			this.o.Server.setError('Project', 'commit', err)
+			this.o.Main.setError(this.label, 'commit', err)
 		})
 	}
 	
@@ -183,7 +179,7 @@ class Project {
 		return new Promise(async success => {
 			let cmd = this.gitCmd + ` ` + value
 			if (value && value.length > 2) {
-				await this.o.Server.exec(cmd, true).then(result => {
+				await this.o.Main.exec(cmd, true).then(result => {
 					this.cliResult = {
 						value: this.gitCmd + ` ` + value,
 						result: result.replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -194,7 +190,7 @@ class Project {
 			}
 			success()
 		}).catch(err => {
-			this.o.Server.setError('Project', 'cli', err)
+			this.o.Main.setError(this.label, 'cli', err)
 		})
 	}
 	
@@ -208,7 +204,7 @@ class Project {
 			}
 			if (cmdEnd) {
 				let cmd = this.gitCmd + ` ` + cmdEnd
-				await this.o.Server.exec(cmd, true).then(result => {
+				await this.o.Main.exec(cmd, true).then(result => {
 					this.cliResult = {
 						value: this.gitCmd + ` ` + cmdEnd,
 						result: result.replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -217,7 +213,7 @@ class Project {
 			}
 			success()
 		}).catch(err => {
-			this.o.Server.setError('Project', 'cliShows', err)
+			this.o.Main.setError(this.label, 'cliShows', err)
 		})
 	}
 	
@@ -229,42 +225,42 @@ class Project {
 			await this.cliShows('graph')
 			success()
 		}).catch(err => {
-			this.o.Server.setError('Project', 'copyToProduction', err)
+			this.o.Main.setError(this.label, 'copyToProduction', err)
 		})
 	}
 	
 	push() {
 		return new Promise(success => {
 			let pushCmd = this.gitCmd + ` push`
-			this.o.Server.exec(pushCmd, true).then(result => {
+			this.o.Main.exec(pushCmd, true).then(result => {
 				if (result === 'pullFirst') {
 					this[result] = true
 				}
 				success()
 			})
 		}).catch(err => {
-			this.o.Server.setError('Project', 'push', err)
+			this.o.Main.setError(this.label, 'push', err)
 		})
 	}
 	
 	pushAnyway() {
 		return new Promise(success => {
 			let cmd = this.gitCmd + ` push -f origin master`
-			this.o.Server.exec(cmd, true).then(result => {
+			this.o.Main.exec(cmd, true).then(result => {
 				success()
 			})
 		}).catch(err => {
-			this.o.Server.setError('Project', 'pushAnyway', err)
+			this.o.Main.setError(this.label, 'pushAnyway', err)
 		})
 	}
 	
 	pull() {
 		return new Promise(async success => {
 			let cmd = this.gitCmd + ` pull`
-			await this.o.Server.exec(cmd, true)
+			await this.o.Main.exec(cmd, true)
 			success()
 		}).catch(err => {
-			this.o.Server.setError('Project', 'pull', err)
+			this.o.Main.setError(this.label, 'pull', err)
 		})
 	}
 	

@@ -49,34 +49,64 @@ class RabbitMQ {
 				await this._getQueue(devOrNotName)
 				this.channel.sendToQueue(devOrNotName, this._getBuffer(object), lookbackAddress)
 				
-				let acknowledgeMode = this._redeliveryOnFail(true)
-				this.channel.consume(queueName, this._onAnswer(uniqueId, resend || success), acknowledgeMode)
+				let redelivery = this._redeliveryOnFail(true)
+				this.channel.consume(queueName, this._onAnswer(resend || success, uniqueId), redelivery)
 			}
 		}).catch(error => {
 			this.Errors(this.label, 'send', error)
 		})
 	}
 	
-	_onAnswer(uniqueId, success) {
-		return (msg) => {
-			if (msg.properties.correlationId === uniqueId) {
-				let string = msg.content.toString()
-				let object = JSON.parse(string)
-				success(object)
+	async sendToAll(label, object) {
+		try {
+			if (label) {
+				let queueName = this.sendToAll.name + label
+				let channel = await this.connection.createChannel()
+				await channel.assertExchange(queueName, 'fanout', {durable: false})
+				channel.publish(queueName, '', this._getBuffer(object))
+			}
+		} catch(error) {
+			this.Errors(this.label, 'sendToAll', error)
+		}
+	}
+	async subscribe(callback) {
+		try {
+			if (typeof callback === 'function') {
+				let name = callback.name.replace(/^bound /, '')
+				let exchangeQueueName = this.sendToAll.name + name
+				let channel = await this.connection.createChannel()
+				await channel.assertExchange(exchangeQueueName, 'fanout', {durable: false})
+				let anotherQueue = await channel.assertQueue('', {exclusive: true})
+				let anotherQueueName = anotherQueue.queue
+				channel.bindQueue(anotherQueueName, exchangeQueueName, '')
+				channel.consume(anotherQueueName, this._onAnswer(callback), this._redeliveryOnFail(false))
+			}
+		} catch(error) {
+			this.Errors(this.label, 'subscribe', error)
+		}
+	}
+	
+	_onAnswer(success, uniqueId) {
+		if (typeof success === 'function') {
+			return (msg) => {
+				if (!uniqueId || msg.properties.correlationId === uniqueId) {
+					let string = msg.content.toString()
+					let object = JSON.parse(string)
+					success(object)
+				}
 			}
 		}
 	}
 	
-	_connection() {
-		return new Promise(async success => {
+	async _connection() {
+		try {
 			let hostName = this._devOrNotName('rabbitmq')
 			this.connection = await this.amqplib.connect('amqp://' + hostName)
 			this.channel = await this.connection.createChannel()
 			await this._receive()
-			success()
-		}).catch(error => {
+		} catch(error) {
 			this.Errors(this.label, '_connection', error)
-		})
+		}
 	}
 	
 	_receive(name) {

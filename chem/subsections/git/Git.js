@@ -1,17 +1,14 @@
 const Main = require('./server/Main.js')
 const RabbitMQ = require('../../../_common/RabbitMQ.js')
-const Servers = require('./server/Servers.js')
-const Settings = require('../../../_common/Settings.js')
 const Statistics = require('../../../_common/Statistics.js')
 
 class Git {
 	constructor() {
 		this.label = this.constructor.name
 		
-		this.main = new Main(this._onError.bind(this))
 		this.rabbitMQ = new RabbitMQ(this._onError.bind(this), this._rabbitMQreceive.bind(this))
-		this.servers = new Servers(this._onError.bind(this))
 		this.statistics = new Statistics(this._onError.bind(this), this.rabbitMQ)
+		this.main = new Main(this._onError.bind(this), this.rabbitMQ)
 		
 		this._start()
 	}
@@ -20,7 +17,6 @@ class Git {
 		return new Promise(async success => {
 			this._setUnhandledErrorsHandler()
 			await this.rabbitMQ.connect()
-			await this.servers.start([Settings.port])
 			await this.main.start()
 			this.rabbitMQ.send('dockerrun_started', {
 				type: 'started',

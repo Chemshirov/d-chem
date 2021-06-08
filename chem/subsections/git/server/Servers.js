@@ -1,4 +1,5 @@
 const AbstractServers = require('../../../../_common/Servers.js')
+const Sockets = require('./Sockets.js')
 
 class Servers extends AbstractServers {
 	constructor(onError) {
@@ -6,15 +7,18 @@ class Servers extends AbstractServers {
 		this._onError = onError
 	}
 	
-	async start(ports) {
+	async start(commonObject, ports) {
+		this.o = commonObject
 		this.ports = ports
 		await super.startHttp()
 		super.setRouter(this._routes)
+		
+		this.o.Sockets = new Sockets(this._onError, this.o, this.websockets)
 	}
 	
 	_routes(url, reqest, response) {
-		console.log(url)
-		response.send('git')
+		let html = this.o.Html.get()
+		response.send(html)
 	}
 }
 

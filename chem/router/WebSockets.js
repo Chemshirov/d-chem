@@ -26,10 +26,17 @@ class Router {
 			this._socketHandle(socket, event, ...args)
 			next()
 		})
+		socket.on('disconnect', (reason) => {
+			if (this._clientSockets[socket.id] && this._clientSockets[socket.id].socket) {
+				this._clientSockets[socket.id].socket.disconnect()
+				delete this._clientSockets[socket.id]
+			}
+		})
+		
 	}
 	
 	async _socketHandle(clientSocket, event, ...args) {
-		// console.log(Date.now(), 'get', clientSocket.id.substring(0, 6), event, JSON.stringify(...args).substring(0, 20))
+		// console.log('get', clientSocket.id.substring(0, 6), event, JSON.stringify(...args).substring(0, 20))
 		if (!this._clientSockets[clientSocket.id]) {
 			this._clientSockets[clientSocket.id] = {queue: []}
 			let object = this._clientSockets[clientSocket.id]
@@ -59,7 +66,6 @@ class Router {
 			try {
 				let object = this._clientSockets[clientSocketID]
 				if (object && !object.socket) {
-					// console.log(Date.now(), 'set', clientSocketID)
 					let uid = ''
 					let referer = ''
 					if (headers && typeof(headers) === 'object') {
@@ -67,6 +73,7 @@ class Router {
 						referer = headers.referer
 					}
 					let {host} = this._getCredentials(label)
+					// console.log(Date.now(), 'set', clientSocketID, host, uid, referer)
 					let socket = await this._createSocket(host, uid, referer)
 					object.socket = socket
 					this._updateTimeout(clientSocketID)
@@ -88,7 +95,7 @@ class Router {
 		if (!nextSocket[eventName]) {
 			nextSocket[eventName] = true
 			nextSocket.on(event, data => {
-				// console.log(Date.now(), 'ans', clientSocket.id.substring(0, 6), JSON.stringify(data).substring(0, 20))
+				// console.log('ans', clientSocket.id.substring(0, 6), event, JSON.stringify(data).substring(0, 20))
 				clientSocket.emit(event, data)
 			})
 		}

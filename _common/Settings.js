@@ -3,7 +3,7 @@ class Settings {
 		return 'chemshirov'
 	}
 	static get topLevelDomainNames() {
-		return ['com', 'ru']
+		return ['ru', 'com']
 	}
 	static get domains() {
 		let domains = []
@@ -45,38 +45,34 @@ class Settings {
 	static staticRouteTable() {
 		let sda = '/usr/nodejs/sda/'
 		let subsections = process.env.TILDA + process.env.STAGE + '/' + process.env.LABEL + '/subsections'
+		let sdaLabelPath = sda + process.env.STAGE + '/' + process.env.LABEL + '/'
 		return {
 			[process.env.TILDA + 'libraries/']: ['/libraries/', '/js/'],
 			[process.env.TILDA + 'libraries/bootstrap431/']: ['/bootstrap431/'],
-			[sda + process.env.LABEL + '/' + process.env.STAGE + '/files/']: ['/data/files/'],
+			[subsections +  '/finance6/www_old/']: ['/finance6/'],
+			[subsections +  '/git/www/']: ['/git/'],
+			
+			[sdaLabelPath + 'subsections/data/files/']: ['/data/files/'],
+			[sdaLabelPath + 'wwwRootFiles/']: ['/'],
 			[sda + '/audiobooks/']: ['/audiobooks/'],
 			[sda + '/films/']: ['/films/'],
 			[sda + '/music/']: ['/music/'],
-			[subsections +  '/finance6/www_old/']: ['/finance6/'],
 			
 			[process.env.TILDA + 'chem_develop/www/data/']: ['/data/'],
 			[process.env.TILDA + 'chem_develop/www/index/']: ['/index/'],
 			[process.env.TILDA + 'chem_develop/www/js/']: ['/js/'],
-			[process.env.TILDA + 'chem_develop/www/ -maxdepth 1']: ['/'],
 		}
 	}
 	
-	static get statisticsInterval() {
-		return 1000
-	}
-	
-	static get timeZone() {
-		return 3
-	}
-	
-	static get mimeTypes() {
+	static get staticMimeTypes() {
 		return {
 			'.css': 'text/css; charset=UTF-8',
-			'.map': 'application/json; charset=UTF-8',
 			'.js': 'application/javascript; charset=UTF-8',
 			'.json': 'application/json; charset=UTF-8',
+			'.map': 'application/json; charset=UTF-8',
 			'.txt': 'text/plain; charset=UTF-8',
 			'.html': 'text/html; charset=UTF-8',
+			'.ico': 'image/x-icon',
 			'.jpg': 'image/jpeg',
 			'.jpeg': 'image/jpeg',
 			'.png': 'image/png',
@@ -87,6 +83,14 @@ class Settings {
 			'.mp3': 'audio/mpeg',
 			'.mp4': 'video/mp4',
 		}
+	}
+	
+	static get statisticsInterval() {
+		return 1000
+	}
+	
+	static get timeZone() {
+		return 3
 	}
 }
 

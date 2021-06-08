@@ -34,7 +34,7 @@ class Router {
 				this.servers.startHttp(isWebsocketType ? false : true)
 				
 				if (isWebsocketType) {
-					let webSockets = new WebSockets(this._onError, this._credentials, this.oldHostName)
+					let webSockets = new WebSockets(this._onError.bind(this), this._credentials, this.oldHostName)
 					webSockets.start(this.servers.websockets)
 				} else {
 					this.proxy = proxyServer.createProxyServer()

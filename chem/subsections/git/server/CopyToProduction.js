@@ -2,7 +2,7 @@ class CopyToProduction {
 	constructor(o) {
 		this.o = o
 		this.maxDumpAmount = 5
-		this.chemPath = this.o.Server.tilda + 'chem/https/'
+		this.chemPath = process.env.TILDA + 'production'
 	}
 	
 	getDump() {

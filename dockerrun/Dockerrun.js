@@ -41,7 +41,7 @@ class Dockerrun {
 				settings = this.startObject[path].settings.join(' ')
 			}
 			let string = `${path} ${settings}`
-			let cmd = `echo ${string} > ${this.currentPath}/toRun/dockerToRun${date}.temp`
+			let cmd = `echo ${string} > ${this.currentPath}toRun/dockerToRun${date}.temp`
 			this.rabbitMQ.send('logger', {type: 'log', label: process.env.HOSTNAME, data: cmd})
 			child_process.exec(cmd, (err, stdout, stderr) => {
 				if (err) {
