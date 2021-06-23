@@ -189,7 +189,7 @@ class RabbitMQ {
 	}
 	
 	_devOrNotName(name) {
-		if (process.env.STAGE === 'development') {
+		if (process.env.STAGE === 'development' && name) {
 			let regexp = new RegExp('^' + process.env.PREFIX)
 			let notDevName = name.replace(regexp, '')
 			name = process.env.PREFIX + notDevName
@@ -221,7 +221,7 @@ class RabbitMQ {
 			if (!this._notAnError(error)) {
 				if (error && typeof error === 'object' && error.message === 'Channel closed') {
 					this.connection.fail = true
-					if (this._sendNow) {
+					if (this._sendNow && this._sendNow.name) {
 						this._resend(this._sendNow.name, this._sendNow.object, this._sendNow.success)
 					}
 					this._queues = {}

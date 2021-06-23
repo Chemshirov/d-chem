@@ -10,14 +10,15 @@ class Syncer {
 	constructor(onError, rabbitMQ) {
 		this.onError = onError
 		this.rabbitMQ = rabbitMQ
-		this.rabbitMQ.subscribe(this._reconnectToRedis.bind(this), 'reconnectToRedis')
 		this.label = this.constructor.name
-		this.financelabel = 'finance6'
-		this.financeContainerName = process.env.PREFIX + process.env.LABEL + '_' + this.financelabel
+		this.financeLabel = 'finance6'
+		this.financeContainerName = process.env.PREFIX + process.env.LABEL + '_' + this.financeLabel
 	}
 	
 	async init() {
-		this.rabbitMQ.subscribe(this._finance6.bind(this), this.financelabel)
+		this.rabbitMQ.subscribe(this._reconnectToRedis.bind(this), 'reconnectToRedis')
+		this.rabbitMQ.subscribe(this._remoteSync.bind(this), 'remote' + this.label)
+		this.rabbitMQ.subscribe(this._finance6.bind(this), this.financeLabel)
 		await this._init()
 	}
 	
@@ -26,7 +27,7 @@ class Syncer {
 	}
 	
 	async request(path) {
-		await this._request(path)
+		await this._request({ path })
 	}
 	
 	async _request(object, label, slaveToMaster) {
@@ -56,9 +57,9 @@ class Syncer {
 				try {
 					let object = JSON.parse(message)
 					if (channel === this.label) {
-						await this._work(object)
+						await this._rsync(object.path)
 					} else
-					if (channel === this.financelabel) {
+					if (channel === this.financeLabel) {
 						await this._finance6(object, 'catched')
 					}
 				} catch(error) {
@@ -70,7 +71,7 @@ class Syncer {
 		}
 	}
 	
-	async _work(path) {
+	async _rsync(path) {
 		try {
 			return new Promise(success => {
 				let user = logins.sshUser
@@ -87,10 +88,10 @@ class Syncer {
 					success()
 				})
 			}).catch(error => {
-				this.onError(this.label, '_work Promise', error)
+				this.onError(this.label, '_rsync Promise', error)
 			})
 		} catch(error) {
-			this.onError(this.label, '_work', error)
+			this.onError(this.label, '_rsync', error)
 		}
 	}
 	
@@ -99,9 +100,9 @@ class Syncer {
 			try {
 				this.rabbitMQ.send('logger', {type: 'log', label: process.env.HOSTNAME, data: 'copyingToSlave'})
 				await this._getIp()
-				await this._work(process.env.TILDA + process.env.STAGE + '/')
-				await this._work(sdaLabelPath)
-				await this._work(process.env.TILDA + 'libraries/')
+				await this._rsync(process.env.TILDA + process.env.STAGE + '/')
+				await this._rsync(sdaLabelPath)
+				await this._rsync(process.env.TILDA + 'libraries/')
 				let ok = await this.rabbitMQ.send(this.financeContainerName, {type: 'syncSql'})
 				this.rabbitMQ.send('logger', {type: 'log', label: process.env.HOSTNAME, data: 'copyedToSlave'})
 				if (ok) {
@@ -151,7 +152,7 @@ class Syncer {
 		try {
 			await this._setRedis('subscribedRedis', 'currentIp')
 			await this.subscribedRedis.subscribe(this.label)
-			await this.subscribedRedis.subscribe(this.financelabel)
+			await this.subscribedRedis.subscribe(this.financeLabel)
 			this._catchRequest()
 		} catch(error) {
 			this.onError(this.label, '_subscribeInit', error)
@@ -171,12 +172,20 @@ class Syncer {
 	async _finance6(object, side) {
 		try {
 			if (!side) {
-				this._request(object, this.financelabel, true)
+				this._request(object, this.financeLabel, true)
 			} else if (side === 'catched') {
 				await this.rabbitMQ.send(this.financeContainerName, object)
 			}
 		} catch(error) {
 			this.onError(this.label, '_finance6', error)
+		}
+	}
+	
+	async _remoteSync(object) {
+		try {
+			this._request(object, this.label, object.slaveToMaster)
+		} catch(error) {
+			this.onError(this.label, '_get', error)
 		}
 	}
 }

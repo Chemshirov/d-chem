@@ -1,95 +1,66 @@
+const sda = '/usr/nodejs/sda/'
+const Settings = require('../../../../_common/Settings.js')
+
 class CopyToProduction {
 	constructor(o) {
 		this.o = o
 		this.label = this.constructor.name
-		this.maxDumpAmount = 5
-		this.chemPath = process.env.TILDA + 'production'
 	}
 	
-	getDump() {
+	copyFiles() {
 		return new Promise(async success => {
-			let date = new Date(Date.now() + 1000 * 60 * 60 * 3).toISOString()
-				date = date.replace(/T/, '_').replace(/\..+$/, '')
-				date = date.replace(/[\-\:]/g, '')
-			let tarName = this.chemPath + date + '.tar.gz'
-			let cmd = `tar czvf ` + tarName + ' ' + this.chemPath + 'server' + ' ' + this.chemPath + 'www'
-			await this.o.Server.exec(cmd)
-			await this._deleteOldDumps()
-			success()
-		}).catch(err => {
-			this.o.Server.setError(this.label, 'getDump', err)
-		})
-	}
-	
-	copyFiles(gitCmd) {
-		return new Promise(async success => {
-			let filesToCopy = []
-			let cmd = `${gitCmd} ls-files -c`
-			await this.o.Server.exec(cmd, true).then(result => {
-				let array = result.split(/\n/)
-				array.forEach(file => {
-					if ((/\//).test(file) && !(/\/\.html$/).test(file)) {
-						filesToCopy.push([this.o.Server.tilda + 'chem_develop/' + file, this.chemPath + file])
-					}
-				})
-			})
-			for (let i = 0; i < filesToCopy.length; i++) {
-				let pair = filesToCopy[i]
-				await this._copyFile(pair[0], pair[1])
+			try {
+				let tildaDevelopmentPath = process.env.TILDA + Settings.developmentStageName + '/*'
+				let tildaProductionPath = process.env.TILDA + Settings.productionStageName + '/'
+				let cmd = this._copyFilesCmd(tildaDevelopmentPath, tildaProductionPath)
+				let sdaDevelopmentPath = sda + Settings.developmentStageName + '/' +  process.env.LABEL + '/'
+				let sdaProductionPath = sda + Settings.productionStageName + '/' +  process.env.LABEL + '/'
+				cmd += this._copyFilesCmd(sdaDevelopmentPath + 'Logins.js', sdaProductionPath)
+				cmd += this._copyFilesCmd(sdaDevelopmentPath + 'Settings.js', sdaProductionPath)
+				await this.o.Main.exec(cmd)
+				
+				await this._syncToSlave(tildaProductionPath)
+				await this._syncToSlave(sdaProductionPath)
+				
+				success()
+			} catch(error) {
+				this.o.Main.setError(this.label, 'copyFiles async', error)
 			}
-			success()
-		}).catch(err => {
-			this.o.Server.setError(this.label, 'copyFiles', err)
+		}).catch(error => {
+			this.o.Main.setError(this.label, 'copyFiles', error)
 		})
 	}
 	
 	merge(gitCmd) {
 		return new Promise(async success => {
-			await this.o.Server.exec(`${gitCmd} checkout production`, true)
-			await this.o.Server.exec(`${gitCmd} merge master`, true)
-			await this.o.Server.exec(`${gitCmd} push`, true)
-			await this.o.Server.exec(`${gitCmd} checkout master`, true)
-			success()
-		}).catch(err => {
-			this.o.Server.setError(this.label, 'merge', err)
+			try {
+				await this.o.Main.exec(`${gitCmd} checkout production`, true)
+				await this.o.Main.exec(`${gitCmd} merge master`, true)
+				await this.o.Main.exec(`${gitCmd} push`, true)
+				await this.o.Main.exec(`${gitCmd} checkout master`, true)
+				success()
+			} catch(error) {
+				this.o.Main.setError(this.label, 'merge async', error)
+			}
+		}).catch(error => {
+			this.o.Main.setError(this.label, 'merge', error)
 		})
 	}
 	
-	_copyFile(from, to) {
-		return new Promise(async success => {
-			let cmd = `cp ${from} ${to}; chown 1000:1000 ${to};`
-			await this.o.Server.exec(cmd)
-			success()
-		}).catch(err => {
-			this.o.Server.setError(this.label, '_copyFile', err)
-		})
+	_copyFilesCmd(from, to) {
+		let cmd = `cp -r ${from} ${to};`
+		cmd += `chown -R 1000:1000 ${to};`
+		return cmd
 	}
 	
-	_deleteOldDumps() {
-		return new Promise(async success => {
-			let dumpArray = []
-			let cmd = `find ${this.chemPath} -maxdepth 1 -type f`
-			await this.o.Server.exec(cmd).then(result => {
-				let array = result.split(/\n/)
-				array.forEach(file => {
-					if ((/[0-9]{8}_[0-9]{6}\.tar\.gz$/).test(file)) {
-						dumpArray.push(file)
-					}
-				})
+	async _syncToSlave(path) {
+		try {
+			await this.o.Main.rabbitMQ.sendToAll('remoteSyncer', {
+				path,
+				slaveToMaster: false
 			})
-			await this._deleteOldDumpsRecursively(dumpArray.sort())
-			success()
-		}).catch(err => {
-			this.o.Server.setError(this.label, '_deleteOldDumps', err)
-		})
-	}
-	
-	async _deleteOldDumpsRecursively(sortedDumps) {
-		if (sortedDumps.length > this.maxDumpAmount) {
-			let fileToDelete = sortedDumps.shift()
-			let cmd = `rm ` + fileToDelete
-			await this.o.Server.exec(cmd)
-			this._deleteOldDumpsRecursively(sortedDumps)
+		} catch(error) {
+			this.o.Main.setError(this.label, '_syncToSlave', error)
 		}
 	}
 }

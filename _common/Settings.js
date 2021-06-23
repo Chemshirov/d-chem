@@ -80,6 +80,10 @@ class Settings {
 		return 500
 	}
 	
+	static get productionStageName() {
+		return 'production'
+	}
+	
 	static get rabbitMqTimeout() {
 		return 5000
 	}

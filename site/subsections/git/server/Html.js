@@ -121,22 +121,20 @@ class Html {
 		`
 		if (Project.currentBranch === 'master') {
 			if (Project.name === 'd-chem') {
-				if (!Project.changedFiles || Project.changedFiles.length === 0) {
-					if (!Project.ableToBePushed) {
-						html += `
-							<div class="d-flex position-relative ml-2">
-								<button toProduction class="btn btn-sm btn-outline-warning text-danger" type="button">
-									To production
+				// if (!Project.changedFiles || Project.changedFiles.length === 0) {
+					html += `
+						<div class="d-flex position-relative ml-2">
+							<button toProduction class="btn btn-sm btn-outline-warning text-danger" type="button">
+								To production
+							</button>
+							<div class="position-absolute m-0 mt-1 p-0 dropdown dropdown-menu">
+								<button copyToProduction class="btn btn-sm btn-danger w-100" type="button">
+									I'm sure!
 								</button>
-								<div class="position-absolute m-0 mt-1 p-0 dropdown dropdown-menu">
-									<button copyToProduction class="btn btn-sm btn-danger w-100" type="button">
-										I'm sure!
-									</button>
-								</div>
 							</div>
-						`
-					}
-				}
+						</div>
+					`
+				// }
 			}
 		}
 		return html

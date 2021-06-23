@@ -33,27 +33,27 @@ class Arbiter {
 				if (await this._isAnotherRedisConnected()) {
 					if (await this._wasMasterLastTime()) {
 						if (await this._wasInternetBreach()) {
-							await this._becomeSlave()
+							await this._becomeSlave('There was internet breach')
 						} else {
-							await this._becomeMaster()
+							await this._becomeMaster('There was no internet breach')
 						}
 					} else {
-						await this._becomeSlave()
+						await this._becomeSlave('Current server was not a master at last time')
 					}
 				} else {
-					await this._becomeMaster()
+					await this._becomeMaster('Another redis has no connection')
 				}
 			} else {
-				await this._becomeSlave()
+				await this._becomeSlave('Internet does not work')
 			}
 		} catch(error) {
 			this.onError(this.label, '_choosing', error)
 		}
 	}
 	
-	async _becomeMaster() {
+	async _becomeMaster(reason) {
 		try {
-			let ok = await this._become('master')
+			let ok = await this._become('master', reason)
 			if (ok) {
 				await this._hsetToBoth('masterIp', this.currentIp)
 				await this._hsetToBoth('slaveIp', this.anotherIp)
@@ -64,15 +64,15 @@ class Arbiter {
 		}
 	}
 	
-	async _becomeSlave() {
+	async _becomeSlave(reason) {
 		try {
-			let ok = await this._become('slave')
+			let ok = await this._become('slave', reason)
 			if (ok && !this._copying) {
 				this._copying = true
 				let syncer = new Syncer(this.onError, this.rabbitMQ)
 				await syncer.copyToSlave()
 				if (this._isPredispositionalMaster) {
-					this._becomeMaster()
+					this._becomeMaster('Ressurection')
 				}
 				this._copying = false
 			}
@@ -81,7 +81,7 @@ class Arbiter {
 		}
 	}
 	
-	async _become(type) {
+	async _become(type, reason) {
 		let ok = false
 		if (await this._wasInternetBreach()) {
 			await this.currentRedis.hdel(ArbiterTime.name, 'internetBreach')
@@ -89,10 +89,17 @@ class Arbiter {
 			ok = true
 		}
 		if (this._lastBecoming !== type) {
+			let data = {
+				text: 'I am ' + type,
+				reason: reason
+			}
+			if (!this._lastBecoming) {
+				console.log(data.text)
+			} else {
+				console.log(data, this._wasMasterLastTimeLog)
+			}
 			this._lastBecoming = type
-			let data = 'I am ' + type
 			this.rabbitMQ.send('logger', {type: 'log', label: process.env.HOSTNAME, data})
-			console.log(data)
 			ok = true
 		}
 		if (ok) {
@@ -126,7 +133,7 @@ class Arbiter {
 			try {
 				let internetWorksPromise = redis.hget(ArbiterTime.name, 'internetWorks').catch(redis.onCatch)
 				internetWorksPromise.then(date => {
-					if ((Date.now() - date) <= Settings.arbiterTimeInterval * 2) {
+					if ((Date.now() - date) < Settings.arbiterTimeInterval * 3) {
 						success(true)
 					} else {
 						success(false)
@@ -144,20 +151,28 @@ class Arbiter {
 	
 	async _wasMasterLastTime() {
 		try {
+			this._wasMasterLastTimeLog = []
 			let masterIpByCurrent = await this.currentRedis.hget(this.label, 'masterIp')
+			this._wasMasterLastTimeLog.push('masterIpByCurrent:' + masterIpByCurrent)
 			let masterIpByAnother = false
 			if (this.anotherRedis) {
 				masterIpByAnother = await this.anotherRedis.hget(this.label, 'masterIp').catch(this.anotherRedis.onCatch)
+				this._wasMasterLastTimeLog.push('masterIpByAnother: ' + masterIpByAnother)
 			}
 			let masterIp = masterIpByCurrent || masterIpByAnother
+			this._wasMasterLastTimeLog.push('masterIp: ' + masterIp)
 			if (masterIpByCurrent && masterIpByAnother && masterIpByCurrent !== masterIpByAnother) {
 				let masterDateByCurrent = await this.currentRedis.hget(this.label, 'masterDate')
+				this._wasMasterLastTimeLog.push('masterDateByCurrent: ' + masterDateByCurrent)
 				let masterDateByAnother = 0
 				if (this.anotherRedis) {
 					masterDateByAnother = await this.anotherRedis.hget(this.label, 'masterDate')
+					this._wasMasterLastTimeLog.push('masterDateByAnother: ' + masterDateByAnother)
 				}
 				let isCurrentMasterFresher = (masterDateByCurrent>>>0 > masterDateByAnother>>>0)
+				this._wasMasterLastTimeLog.push('isCurrentMasterFresher: ' + isCurrentMasterFresher)
 				masterIp = (isCurrentMasterFresher ? masterIpByCurrent : masterIpByAnother)
+				this._wasMasterLastTimeLog.push('masterIp2: ' + masterIp)
 			}
 			if (!masterIp) {
 				masterIp = siteSettings.predispositionalMasterIp
