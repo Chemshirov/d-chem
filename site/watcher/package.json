@@ -1,0 +1,13 @@
+{
+	"name": "chem_watcher",
+	"version": "0.0.4",
+	"main": "Start.js",
+	"scripts": {
+		"start": "node Start.js"
+	},
+	"dependencies": {
+		"amqplib": "latest",
+		"ioredis": "latest",
+		"sha1": "latest"
+	}
+}

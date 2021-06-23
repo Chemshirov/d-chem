@@ -1,0 +1,27 @@
+version: '3.5'
+
+services:
+  git:
+    restart: unless-stopped
+    image: ${PREFIX}${LABEL}_${NAME}
+    container_name: ${PREFIX}${LABEL}_${NAME}
+    hostname: ${PREFIX}${LABEL}_${NAME}
+    environment:
+        - STAGE=${STAGE}
+        - PREFIX=${PREFIX}
+        - LABEL=${LABEL}
+        - NAME=${NAME}
+        - TILDA=/usr/nodejs/tilda/
+        - AFTER_TILDA=${AFTER_TILDA}
+        - EXTRA=${EXTRA}
+    networks:
+      - tilda
+    volumes:
+      - ~/:/usr/nodejs/tilda
+      - /mnt/sda:/usr/nodejs/sda
+      - ~/.ssh:/home/node/.ssh
+
+networks:
+  tilda:
+    external:
+      name: tilda

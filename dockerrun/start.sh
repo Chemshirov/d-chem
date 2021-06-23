@@ -10,7 +10,8 @@ export NAME="${thisPath##*/}";
 stagePath=$(dirname $thisPath);
 export STAGE="${stagePath##*/}";
 export PREFIX="$(echo ${stagePath##*/} | head -c 1)-";
-export AFTER_TILDA=$(echo $thisPath | sed -e "s|$PWD/||")
+beforePath=$(dirname $stagePath);
+export AFTER_TILDA=$(echo $thisPath | sed -e "s|$beforePath/||")/
 
 $thisPath/dockerRunWatcher.sh $STAGE 1>/dev/null 2>/dev/null;
 

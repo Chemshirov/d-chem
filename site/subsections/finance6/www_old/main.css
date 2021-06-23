@@ -1,0 +1,616 @@
+#main{
+	min-width: 600px;
+}
+
+#buttons{
+	padding-bottom: 2em;
+}
+#buttons.dev{
+	background-color: darkorange;
+}
+#buttons[fail]{
+	opacity: 0.5;
+}
+#buttons>div{
+	background: linear-gradient(to bottom, transparent 48%, darkorange 50%, orangered 62%,transparent 70%);
+}
+#buttons>div[fail]{
+	background: linear-gradient(to bottom, transparent 38%, red 60%,black 65%,transparent 70%);
+}
+#buttons div.container{
+	display: flex;
+	justify-content: center;
+	padding-left: 5px;
+	padding-right: 5px;
+}
+#buttons div.btn-toolbar>div {
+	margin-top: 1em;
+}
+#buttons .inputBy>div{
+	display: flex;
+	align-items: center;
+}
+#buttons .btn-group:not(.inputBy),
+#buttons .input-group{
+	box-shadow: 0 0 0.1em 0 black;
+	border-radius: 0.3rem;
+}
+#buttons .input-group-prepend>div{
+	font-size: 130%;
+}
+
+#buttons button[class*=btn-outline]{
+	background-color: white;
+}
+#buttons button[a="input"]{
+	z-index: 1;
+	box-shadow: 0 0 2px 0 grey inset;
+}
+#buttons div[si] {
+	cursor: pointer;
+}
+@media (max-width: 991px) {
+	#buttons div[touched]{
+		margin-right: 3rem;
+		margin-top: 2rem;
+	}
+}
+#buttons div[touched] div[si] {
+	display: none;
+}
+#buttons div[touched] input.search {
+	display: block;
+}
+@media (min-width: 1001px) {
+	#buttons div[si]{
+		display: none;
+	}
+}
+@media (max-width: 1000px) {
+	#buttons input.search{
+		display: none;
+	}
+}
+#buttons input.search {
+	height: auto;
+}
+
+#emit{
+	display: flex;
+	position: fixed;
+	top: 0.5em;
+	right: 1em;
+	z-index: 15;
+}
+#emit>div{
+	padding: 0.2em 0.5em;
+	border-radius: 1em;
+	box-shadow: inset 0 0 0 2em rgba(255,0,255,0.1);
+}
+
+#showO{
+	display: flex;
+	position: fixed;
+	bottom: 0.5em;
+	left: 1em;
+	z-index: 3;
+}
+#showO>div{
+	padding: 0.5em 1em;
+	border-radius: 1em;
+	background-color: #ffffffaa;
+	box-shadow: inset 0 0 0 2em yellow;
+}
+
+#login{
+	position: absolute;
+	display: flex;
+	flex-flow: column;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 10;
+	background: #edad2f;
+	background: linear-gradient(to bottom, #edad2f 0%,#ffffff 100%);
+}
+#login .card-signin{
+	border: 0;
+	border-radius: 1rem;
+	box-shadow: 0 0.5rem 1rem 0 rgba(0, 0, 0, 0.1);
+}
+#login .card-signin .card-body {
+	padding: 2rem;
+}
+#login .form-signin {
+	width: 100%;
+}
+#login .form-signin .btn {
+	font-size: 80%;
+	border-radius: 5rem;
+	letter-spacing: .1rem;
+	font-weight: bold;
+	padding: 1rem;
+	transition: all 0.2s;
+}
+#login .form-label-group {
+	position: relative;
+	margin-bottom: 1rem;
+}
+#login .form-label-group input {
+	height: auto;
+	border-radius: 2rem;
+}
+#login .form-label-group>label {
+	position: absolute;
+	top: 0;
+	left: 0;
+	display: block;
+	width: 100%;
+	margin-bottom: 0;
+	line-height: 1.5;
+	color: #495057;
+	border: 1px solid transparent;
+	border-radius: .25rem;
+	transition: all .1s ease-in-out;
+}
+
+#main>div{
+	position: relative;
+	z-index:2;
+}
+#main #sum{
+	display: flex;
+	justify-content: center;
+	align-items:  flex-end;
+	position: fixed;
+	width: 100%;
+	height: 90%;
+	font-size: 600%;
+	z-index: 2;
+	opacity: 0.3;
+}
+#sum>span:nth-of-type(1){
+	padding-right: 0.3em;
+}
+#sum>span:nth-of-type(2){
+	font-weight: bold;
+}
+
+#strings{
+	border-top-width: 0.2em;
+	border-top-color: green;
+	border-top-style: solid;
+}
+#strings .table-striped tbody tr:nth-of-type(odd){
+	background-color: rgba(255,20,0,0.03);
+}
+#strings table.table-striped tbody tr.selected{
+	background-color: rgba(255,255,0,0.7);
+}
+#strings span.glow{
+	font-weight: bold;
+	text-shadow: 0 0 0.5em orange;
+}
+#strings table td{
+	padding: 0.5em;
+	vertical-align: middle;
+}
+#strings table td[d]>span{
+	white-space: nowrap;
+}
+#strings table td[it="A"]{
+	text-shadow: 0 0 0.5em blue;
+	color: blue;
+}
+#strings table td[it="E"]{
+	text-shadow: 0 0 0.5em red;
+	color: red;
+}
+#strings table td[a]{
+	font-weight: bold;
+}
+#strings table tr[add]>td{
+	text-align: center;
+	padding: 2em;
+}
+#strings table tr[add] button{
+	padding-left: 4em;
+	padding-right: 4em;
+}
+#strings[r] table td[a]{
+	background-color: red;
+}
+#strings table td[co] a{
+	padding-right: 0.5em;
+	font-weight: bold;
+}
+
+#results{
+	display: flex;
+	justify-content: center;
+	flex-direction: column;
+	flex-wrap: nowrap;
+	align-items: stretch;
+	align-content: stretch;
+	background-color: aliceblue;
+}
+#results>div{
+	display: flex;
+	justify-content: center;
+	padding: 0 0.5em;
+}
+#results div[left],
+#results div[right]{
+	display: flex;
+	flex-basis: 50%;
+}
+#results div[left]{
+	justify-content: flex-end;
+}
+#results div[right]{
+	justify-content: flex-start;
+}
+#results table{
+	margin-right: 0;
+	margin-bottom: 0;
+	max-width: 25em;
+	align-content: stretch;
+}
+#results div[left]>table{
+	margin-right: 1em;
+}
+#results div[right]>table{
+	margin-left: 1em;
+}
+#results table>caption{
+	caption-side: top;
+	text-align: center;
+	margin-bottom: 1em;
+	padding-top: 0;
+}
+#results table>caption>button{
+	border-radius: 0;
+	border-bottom-left-radius: 0.3em;
+	border-bottom-right-radius: 0.3em;
+	padding: 0 25%;
+}
+#results div[left] table tr[dep]{
+	color: steelblue;
+}
+#results table tr[pt]>td{
+	padding-top: 2em;
+}
+#results table tr:nth-last-of-type(2)>td{
+	padding-bottom: 2em;
+}
+#results table tr:nth-last-of-type(1)>td{
+	border-top: 1px solid dodgerblue;
+	padding-top: 0.5em;
+	padding-bottom: 0.5em;
+}
+#results table tr:hover>td:nth-of-type(3)>span[c]>div{
+	display: block;
+	position: absolute;
+	left: calc(100% + 0.5em);
+	bottom: calc(0% - 100% - 0.5em);
+	min-width: 12em;
+	padding: 0.5em;
+	background-color: dodgerblue;
+	border-radius: 0.3em;
+	box-shadow: 0 0 0.5em 0 white;
+	color: aliceblue;
+}
+#results table tr td>span:not([b]){
+	text-decoration: underline;
+}
+#results table tr[subtotal]>td{
+	text-decoration: none;
+}
+#results table td{
+	border: none;
+}
+#results table td>span{
+	cursor: pointer;
+}
+#results table td>span[b],
+#results table tr[subtotal]>td[b]{
+	font-weight: bold;
+	color: darkslategray;
+	text-shadow: 0 0 0.5em lightblue
+}
+#results table td:nth-of-type(2){
+	text-align: right;
+}
+#results table td:nth-of-type(3)>span[c]{
+	position: relative;
+}
+#results table td:nth-of-type(3)>span[c]>div{
+	display: none;
+	white-space: nowrap;
+}
+#results table td div[d]{
+	color: lightblue;
+	font-size: 90%;
+	text-align: center;
+}
+#results div[total]{
+	flex-wrap: nowrap;
+	justify-content: center;
+}
+#results div[total]>div{
+	margin: 0.5em 0;
+	padding: 0.5em 10em;
+	border-top: 1px solid dodgerblue;
+	white-space: pre-wrap;
+}
+#results:not([input]) div[total]>div input, #results:not([input]) div[total]>div button{
+	width: 11em;
+	border-color: inherit;
+	margin: 0.5em;
+}
+
+#results[expenses]{
+	background-color: lavenderblush;
+}
+#results[expenses] div[total]>div{
+	padding: 0.5em 0.5em;
+	border-top: 1px solid firebrick;
+}
+#results[expenses] div[total] button{
+	padding-right: 0;
+	padding-left: 0.5em;
+	color: firebrick;
+}
+#results[expenses] div[total] button[c]{
+	color: mediumvioletred;
+	font-weight: bold;
+	text-shadow: 0 0 0.3em red;
+}
+#results[expenses] table tr:nth-last-of-type(1)>td{
+	border-top: 1px solid firebrick;
+}
+#results[expenses] div[left] table td:nth-of-type(2)>span,
+#results[expenses] table td:nth-of-type(3)>span{
+	text-decoration: none;
+	cursor: auto;
+}
+#results[expenses] table td button{
+	padding: 0;
+	padding-right: 1em;
+}
+
+#results[search]{
+	background-color: beige;
+}
+#results[search] h2{
+	margin: 0.5em;
+}
+#results[search] div[total]{
+	display: inline-block;
+	text-align: center;
+}
+#results[search] div[total]>div{
+	margin: 0;
+	padding: 0 1em 1em 2em;
+	border: none;
+	display: flex;
+	flex-wrap: wrap;
+}
+#results[search] div[total]>div button.btn{
+	width: auto;
+}
+
+#results[input]>div[total]{
+	display: flex;
+	justify-content: center;
+	border-top: 3px solid black;
+	background-color: white;
+	padding: 0;
+}
+#results[input]>div[total]>div{
+	max-width: 60em;
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+#results[input]>div[total]>div>div{
+	padding: 1em;
+}
+#results[input]>div[total] .btn-toolbar .input-group{
+	width: 100%;
+	align-items: center;
+}
+#results[input]>div[total] div[string]{
+	padding-top: 0;
+	border-bottom: 3px solid dodgerblue;
+}
+#results[input]>div[total] div[string]>input{
+	width: 80%;
+	box-shadow: 0 0 0.1em 0 purple;
+}
+#results[input]>div[total] div[from]{
+	background-color: aliceblue;
+	border-radius: 0.3em;
+	padding-bottom: 0.5em;
+}
+#results[input]>div[total] div[from]>div,
+#results[input]>div[total] div[to]>div{
+	padding: 0.2em;
+}
+#results[input]>div[total] div[from] div[fi]{
+	width: 25em;
+}
+#results[input]>div[total] div[from] div[f]>input{
+	box-shadow: 0 0 0.3em 0 #007bff;
+	z-index: 2;
+	font-weight: bold;
+}
+#results[input]>div[total] div[from] div[cf]>input,
+#results[input]>div[total] div[to] div[ct]>input{
+	font-weight: bold;
+}
+#results[input]>div[total] div[fb]>div{
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: left;
+	align-items: center;
+}
+#results[input]>div[total] div[fb] button,
+#results[input]>div[total] div[tb] button,
+#results[input]>div[total] div[comments] button{
+	margin: 0.5em;
+}
+#results[input]>div[total] div[amount]{
+	padding: 1em;
+	background-color: lightgreen;
+}
+#results[input]>div[total] div[amount] input[type="number"]{
+	box-shadow: 0 0 0.3em 0 green;
+	z-index: 2;
+	font-weight: bold;
+}
+#results[input]>div[total] div[amount] select{
+	font-family: "Lucida Console", Monaco, monospace;
+	height: 100%;
+}
+#results[input]>div[total] div[amount] button[calc],
+#results[input]>div[total] div[amount] button[sn]{
+	background-color: white;
+}
+#results[input]>div[total] div[amount] button[calc]:hover,
+#results[input]>div[total] div[amount] button[sn]:hover{
+	background-color: grey;
+}
+#results[input]>div[total] div[amount] input[type="date"]{
+	max-width: 8em;
+	padding-right: 0;
+}
+#results[input]>div[total] div[amount] input[type="date"]::-webkit-clear-button {
+	display: none;
+}
+#results[input]>div[total] div[amount] input[type="date"]::-webkit-inner-spin-button { 
+	display: none;
+}
+
+#results[input]>div[total] div[to]{
+	background-color: lavenderblush;
+	border-radius: 0.3em;
+	padding-top: 0.5em;
+}
+#results[input]>div[total] div[to] div[t]>input{
+	box-shadow: 0 0 0.3em 0 darkred;
+	z-index: 2;
+	font-weight: bold;
+}
+#results[input]>div[total] div[comments]{
+	background-color: yellow;
+	padding-top: 0.5em;
+}
+#results[input]>div[total] div[comments] div.dropup>div.show{
+	display: flex;
+	flex-direction: column-reverse;
+	overflow-y: scroll;
+	max-height: 31rem;
+	box-shadow: 0 0 0.5em 0.3em white;
+	cursor: pointer;
+}
+#results[input]>div[total] div[comments] input{
+	box-shadow: 0 0 0.3em 0 orange;
+	z-index: 2;
+	font-weight: bold;
+}
+#results[input]>div[total] div[comments] select[comm]{
+	max-width: 30%;
+}
+#results[input]>div[total] div[save] div>button[a]{
+	text-shadow: 0 0 0.5em blue;
+	color: blue;
+}
+#results[input]>div[total] div[save] div>button[a][class*="outline"]:hover{
+	background-color: transparent;
+}
+#results[input]>div[total] div[save] div>button[s]{
+	width: 50%;
+}
+#results[input]>div[total] div[save] div>button.btn-success[s][disabled],
+#results[input]>div[total] div[save] div>button.btn-success[s][disabled]:hover{
+	background-color:lightslategrey;
+}
+#results[input]>div[total] div[save] div[w],
+#results[input]>div[total] div[save] div[w]>button.btn-link{
+	width: 100%;
+}
+#results[input]>div[total] div[save] div[w].btn-group{
+	padding-top: 1em;
+}
+#results[input]>div[total] div[save] div[w]>button.btn-link{
+	text-align: left;
+}
+#results[input]>div[total] div[save] div[w] div[timer]{
+	position: absolute;
+	top: 0;
+	right: 0;
+	left: 0;
+	z-index: 1;
+	height: 100%;
+	min-width: 5rem;
+}
+#results[input]>div[total] div[save] div[w] div[busy]>label{
+	display: none;
+}
+#results[input]>div[total] div[save] div[w] div[busy]>div[timer]{
+	background: linear-gradient(to bottom, transparent 48%, darkorange 50%, orangered 62%,transparent 70%);
+}
+#results[input]>div[total] div[save] div[w] div[busy]>div[timer]:after{
+	content: attr(timer) ' %';
+}
+#results[input]>div[total] div[save] div[w] div:not([busy])>div[timer]{
+	display: none;
+}
+
+#results[logs]{
+	background-color: teal;
+	box-shadow: 0 0 0.5em powderblue;
+}
+
+a[download]{
+	width: 8em;
+	height: 8em;
+	background-color: red;
+	display: block;
+}
+
+
+#dropdown{
+	position: absolute;
+	top: 0px;
+	left: -1100px;
+	max-width: 1000px;
+	z-index: 5;
+}
+#dropdown>div{
+	background-color: white;
+	box-shadow: 0 0 2px 0 darkgrey, 0 0.1em 0.1em 0.1em black;
+	border-radius: 0.3em;
+}
+#dropdown div.dropdown-item,
+#dropdown div.dropdown-item>div{
+	display: inline-flex;
+	justify-content: center;
+	align-items: center;
+}
+#dropdown div.dropdown-item button.btn-link{
+	white-space: pre-wrap;
+	word-break: break-all;
+	text-align: left;
+}
+#dropdown div.dropdown-item button.btn-danger{
+	margin-right: 1em;
+	margin-left: 1em;
+}
+
+#load2release{
+	position: absolute;
+	z-index: 10;
+}

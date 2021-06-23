@@ -1,6 +1,5 @@
-const Redis = require('ioredis')
 const os = require('os')
-
+const Redis = require('./Redis.js')
 const Settings = require('./Settings.js')
 
 class Statistics {
@@ -14,33 +13,41 @@ class Statistics {
 		this.name = process.env.NAME
 		this.path = process.env.AFTER_TILDA
 		
-		this.redis = new Redis({ host: process.env.PREFIX + 'redis' })
 		this.sKey = 'Containers'
 		this.hKey = this.sKey + ':' + this.hostname
-		
-		this._init()
 	}
 	
-	started() {
-		let field = 'started'
-		this.redis.hset(this.hKey, field, Date.now())
-		this.rabbitMQ.send('logger', {type: 'log', label: this.hostname, data: field})
-		console.log(this.name + ' has ' + field)
+	async started() {
+		try {
+			let field = 'started'
+			await this.redis.hset(this.hKey, field, Date.now())
+			await this.rabbitMQ.send('logger', {type: 'log', label: this.hostname, data: field})
+			console.log(this.name + ' has ' + field)
+		} catch(error) {
+			this._onError(this.label, 'started', error)
+		}
 	}
 	
-	_init() {
-		let pipeline = this.redis.pipeline()
-		pipeline.sadd(this.sKey, this.hostname)
-		pipeline.hset(this.hKey, 'name', this.name)
-		pipeline.hset(this.hKey, 'hostname', this.hostname)
-		pipeline.hset(this.hKey, 'path', this.path)
-		pipeline.hset(this.hKey, 'init', Date.now())
-		pipeline.exec()
-		
-		this._setHealth()
-		setInterval(() => {
+	async connect() {
+		try {
+			let redis = new Redis(this._onError)
+			this.redis = await redis.connect()
+			let pipeline = this.redis.pipeline()
+			pipeline.sadd(this.sKey, this.hostname)
+			pipeline.hset(this.hKey, 'name', this.name)
+			pipeline.hset(this.hKey, 'hostname', this.hostname)
+			pipeline.hset(this.hKey, 'path', this.path)
+			pipeline.hset(this.hKey, 'init', Date.now())
+			await pipeline.exec()
+			
 			this._setHealth()
-		}, this.healthInterval)
+			setInterval(() => {
+				this._setHealth()
+			}, this.healthInterval)
+			return this
+		} catch(error) {
+			this._onError(this.label, 'connect', error)
+		}
 	}
 	
 	_setHealth() {

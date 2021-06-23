@@ -16,12 +16,13 @@ class Servers {
 	}
 	
 	corsOrigin(origin) {
-		let tldnOr = Settings.topLevelDomainNames.join('|')
-		let regExp = new RegExp(`(http.?\:\/\/([a-z0-9\-]+\.)?${Settings.mainName}\.(${tldnOr})(\:[0-9]+)?)$`)
-		let isOwnDomain = regExp.test(origin)
-		let isLocalHost = (/^(http.?\:\/\/(localhost|127.0.0.1)(\:[0-9]+)?)$/).test(origin)
-		if (isOwnDomain || isLocalHost) {
-			return origin
+		if (origin) {
+			let shortOrigin = origin.substring(0, 25)
+			Settings.corsList.some(siteName => {
+				if (shortOrigin.includes(siteName)) {
+					return origin
+				}
+			})
 		}
 	}
 	
@@ -129,9 +130,7 @@ class Servers {
 		this._cors(req, res)
 		
 		if ((/.*testtest.*/).test(url)) {
-			let dateAtMoscow = Date.now() + 3 * 60 * 60 * 1000
-			let date = new Date(dateAtMoscow).toJSON().replace(/T/, ' ').replace(/Z/, '')
-			res.send('test: ok <br/>' + date)
+			res.send('Test: ok')
 		} else if ((/^\/\.well-known/).test(url)) {
 			// this.Syncer.letsEncryptOnTwoServers(url, res)
 		} else {

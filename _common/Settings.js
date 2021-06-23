@@ -2,14 +2,37 @@ class Settings {
 	static get mainName() {
 		return 'chemshirov'
 	}
+	static get mainLabel() {
+		return 'chem'
+	}
 	static get topLevelDomainNames() {
 		return ['ru', 'com']
 	}
+	static get productionDomains() {
+		return [Settings.mainName + '.ru', Settings.mainName + '.com']
+	}
+	static get developmentDomains() {
+		return ['i8u4.com', 'k3g.ru']
+	}
 	static get domains() {
-		let domains = []
-		Settings.topLevelDomainNames.forEach(name => {
-			domains.push(Settings.mainName + '.' + name)
-		})
+		return Settings.productionDomains.concat(Settings.developmentDomains)
+	}
+	
+	static get developmentStageName() {
+		return 'development'
+	}
+	
+	// static get corsList() {
+		// let mainSites = []
+		// Settings.topLevelDomainNames.forEach(name => {
+			// mainSites.push(Settings.mainName + '.' + name)
+		// })
+		// let allSites = mainSites.concat(Settings.devSites)
+		// return allSites
+	// }
+	
+	static get label() {
+		return process.env.LABEL || 'site'
 	}
 	
 	static get loggerLimit() {
@@ -25,6 +48,41 @@ class Settings {
 	static get portS() {
 		return 443
 	}
+	static get redisPort() {
+		let port = 43003
+		if (process.env.STAGE === Settings.developmentStageName) {
+			port++
+		}
+		return port
+	}
+	static get mysqlPort() {
+		let port = 43005
+		if (process.env.STAGE === Settings.developmentStageName) {
+			port++
+		}
+		return port
+	}
+	
+	static get arbiterChoosingInterval() {
+		return 1000 * 3
+	}
+	static get arbiterTimeInterval() {
+		return 1000 * 15
+	}
+	static get arbiterTimeSiteList() {
+		return ['www.google.com', 'https://www.cloudflare.com/', 'https://www.bbc.com/']
+	}
+	static get arbiterTimeSiteTimeout() {
+		return 200
+	}
+	
+	static get connectTimeout() {
+		return 500
+	}
+	
+	static get rabbitMqTimeout() {
+		return 5000
+	}
 	
 	static get socketMaxBufferSize() {
 		return 1e8
@@ -36,24 +94,26 @@ class Settings {
 		return 1000 * 60 * 60 * 16
 	}
 	
+	
 	static get staticSizeLimit() {
-		return 1024 * 1024 / 5
+		return 1024 * 1024 / 2
 	}
 	static get staticTtl() {
 		return 60 * 60 * 24 * 7
 	}
 	static staticRouteTable() {
 		let sda = '/usr/nodejs/sda/'
-		let subsections = process.env.TILDA + process.env.STAGE + '/' + process.env.LABEL + '/subsections'
+		let labelPath = process.env.TILDA + process.env.STAGE + '/' + process.env.LABEL + '/'
+		let subsections = labelPath + 'subsections'
 		let sdaLabelPath = sda + process.env.STAGE + '/' + process.env.LABEL + '/'
 		return {
 			[process.env.TILDA + 'libraries/']: ['/libraries/', '/js/'],
 			[process.env.TILDA + 'libraries/bootstrap431/']: ['/bootstrap431/'],
+			[labelPath + 'clientFiles/']: ['/'],
 			[subsections +  '/finance6/www_old/']: ['/finance6/'],
 			[subsections +  '/git/www/']: ['/git/'],
 			
 			[sdaLabelPath + 'subsections/data/files/']: ['/data/files/'],
-			[sdaLabelPath + 'wwwRootFiles/']: ['/'],
 			[sda + '/audiobooks/']: ['/audiobooks/'],
 			[sda + '/films/']: ['/films/'],
 			[sda + '/music/']: ['/music/'],
@@ -63,7 +123,6 @@ class Settings {
 			[process.env.TILDA + 'chem_develop/www/js/']: ['/js/'],
 		}
 	}
-	
 	static get staticMimeTypes() {
 		return {
 			'.css': 'text/css; charset=UTF-8',

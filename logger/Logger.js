@@ -1,33 +1,30 @@
-const RabbitMQ = require('../_common/RabbitMQ.js')
-const Redis = require('ioredis')
+const Redis = require('../_common/Redis.js')
 const Settings = require('../_common/Settings.js')
-const Statistics = require('../_common/Statistics.js')
+const Starter = require('../_common/Starter.js')
 
-class Logger {
+class Logger extends Starter {
 	constructor() {
+		super()
 		this.label = this.constructor.name
 		this.typesKey = this.label + ':types'
-		
-		this.rabbitMQ = new RabbitMQ(this._onError.bind(this), this._rabbitMQreceive.bind(this))
-		this.redis = new Redis({ host: process.env.PREFIX + 'redis' })
-		this.statistics = new Statistics(this._onError.bind(this), this.rabbitMQ)
-		
 		this._queue = {}
-		
-		this._start()
 	}
 	
-	_start() {
-		this.rabbitMQ.connect().then(async () => {
-			try {
-				this._setDate()
-				this._handler()
-				await this._cleanRedis(true)
-				this.statistics.started()
-			} catch(err) {
-				this._onError(this.label, 'start', err)
-			}
-		})
+	async atStart() {
+		try {
+			let redis = new Redis(this.onError.bind(this))
+			this.redis = await redis.connect()
+			this._handler()
+			await this._cleanRedis(true)
+		} catch(err) {
+			this.onError(this.label, 'atStart', err)
+		}
+	}
+	
+	onRabbitMqReceives(object, onDone) {
+		this._addToQueue(object)
+		console.log(this._getDate(), object)
+		onDone(true)
 	}
 	
 	_handler() {
@@ -39,14 +36,15 @@ class Logger {
 					await this._sendToRedis(date)
 					delete this._queue[date]
 				}
+				await this._cleanRedis()
 			} catch(err) {
-				this._onError(this.label, '_handler', err)
+				this.onError(this.label, '_handler', err)
 			}
 		}, Settings.loggerInterval)
 	}
 	
-	_sendToRedis(date) {
-		return new Promise(success => {
+	async _sendToRedis(date) {
+		try {
 			let object = this._queue[date]
 			if (object) {
 				let pipeline = this.redis.pipeline()
@@ -62,23 +60,17 @@ class Logger {
 						pipeline.hset(hKey, key, value)
 					}
 				}
-				pipeline.exec((err, result) => {
-					if (!err) {
-						success()
-					}
-				})
-				this._cleanRedis()
+				await pipeline.exec()
 			}
-		}).catch(err => {
-			this._onError(this.label, '_sendToRedis', err)
-		})
+		} catch(err) {
+			this.onError(this.label, '_sendToRedis', err)
+		}
 	}
 	
 	async _cleanRedis(force) {
 		try {
 			let pipeline = this.redis.pipeline()
-			let rough = Settings.loggerLimit / 10
-			let someTime = (Math.random() < (1 / rough))
+			let someTime = (Math.random() < (1 / Settings.loggerLimit))
 			if (force || someTime) {
 				let types = await this.redis.smembers(this.typesKey)
 				for (let i = 0; i < types.length; i++) {
@@ -92,18 +84,11 @@ class Logger {
 					}
 					pipeline.ltrim(lKey, 0, Settings.loggerLimit)
 				}
+				await pipeline.exec()
 			}
-			pipeline.exec()
-			return pipeline
 		} catch(err) {
-			this._onError(this.label, '_cleanRedis', err)
+			this.onError(this.label, '_cleanRedis', err)
 		}
-	}
-	
-	_rabbitMQreceive(object, onDone) {
-		this._addToQueue(object)
-		console.log(Date.now(), object)
-		onDone(true)
 	}
 	
 	_addToQueue(object) {
@@ -118,6 +103,9 @@ class Logger {
 	}
 	
 	_getDate() {
+		if (!this.hrTimeShift) {
+			this._setDate()
+		}
 		let currentDate = process.hrtime.bigint() + this.hrTimeShift
 		let currentDateString = currentDate.toString()
 		let hrExtraTime = currentDateString.slice(currentDateString.length - 6)
@@ -128,11 +116,6 @@ class Logger {
 		
 		let hrDate = date + hrExtraTime
 		return hrDate
-	}
-	
-	_onError(className, method, error) {
-		let object = { type: 'error', className, method, error }
-		this._addToQueue(object)
 	}
 }
 

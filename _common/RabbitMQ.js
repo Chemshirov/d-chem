@@ -1,3 +1,5 @@
+const Settings = require('./Settings.js')
+
 class RabbitMQ {
 	constructor(Errors, callback, name) {
 		this.Errors = Errors
@@ -10,47 +12,50 @@ class RabbitMQ {
 		this._onError()
 	}
 	
-	connect() {
-		return new Promise(async success => {
+	async connect() {
+		try {
 			await this._connection()
-			success()
-		}).catch(error => {
+			return this
+		} catch(error) {
 			this.Errors(this.label, 'connect', error)
-		})
+		}
 	}
 	
-	setAnotherChannel(name) {
-		return new Promise(async success => {
+	async setAnotherChannel(name) {
+		try {
 			await this._receive(this._devOrNotName(name))
-			success()
-		}).catch(error => {
+		} catch(error) {
 			this.Errors(this.label, 'setAnotherChannel', error)
-		})
+		}
 	}
 	
 	send(name, object, resend) {
 		return new Promise(async success => {
-			if (object.type === 'error') {
-				console.log('Error', object)
-			}
-			let errorLoop = (name === 'logger' && object.type === 'error' && object.className === 'RabbitMQ')
-			if (errorLoop) {
-				setTimeout(() => {
-					success()
-				}, 1000)
-			} else {
-				this._sendNow = {name, object, success}
-				let uniqueId = Date.now() + '' + Math.random()
-				let assertedQueue = await this.channel.assertQueue('', {exclusive: true})
-				let queueName = assertedQueue.queue
-				let lookbackAddress = this._getLoopbackAddress(queueName, uniqueId)
-				let devOrNotName = this._devOrNotName(name)
-				
-				await this._getQueue(devOrNotName)
-				this.channel.sendToQueue(devOrNotName, this._getBuffer(object), lookbackAddress)
-				
-				let redelivery = this._redeliveryOnFail(true)
-				this.channel.consume(queueName, this._onAnswer(resend || success, uniqueId), redelivery)
+			try {
+				if (object.type === 'error') {
+					console.log('Error', object)
+				}
+				let errorLoop = (name === 'logger' && object.type === 'error' && object.className === 'RabbitMQ')
+				if (errorLoop) {
+					setTimeout(() => {
+						success()
+					}, Settings.rabbitMqTimeout)
+				} else {
+					this._sendNow = {name, object, success}
+					let uniqueId = Date.now() + '' + Math.random()
+					let assertedQueue = await this.channel.assertQueue('', {exclusive: true})
+					let queueName = assertedQueue.queue
+					
+					let redelivery = this._redeliveryOnFail(false)
+					this.channel.consume(queueName, this._onAnswer(resend || success, uniqueId), redelivery)
+					
+					let lookbackAddress = this._getLoopbackAddress(queueName, uniqueId)
+					let devOrNotName = this._devOrNotName(name)
+					await this._getQueue(devOrNotName)
+					this.channel.sendToQueue(devOrNotName, this._getBuffer(object), lookbackAddress)
+				}
+			} catch(error) {
+				this.Errors(this.label, 'send catch', error)
 			}
 		}).catch(error => {
 			this.Errors(this.label, 'send', error)
@@ -63,16 +68,19 @@ class RabbitMQ {
 				let queueName = this.sendToAll.name + label
 				let channel = await this.connection.createChannel()
 				await channel.assertExchange(queueName, 'fanout', {durable: false})
-				channel.publish(queueName, '', this._getBuffer(object))
+				channel.publish(queueName, '', this._getBuffer(object || {}))
 			}
 		} catch(error) {
 			this.Errors(this.label, 'sendToAll', error)
 		}
 	}
-	async subscribe(callback) {
+	
+	async subscribe(callback, name) {
 		try {
 			if (typeof callback === 'function') {
-				let name = callback.name.replace(/^bound /, '')
+				if (!name) {
+					name = callback.name.replace(/^bound /, '')
+				}
 				let exchangeQueueName = this.sendToAll.name + name
 				let channel = await this.connection.createChannel()
 				await channel.assertExchange(exchangeQueueName, 'fanout', {durable: false})
@@ -109,11 +117,11 @@ class RabbitMQ {
 		}
 	}
 	
-	_receive(name) {
-		if (!name) {
-			name = this.name
-		}
-		return new Promise(async success => {
+	async _receive(name) {
+		try {
+			if (!name) {
+				name = this.name
+			}
 			await this._getQueue(name)
 			this.channel.prefetch(1)
 			this.channel.consume(name, (msg) => {
@@ -121,10 +129,9 @@ class RabbitMQ {
 				let object = JSON.parse(string)
 				this.callback(object, this._onDone(msg))
 			})
-			success()
-		}).catch(error => {
+		} catch(error) {
 			this.Errors(this.label, '_receive', error)
-		})
+		}
 	}
 	
 	_onDone(msg) {
@@ -139,22 +146,22 @@ class RabbitMQ {
 		}
 	}
 	
-	_getQueue(name) {
-		return new Promise(async success => {
+	async _getQueue(name) {
+		try {
 			let queue = false
 			if (!this._queues) {
 				this._queues = {}
 			}
 			if (!this._queues[name]) {
-				queue = await this.channel.assertQueue(name, 'fanout', {durable: false})
+				queue = await this.channel.assertQueue(name, 'fanout', { durable: false })
 				this._queues[name] = queue
 			} else {
 				queue = this._queues[name]
 			}
-			success(queue)
-		}).catch(error => {
+			return queue
+		} catch(error) {
 			this.Errors(this.label, '_getQueue', error)
-		})
+		}
 	}
 	
 	_closeBeforeExit() {
@@ -172,8 +179,7 @@ class RabbitMQ {
 	_getLoopbackAddress(queueName, uniqueId) {
 		return {
 			replyTo: queueName,
-			correlationId: uniqueId,
-			persistent: false
+			correlationId: uniqueId
 		}
 	}
 	
@@ -198,13 +204,17 @@ class RabbitMQ {
 			} else {
 				this._resend(name, object, success)
 			}
-		}, 5000)
+		}, Settings.rabbitMqTimeout)
 	}
 	
 	_onError() {
 		process.on('uncaughtException', (error, origin) => {
 			if (!this._notAnError(error)) {
-				this.Errors(this.label, 'uncaughtException', error)
+				this.Errors(this.label, 'uncaughtException', {
+					errorString: error.toString(),
+					errorJSON: JSON.stringify(error),
+					origin
+				})
 			}
 		})
 		process.on('unhandledRejection', (error, promise) => {
@@ -217,7 +227,7 @@ class RabbitMQ {
 					this._queues = {}
 					setTimeout(() => {
 						this._connection()
-					}, 5000)
+					}, Settings.rabbitMqTimeout)
 				} else {
 					this.Errors(this.label, 'unhandledRejection', error)
 				}

@@ -1,80 +1,69 @@
 const child_process = require('child_process')
-const RabbitMQ = require('../_common/RabbitMQ.js')
-const Statistics = require('../_common/Statistics.js')
+const Starter = require('../_common/Starter.js')
 
-class Dockerrun {
+class Dockerrun extends Starter {
 	constructor(currentPath) {
+		super()
 		this.currentPath = currentPath
 		this.label = this.constructor.name
-		
-		this.rabbitMQ = new RabbitMQ(this._onError.bind(this), this._rabbitMQreceive.bind(this))
-		this.statistics = new Statistics(this._onError.bind(this), this.rabbitMQ)
-		
-		this.startArray = []
-		this.startObject = {}
-		this._start()
+		this._startArray = []
+		this._startObject = {}
 	}
 	
-	_start() {
-		this.rabbitMQ.connect().then(async () => {
-			try {
-				await this.rabbitMQ.setAnotherChannel('dockerrun_started')
-				this.statistics.started()
-			} catch (err) {
-				this._onError(this.label, '_start', err)
-			}
-		})
-	}
-	
-	_containerUp() {
-		let path = this.startArray.shift()
-		if (path && this.startObject.hasOwnProperty(path)) {
-			this._setMarker(path)
+	async atStart() {
+		try {
+			await this.rabbitMQ.setAnotherChannel('dockerrun_started')
+		} catch (err) {
+			this.onError(this.label, 'atStart', err)
 		}
 	}
 	
-	_setMarker(path) {
-		return new Promise(success => {
-			let date = Date.now()
-			let settings = ''
-			if (this.startObject[path].settings) {
-				settings = this.startObject[path].settings.join(' ')
-			}
-			let string = `${path} ${settings}`
-			let cmd = `echo ${string} > ${this.currentPath}toRun/dockerToRun${date}.temp`
-			this.rabbitMQ.send('logger', {type: 'log', label: process.env.HOSTNAME, data: cmd})
-			child_process.exec(cmd, (err, stdout, stderr) => {
-				if (err) {
-					this._onError(this.label, '_setMarker child_process', err)
-				} else {
-					success()
-				}
-			})
-		}).catch(err => {
-			this._onError(this.label, '_setMarker', err)
-		})
-	}
-	
-	_rabbitMQreceive(object, onDone) {
+	onRabbitMqReceives(object, onDone) {
 		if (object.type === 'start') {
 			console.log(object)
 			this.rabbitMQ.send('logger', {type: 'log', label: process.env.HOSTNAME, data: object})
-			this.startArray.push(object.path)
-			this.startObject[object.path] = { onDone, settings: object.settings }
+			let date = Date.now()
+			this._startArray.push(date)
+			this._startObject[date] = { path: object.path, settings: object.settings, onDone }
 			this._containerUp()
 		} else if (object.type === 'started') {
 			console.log(object)
 			onDone(true)
 			this.rabbitMQ.send('logger', {type: 'log', label: process.env.HOSTNAME, data: object})
-			if (this.startObject[object.path]) {
-				this.startObject[object.path].onDone(true)
-				delete this.startObject[object.path]
+			if (this._startObject[object.date]) {
+				this._startObject[object.date].onDone(true)
+				delete this._startObject[object.date]
 			}
 		}
 	}
 	
-	_onError(className, method, error) {
-		this.rabbitMQ.send('logger', {type: 'error', className, method, error})
+	_containerUp() {
+		let date = this._startArray.shift()
+		if (date) {
+			this._setMarker(date)
+		}
+	}
+	
+	_setMarker(date) {
+		return new Promise(success => {
+			let data = this._startObject[date]
+			let settings = ''
+			if (data.settings) {
+				settings = data.settings.join(' ')
+			}
+			let string = `${data.path} ${settings} ${date}`
+			let cmd = `echo ${string} > ${this.currentPath}toRun/dockerToRun${date}.temp`
+			this.rabbitMQ.send('logger', {type: 'log', label: process.env.HOSTNAME, data: cmd})
+			child_process.exec(cmd, (err, stdout, stderr) => {
+				if (err) {
+					this.onError(this.label, '_setMarker child_process', err)
+				} else {
+					success()
+				}
+			})
+		}).catch(err => {
+			this.onError(this.label, '_setMarker', err)
+		})
 	}
 }
 

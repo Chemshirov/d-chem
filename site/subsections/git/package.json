@@ -1,0 +1,15 @@
+{
+	"name": "chem_git",
+	"version": "0.0.16",
+	"main": "Git.js",
+	"scripts": {
+		"start": "node Start.js"
+	},
+	"dependencies": {
+		"amqplib": "latest",
+		"ioredis": "latest",
+		"express": "latest",
+		"compression": "latest",
+		"socket.io": "latest"
+	}
+}

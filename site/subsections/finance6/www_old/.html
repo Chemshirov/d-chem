@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=0.5, maximum-scale=2">
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+	<link rel="manifest" href="/manifest.json">
+	<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+	<meta name="theme-color" content="#ffffff">
+	<link rel="stylesheet" type="text/css" href="/bootstrap431/css/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="/finance6/main.css">
+	<script src="/js/jquery.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="/js/common.js"></script>
+	<script src="/finance6/client.js"></script>
+	<script src="/finance6/login.js"></script>
+	<script src="/finance6/data.js"></script>
+	<script src="/finance6/list.js"></script>
+	<script src="/finance6/actives.js"></script>
+	<script src="/finance6/expenses.js"></script>
+	<script src="/finance6/input.js"></script>
+	<script src="/finance6/input_string.js"></script>
+	<script src="/finance6/input_sendFile.js"></script>
+	<script src="/finance6/input_addMedia.js"></script>
+	<script src="/finance6/save2server.js"></script>
+	<script src="/finance6/search.js"></script>
+	<script src="/finance6/logs.js"></script>
+	<script src="/finance6/lz-string.min.js"></script>
+	<script src="/finance6/md5.min.js"></script>
+	<script src="/finance6/test.js"></script>
+	<title>Finance6</title> 
+</head>
+<body>
+	<div id="main">
+		<div id="sum"></div>
+		<div id="buttons">
+			<div>
+				<div class="container">
+					<div class="btn-toolbar justify-content-center" role="toolbar">
+						<div class="btn-group mr-4 btn-group-lg" role="group">
+							<button type="button" class="btn btn-outline-success" a="list">
+								<span>List: </span><span class="count">0</span>
+							</button>
+						</div>
+						<div class="btn-group mr-5 btn-group-lg btn-group-toggle" role="group">
+							<button type="button" class="btn btn-outline-primary" a="actives">Actives</button>
+							<button type="button" class="btn btn-outline-danger" a="expenses">Expenses</button>
+						</div>
+						<div class="btn-group">
+							<div si class="input-group-prepend">
+								<div class="input-group-text">&#x2315;</div>
+							</div>
+							<input type="text" class="form-control search" placeholder="Search">
+							<button type="button" class="btn btn-outline-dark" a="input">Input</button>
+							<button type="button" class="btn btn-outline-info" a="logs">Logs</button>
+							<button type="button" class="btn btn-outline-warning" a="logout">Out</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="results">
+			<div>
+				<div left></div>
+				<div right></div>
+			</div>
+			<div total></div>
+		</div>
+		<div id="strings"></div>
+	</div>
+	<div id="dropdown"></div>
+</body>
+</html>

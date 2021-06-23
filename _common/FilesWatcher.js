@@ -50,7 +50,10 @@ class FilesWatcher {
 		fs.watch(directory, (eventType, fileName) => {
 			let ignore = this._checkForIgnoreness(fileName)
 			if (!ignore) {
-				this._whenFileHasChanged(directory, fileName)
+				let hasDot = (fileName.split('.').length > 1)
+				if (hasDot) {
+					this._whenFileHasChanged(directory, fileName)
+				}
 			}
 		})
 	}

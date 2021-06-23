@@ -2,12 +2,12 @@
 
 path=$(dirname $(realpath $0));
 stage="${path##*/}";
-ports="80 443"
+ports=(43001 43003 43005);
 if [ "$stage" = "development" ]; then
-	ports="84 4434";
+	ports=(43002 43004 43006);
 fi;
 
-echo -e '(Re)building docker images:';
+echo "(Re)building docker images:";
 directories=($(find "$path" -type d));
 for d in "${directories[@]}"
 	do :
@@ -25,10 +25,10 @@ echo "";
 echo Starting containers:;
 docker network create tilda 1>/dev/null 2>/dev/null;
 	$path/rabbitmq/start.sh;
-	$path/redis/start.sh;
-	$path/mysql/start.sh;
+	$path/redis/start.sh ${ports[1]};
+	$path/mysql/start.sh ${ports[2]};
 	$path/logger/start.sh;
 	$path/dockerrun/start.sh;
-	$path/chem/onrequest/start.sh '' $ports;
+	$path/site/onrequest/start.sh "" ${ports[0]};
 docker image prune -f 1>/dev/null 2>/dev/null;
-echo Wait for boot code complete of all containers, it takes time.;
+echo Wait for other containers been started, it takes time.;
