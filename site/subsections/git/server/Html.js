@@ -120,7 +120,7 @@ class Html {
 			</h4>
 		`
 		if (Project.currentBranch === 'master') {
-			if (Project.name === 'chem_develop') {
+			if (Project.name === 'd-chem') {
 				if (!Project.changedFiles || Project.changedFiles.length === 0) {
 					if (!Project.ableToBePushed) {
 						html += `

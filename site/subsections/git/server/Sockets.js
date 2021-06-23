@@ -30,7 +30,6 @@ class Sockets {
 			if (data.id && this.o.Projects.projects[data.id]) {
 				if (data.text && data.text.length > 3) {
 					if (data.files && data.files.length) {
-						console.log(data.id, data.type, data.files.length)
 						ok = true
 					}
 				}

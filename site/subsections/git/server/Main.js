@@ -80,7 +80,6 @@ class Main {
 			if (renewHtml) {
 				await this.o.Html.renew()
 				this.o.Sockets.emit({reload: true})
-				console.log(process.env.LABEL + '_watcher')
 			}
 			this.o.Sockets.emit({reload: true})
 		}).catch(err => {
