@@ -49,8 +49,9 @@ class ArbiterTime {
 			if (!internetWorks) {
 				let lastTimeInternetWorked = await this.redis.hget(this.label, 'internetWorks')
 				await this._writeToRedis('lastTimeInternetWorked', lastTimeInternetWorked)
-				await this._writeToRedis('noInternet', Date.now())
-				await this._writeToRedis('internetBreach', true)
+				let now = Date.now()
+				await this._writeToRedis('noInternet', now)
+				await this._writeToRedis('internetBreach', now)
 			}
 		} catch(error) {
 			this._onError(this.label, '_setInternetUpTime', error)

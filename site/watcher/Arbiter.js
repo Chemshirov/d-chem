@@ -185,7 +185,11 @@ class Arbiter {
 	
 	async _wasInternetBreach() {
 		try {
-			return !!(await this.currentRedis.hget(ArbiterTime.name, 'internetBreach'))
+			let internetBreach = await this.currentRedis.hget(ArbiterTime.name, 'internetBreach')
+			if (internetBreach && (Date.now() - internetBreach) > Settings.arbiterTimeInterval * 3) {
+				internetBreach = false
+			}
+			return !!internetBreach
 		} catch(error) {
 			this.onError(this.label, '_wasInternetBreach', error)
 		}
