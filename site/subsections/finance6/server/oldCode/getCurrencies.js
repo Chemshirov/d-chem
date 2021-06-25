@@ -17,7 +17,6 @@ obj.start = function(){
 				};
 			});
 			if(ok){
-				console.log('curr', curr)
 				if(!obj.admin)	obj.admin = {};
 				obj.o.base.admin['currencies'] = {
 					date: obj.o.common.date(),

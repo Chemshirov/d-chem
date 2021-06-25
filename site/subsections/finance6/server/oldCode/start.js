@@ -98,8 +98,6 @@ obj.getData = function(name,socket){
 						user[name]['date'] = {};
 					};
 				};
-			}else{
-				console.log("no user[name]['md5-2']", name);
 			};
 			if(ok){
 				r(ok);

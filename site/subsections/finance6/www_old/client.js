@@ -37,9 +37,6 @@ obj.socketIni = function(){
 	obj.socket = io();
 	obj.socket.on('finance6',function(o){
 		if(o && typeof o=='object'){
-			// if (!(/chunk/i).test(o['t'] + '')) {
-				// console.log('socket from server', o); 
-			// };
 			let url = (window.location.pathname+'').replace(/^\/finance6/,'').replace(/^\//,'');
 			if(!url)	url = 'list';
 			if(o['t']=='login'){
@@ -123,9 +120,6 @@ obj.socketIni = function(){
 	document.dispatchEvent(new Event('socketEstablished'));
 };
 obj.emit = function(o){
-	// if (!(/chunk/i).test(o['t'] + '')) {
-		// console.log('emit', o);
-	// };
 	obj.emit.setSign(o, true);
 	obj.socket.emit('finance6', o);
 };

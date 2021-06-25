@@ -1,3 +1,4 @@
+const fs = require('fs')
 const sda = '/usr/nodejs/sda/'
 const Settings = require('../../../../_common/Settings.js')
 
@@ -19,6 +20,8 @@ class CopyToProduction {
 				cmd += this._copyFilesCmd(sdaDevelopmentPath + 'Settings.js', sdaProductionPath)
 				await this.o.Main.exec(cmd)
 				
+				await this._replaceServiceNameInDockerComposeFiles(tildaProductionPath)
+				
 				await this._syncToSlave(tildaProductionPath)
 				await this._syncToSlave(sdaProductionPath)
 				
@@ -34,10 +37,10 @@ class CopyToProduction {
 	merge(gitCmd) {
 		return new Promise(async success => {
 			try {
-				await this.o.Main.exec(`${gitCmd} checkout production`, true)
-				await this.o.Main.exec(`${gitCmd} merge master`, true)
-				await this.o.Main.exec(`${gitCmd} push`, true)
-				await this.o.Main.exec(`${gitCmd} checkout master`, true)
+				// await this.o.Main.exec(`${gitCmd} checkout production`, true)
+				// await this.o.Main.exec(`${gitCmd} merge master`, true)
+				// await this.o.Main.exec(`${gitCmd} push`, true)
+				// await this.o.Main.exec(`${gitCmd} checkout master`, true)
 				success()
 			} catch(error) {
 				this.o.Main.setError(this.label, 'merge async', error)
@@ -61,6 +64,52 @@ class CopyToProduction {
 			})
 		} catch(error) {
 			this.o.Main.setError(this.label, '_syncToSlave', error)
+		}
+	}
+	
+	async _replaceServiceNameInDockerComposeFiles(path) {
+		try {
+			let result = await this.o.Main.exec(`find ${path} -type f -name "docker-compose.yml"`)
+			let dockerComposeFiles = result.replace(/[\n]+/g, ' ').trim().split(' ')
+			for (let i = 0; i < dockerComposeFiles.length; i++) {
+				let filePath = dockerComposeFiles[i]
+				await this._replaceServiceNameInDockerComposeFile(filePath)
+			}
+		} catch(error) {
+			this.o.Main.setError(this.label, '_replaceServiceNameInDockerComposeFiles', error)
+		}
+	}
+	
+	_replaceServiceNameInDockerComposeFile(filePath) {
+		return new Promise(success => {
+			fs.readFile(filePath, (error, data) => {
+				if (error) {
+					this.o.Main.setError(this.label, '_replaceServiceNameInDo... readFile ' + filePath, error)
+				} else {
+					let fileContent = data.toString()
+					let regExp = /^(.+[a-z]+(:|\/)[^a-z]+)(d-)([a-z0-9]+:.+)$/gis
+					let newFileContent = this.regexpRecursive(fileContent, regExp, '$1p-$4')
+					
+					fs.writeFile(filePath, newFileContent, (error) => {
+						if (error) {
+							this.o.Main.setError(this.label, '_replaceServiceNa... writeFile ' + filePath, error)
+						} else {
+							success()
+						}
+					})
+				}
+			})
+		}).catch(error => {
+			this.o.Main.setError(this.label, '_replaceServiceNameInDockerComposeFile', error)
+		})
+	}
+	
+	regexpRecursive(fileContent, regExp, replacer) {
+		if ((regExp).test(fileContent)) {
+			fileContent = fileContent.replace(regExp, replacer)
+			return this.regexpRecursive(fileContent, regExp, replacer)
+		} else {
+			return fileContent
 		}
 	}
 }

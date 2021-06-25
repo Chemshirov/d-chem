@@ -14,9 +14,7 @@ obj.startWatching = () => {
 };
 
 obj.swFileWork = (type, label) => {
-	if (!label)	label = 'finance6';
-	// console.log('obj.swFileWork', type, label, 'serviceWorker has not updated!')
-	
+	// if (!label)	label = 'finance6';
 	// let swFileName = obj.o.files + 'www/' + 'serviceWorker.js';
 	// let file = obj.o.fs.readFile(swFileName, (err, data) => {
 		// if (!err) {
@@ -45,7 +43,7 @@ obj.swFileWork = (type, label) => {
 var a = (function(obj){
 	return function(o) {
 		obj.o = o;
-		obj.startWatching();
+		// obj.startWatching();
 		return obj;
 	};
 })(obj);

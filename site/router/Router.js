@@ -24,14 +24,14 @@ class Router extends Starter {
 				this.subsections = await this._getSubsections()
 				this._setCredentials()
 				
-				let isWebsocketType = (process.env.TYPE === 'W')
 				this.servers = new Servers([Settings.port], this.onError.bind(this))
-				this.servers.startHttp(isWebsocketType ? false : true)
-				
-				if (isWebsocketType) {
+				let isWebsocket = (process.env.TYPE === 'W')
+				if (isWebsocket) {
+					this.servers.startHttp(false)
 					let webSockets = new WebSockets(this.onError.bind(this), this._credentials, this.oldHostName)
 					webSockets.start(this.servers.websockets)
 				} else {
+					this.servers.startHttp(true)
 					this.proxy = proxyServer.createProxyServer()
 					this.proxy.on('error', err => {})
 					this.servers.setRouter(this._routes.bind(this))
@@ -77,7 +77,7 @@ class Router extends Starter {
 					}
 				}
 			}
-			let regexp = new RegExp("^(\/)?(" + names.join("|") + ")([^0-9a-z_\-])?.*$", "i")
+			let regexp = new RegExp('^(\/)?(' + names.join('|') + ')([^0-9a-z_\-])?.*$', 'i')
 			subsections.regexp = regexp
 			return subsections
 		} catch(err) {
@@ -110,6 +110,14 @@ class Router extends Starter {
 		return { hostname, port: Settings.port }
 	}
 	
+	_proxyOptions(url) {
+		let subsection = url.replace(this.subsections.regexp, '$2')
+		let {hostname, port} = this._getSubsectionCredentials(subsection)
+		return {
+			target: {hostname, port}
+		}
+	}
+	
 	_getOldCredentials() {
 		let oldCredentialsObject = this._proxyOldOptions.target
 		let oldHostProtocol = oldCredentialsObject.protocol
@@ -123,21 +131,12 @@ class Router extends Starter {
 		}
 	}
 	
-	_proxyOptions(url) {
-		let subsection = url.replace(this.subsections.regexp, '$2')
-		let {hostname, port} = this._getSubsectionCredentials(subsection)
-		return {
-			target: {hostname, port}
-		}
-	}
 	get _proxyOldOptions() {
-		let protocol = 'https://'
-		let host = 'chem'
-		let port = 443
+		let protocol = 'http://'
+		let host = 'chem-node'
+		let port = 80
 		if (process.env.STAGE === 'development') {
-			host += '-dev'
-			protocol = 'http://'
-			port = 80
+			host = 'chem-dev'
 		}
 		return {
 			target: {

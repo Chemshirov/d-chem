@@ -12,12 +12,12 @@ secret=$(cat $workingPath/settings.txt)
 
 docker stop $dockerName 1>/dev/null 2>/dev/null;
 docker rm $dockerName 1>/dev/null 2>/dev/null;
-docker run --name $dockerName --hostname $NAME --network tilda \
+docker run --name $dockerName --hostname $dockerName --network tilda \
 	-p $1:3306 \
 	-v $workingPath/data:/var/lib/mysql \
 	-v $workingPath:/docker-entrypoint-initdb.d/ \
 	-e MYSQL_ROOT_PASSWORD=$secret \
 	-e TZ='Europe/Moscow' \
-	--memory="512m" \
+	--memory="256m" \
 	-d mysql:5.6 1>/dev/null 2>/dev/null;
-echo '\t' $NAME is starting;
+echo '\t' $dockerName is starting;

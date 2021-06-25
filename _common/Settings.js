@@ -18,18 +18,14 @@ class Settings {
 		return Settings.productionDomains.concat(Settings.developmentDomains)
 	}
 	
+	
 	static get developmentStageName() {
 		return 'development'
 	}
 	
-	// static get corsList() {
-		// let mainSites = []
-		// Settings.topLevelDomainNames.forEach(name => {
-			// mainSites.push(Settings.mainName + '.' + name)
-		// })
-		// let allSites = mainSites.concat(Settings.devSites)
-		// return allSites
-	// }
+	static get httpTestPhrase() {
+		return 'testtest'
+	}
 	
 	static get label() {
 		return process.env.LABEL || 'site'
@@ -98,9 +94,8 @@ class Settings {
 		return 1000 * 60 * 60 * 16
 	}
 	
-	
 	static get staticSizeLimit() {
-		return 1024 * 1024 / 2
+		return 1024 * 1024 / 5
 	}
 	static get staticTtl() {
 		return 60 * 60 * 24 * 7
@@ -116,12 +111,13 @@ class Settings {
 			[labelPath + 'clientFiles/']: ['/'],
 			[subsections +  '/finance6/www_old/']: ['/finance6/'],
 			[subsections +  '/git/www/']: ['/git/'],
-			
 			[sdaLabelPath + 'subsections/data/files/']: ['/data/files/'],
 			[sda + '/audiobooks/']: ['/audiobooks/'],
 			[sda + '/films/']: ['/films/'],
 			[sda + '/music/']: ['/music/'],
 			
+			[process.env.TILDA + 'chem/https/files/']: ['/data/files/'],
+			[process.env.TILDA + 'chem_develop/files/']: ['/data/files/'],
 			[process.env.TILDA + 'chem_develop/www/data/']: ['/data/'],
 			[process.env.TILDA + 'chem_develop/www/index/']: ['/index/'],
 			[process.env.TILDA + 'chem_develop/www/js/']: ['/js/'],

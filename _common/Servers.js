@@ -18,7 +18,7 @@ class Servers {
 	corsOrigin(origin) {
 		if (origin) {
 			let shortOrigin = origin.substring(0, 25)
-			Settings.corsList.some(siteName => {
+			Settings.domains.some(siteName => {
 				if (shortOrigin.includes(siteName)) {
 					return origin
 				}
@@ -59,7 +59,7 @@ class Servers {
 								callback(null)
 							}
 						},
-						methods: ['GET', 'POST'],
+						methods: ['GET', 'POST', 'OPTIONS'],
 						credentials: true
 					}
 				})

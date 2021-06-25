@@ -56,7 +56,6 @@ inputString.findT = function(ct){
 	ret = false;
 	try{
 		let obj02 = input.html.getO()['obj02'];
-		console.log('inputString.findT', obj02);
 	}catch(e){};
 	return ret;
 };

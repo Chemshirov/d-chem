@@ -42,9 +42,11 @@ class Syncer {
 				if (!label) {
 					label = this.label
 				}
-				await this._setRedis('anotherRedis', 'anotherIp')
-				await this.anotherRedis.publish(label, JSON.stringify(object))
-				await this.rabbitMQ.send('logger', {type: 'log', label, object})
+				await this._setRedis('anotherRedis', 'anotherIp', true)
+				if (this.anotherRedis) {
+					await this.anotherRedis.publish(label, JSON.stringify(object))
+					await this.rabbitMQ.send('logger', {type: 'log', label, object})
+				}
 			}
 		} catch(error) {
 			this.onError(this.label, '_request', error)
@@ -120,7 +122,7 @@ class Syncer {
 		try {
 			await this._getIp()
 			await this._setRedis('currentRedis', 'currentIp')
-			await this._setRedis('anotherRedis', 'anotherIp')
+			await this._setRedis('anotherRedis', 'anotherIp', true)
 			await this._subscribeInit()
 		} catch(error) {
 			this.onError(this.label, '_init', error)
@@ -136,13 +138,13 @@ class Syncer {
 		}
 	}
 	
-	async _setRedis(redisName, ipName) {
+	async _setRedis(redisName, ipName, isSecondary) {
 		try {
 			if (this[redisName]) {
 				this[redisName].disconnect()
 			}
 			let redis = new Redis(this.onError)
-			this[redisName] = await redis.connect(this[ipName])
+			this[redisName] = await redis.connect(this[ipName], isSecondary)
 		} catch(error) {
 			this.onError(this.label, '_setRedis', error)
 		}

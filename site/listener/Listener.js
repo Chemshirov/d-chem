@@ -50,51 +50,67 @@ class Listener extends Starter {
 	_setProxies() {
 		this.proxies = {}
 		Settings.domains.forEach(domain => {
-			this.proxies[domain] = proxyServer.createProxyServer(this._getProxyOptions(domain))
+			let options = this._getProxyOptions(domain)
+			this.proxies[domain] = proxyServer.createProxyServer(options)
 		})
+		this.proxies['old'] = proxyServer.createProxyServer(this._proxyOldOptions())
+		this.proxies['oldD'] = proxyServer.createProxyServer(this._proxyOldOptions(true))
 	}
 	
 	_getProxyOptions(domain) {
-		let options = {}
-		if (!this._typeProxyOptionsObject) {
-			this._typeProxyOptionsObject = {}
+		let isDevelopmentDomainFits = Settings.developmentDomains.includes(domain)
+		let prefixLetter = Settings.productionStageName.substring(0, 1)
+		if (isDevelopmentDomainFits) {
+			prefixLetter = Settings.developmentStageName.substring(0, 1)
 		}
-		if (this._typeProxyOptionsObject[domain]) {
-			options = this._typeProxyOptionsObject[domain]
-		} else {
-			let host = 'chem-node'
-			if (Settings.developmentDomains.includes(domain)) {
-				host = process.env.PREFIX + process.env.LABEL + '_onrequest'
-			}
-			let target = {
+		let prefix = prefixLetter + '-'
+		let host = prefix + process.env.LABEL + '_onrequest'
+		let options = {
+			target: {
 				host,
 				port: Settings.port
-			}
-			options = { target, ws: true }
-			this._typeProxyOptionsObject[domain] = options
+			},
+			ws: true
 		}
 		return options
 	}
 	
 	_preRouter(object) {
-		let {request, response, socket, head, https} = object
+		let { request, response, socket, head, https } = object
 		if (https) {
-			let {request, response, socket, head} = object
-			let domain = this._getDomain(request)
+			let { hostDomain, originDomain, origin } = this._getDomains(request)
+			let domain = originDomain || hostDomain
 			if (this.proxies[domain]) {
-				if (response) {
-					this.proxies[domain].web(request, response)
+				if (origin && hostDomain !== originDomain) {
+					let old = 'old'
+					let isDevelopmentDomainFits = Settings.developmentDomains.includes(originDomain)
+					if (isDevelopmentDomainFits) {
+						old += 'D'
+					}
+					if (response) {
+						this.proxies[old].web(request, response)
+					} else {
+						this.proxies[old].ws(request, socket, head)
+					}
 				} else {
-					this.proxies[domain].ws(request, socket, head)
+					if (response) {
+						this.proxies[domain].web(request, response)
+					} else {
+						this.proxies[domain].ws(request, socket, head)
+					}
 				}
+			} else {
+				response.statusCode = 400
+				response.setHeader('Content-Type', 'text/html; charset=utf-8')
+				response.end('Domain is not found.')
 			}
 		} else {
 			let statusCode = 200
 			let shortUrl = (request.url + '').substring(0, 12)
-			if (shortUrl.includes('testtest')) {
+			if (shortUrl.includes(Settings.httpTestPhrase)) {
 				response.statusCode = statusCode
 				response.setHeader('Content-Type', 'text/html; charset=utf-8')
-				response.end('Ok.')
+				response.end(Settings.httpTestPhrase + ' is ok')
 			} else if (shortUrl.includes('.well-known')) {
 				try {
 					let fileString = '/usr/nodejs/sda/letsEncrypt' + request.url
@@ -109,24 +125,57 @@ class Listener extends Starter {
 					response.end(request.url)
 				}
 			} else {
-				let domain = this._getDomain(request)
-				response.writeHead(302, {'Location': 'https://' + domain + request.url})
+				let { hostDomain } = this._getDomains(request)
+				response.writeHead(302, {'Location': 'https://' + hostDomain + request.url})
 				response.end()
 			}
 		}
 	}
 	
-	_getDomain(request) {
+	_getDomains(request) {
 		if (request.rawHeaders && typeof request.rawHeaders === 'object') {
+			let hostDomain = ''
+			let origin = ''
+			let originDomain = ''
 			for (let i = 0; i < request.rawHeaders.length; i++) {
-				let key = request.rawHeaders[i]
-				if (key === 'Host') {
-					let domainWithPort = request.rawHeaders[i + 1]
-					let domain = domainWithPort.split(':')[0]
-					return domain
+				let key = (request.rawHeaders[i] + '').toLowerCase()
+				if (key === 'host' || key === 'origin') {
+					let stringWithDomain = request.rawHeaders[i + 1]
+					let domain = this._getDomainFromString(stringWithDomain)
+					if (key === 'host') {
+						hostDomain = domain
+					}
+					if (key === 'origin') {
+						origin = stringWithDomain
+						originDomain = domain
+					}
+				}
+				if (hostDomain && originDomain) {
+					return { hostDomain, originDomain, origin }
 				}
 			}
+			return { hostDomain, originDomain, origin }
 		}
+	}
+	_getDomainFromString(string) {
+		string = this._getRidOfExtra(string, 'https://', true)
+		string = this._getRidOfExtra(string, 'http://', true)
+		string = this._getRidOfExtra(string, ':')
+		string = this._getRidOfExtra(string, '/')
+		string = this._getRidOfExtra(string, '?')
+		string = this._getRidOfExtra(string, '#')
+		return string
+	}
+	_getRidOfExtra(string, extra, isPrefix) {
+		let array = string.split(extra)
+		if (array.length > 1) {
+			let i = 0
+			if (isPrefix) {
+				i = 1
+			}
+			string = array[i]
+		}
+		return string
 	}
 	
 	_getHttpsCredentials() {
@@ -179,6 +228,22 @@ class Listener extends Starter {
 			})
 		} catch(err) { }
 		return certs
+	}
+	
+	_proxyOldOptions(isDevelopment) {
+		let protocol = 'http://'
+		let host = 'chem-node'
+		if (isDevelopment) {
+			host = 'chem-dev'
+		}
+		return {
+			target: {
+				protocol,
+				host,
+				port: Settings.port
+			},
+			ws: true
+		}
 	}
 }
 

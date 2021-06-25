@@ -1,7 +1,7 @@
 version: '3.5'
 
 services: 
-  routerS:
+  d-routerS:
     restart: unless-stopped
     image: ${PREFIX}${LABEL}_${NAME}
     container_name: ${PREFIX}${LABEL}_${NAME}S
@@ -21,7 +21,7 @@ services:
       - ~/:/usr/nodejs/tilda/
       - /mnt/sda:/usr/nodejs/sda/
   
-  routerD:
+  d-routerD:
     restart: unless-stopped
     image: ${PREFIX}${LABEL}_${NAME}
     container_name: ${PREFIX}${LABEL}_${NAME}D
@@ -41,7 +41,7 @@ services:
       - ~/:/usr/nodejs/tilda/
       - /mnt/sda:/usr/nodejs/sda/
   
-  routerW:
+  d-routerW:
     restart: unless-stopped
     image: ${PREFIX}${LABEL}_${NAME}
     container_name: ${PREFIX}${LABEL}_${NAME}W

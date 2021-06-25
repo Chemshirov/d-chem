@@ -39,9 +39,6 @@ class StaticFilesWorker {
 							let fileString = array[i]
 							if (fileString && !(/\.(mp[3-4]|map)$/).test(fileString)) {
 								let answer = await this._addRoute.add(fileString)
-								if (answer.fileString !== fileString) {
-									console.log(fileString, answer)
-								}
 							}
 						}
 						success()

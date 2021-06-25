@@ -10,7 +10,6 @@ save2server.add = function(o){
 			save2server.send();
 		};
 	}).catch(function(e){
-		console.log(e);
 	});
 };
 
@@ -41,7 +40,7 @@ save2server.test = () => {
 	let date = Object.keys(data.base).sort().reverse()[0];
 	Object.keys(data.base).sort().reverse().some((d, i) => {
 		if (i < 5) {
-			console.log(d, data.base[d]['m'], data.base[d]);
+			
 		} else {
 			return true;
 		};

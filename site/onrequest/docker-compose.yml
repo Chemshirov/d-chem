@@ -1,7 +1,7 @@
 version: '3.5'
 
 services:
-  router: 
+  d-onrequest:
     restart: unless-stopped
     image: ${PREFIX}${LABEL}_${NAME}
     container_name: ${PREFIX}${LABEL}_${NAME}
@@ -14,8 +14,9 @@ services:
         - TILDA=/usr/nodejs/tilda/
         - AFTER_TILDA=${AFTER_TILDA}
         - EXTRA=${EXTRA}
+        - SHOW=${SHOW}
     ports:
-      - "${PORT1}:80"
+      - "${PORT}:80"
     networks:
       - tilda
     volumes:

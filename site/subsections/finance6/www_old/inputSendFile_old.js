@@ -187,7 +187,6 @@
 				let sending = {};
 					sending['t'] = 'fileChunk';
 					sending['path'] = pathString;
-					console.log(1, pathString);
 					sending['chunksAmount'] = chunksAmount;
 					sending['md5'] = chunk;
 					sending['str'] = object[chunk]['str'];

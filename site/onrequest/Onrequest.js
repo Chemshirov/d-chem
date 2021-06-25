@@ -40,21 +40,23 @@ class Onrequest extends Starter {
 	
 	async _startDockers() {
 		try {
-			let prePath = process.env.STAGE + '/' + process.env.LABEL + '/'
-			await this.rabbitMQ.send('dockerrun', {type: 'start', path: prePath + 'subsections/finance6/'})
-			await this.rabbitMQ.send('dockerrun', {type: 'start', path: prePath + 'subsections/git/'})
-			await this.rabbitMQ.send('dockerrun', {
-				type: 'start',
-				path: prePath + 'watcher/',
-				settings: [true]
-			})
-			await this.rabbitMQ.send('dockerrun', {type: 'start', path: prePath + 'router/'})
-			if (process.env.STAGE === Settings.developmentStageName) {
+			if (!process.env.SHOW) {
+				let prePath = process.env.STAGE + '/' + process.env.LABEL + '/'
+				await this.rabbitMQ.send('dockerrun', {type: 'start', path: prePath + 'subsections/finance6/'})
+				await this.rabbitMQ.send('dockerrun', {type: 'start', path: prePath + 'subsections/git/'})
 				await this.rabbitMQ.send('dockerrun', {
 					type: 'start',
-					path: prePath + '/listener/',
-					settings: [Settings.port, Settings.portS]
+					path: prePath + 'watcher/',
+					settings: [true]
 				})
+				await this.rabbitMQ.send('dockerrun', {type: 'start', path: prePath + 'router/'})
+				if (process.env.STAGE === Settings.productionStageName) {
+					await this.rabbitMQ.send('dockerrun', {
+						type: 'start',
+						path: prePath + '/listener/',
+						settings: [Settings.port, Settings.portS]
+					})
+				}
 			}
 		} catch(err) {
 			this.onError(this.label, '_startDockers', err)
@@ -70,18 +72,23 @@ class Onrequest extends Starter {
 		if (!url) {
 			url = '/'
 		}
+		
 		if (url.substring(0, 11) === '/socket.io/') {
 			type = 'websocket'
 		} else {
-			if (url.split('.').length < 2) {
+			let hasNoDots = (url.split('.').length < 2)
+			if (hasNoDots) {
 				type = 'dynamic'
 			} else {
 				let reverseUrl = url.split('').reverse().join('')
-				let ext = reverseUrl.split('.')[0].split('').reverse().join('')
-				if (reverseUrl.substring(0, 1) === '/') {
+				let isEndsBySlash = (reverseUrl.substring(0, 1) === '/')
+				if (isEndsBySlash) {
 					type = 'dynamic'
-				} else if (['map', 'mp3', 'mp4'].includes(ext)) {
-					type = 'dynamic'
+				} else {
+					let ext = reverseUrl.split('.')[0].split('').reverse().join('')
+					if (['map', 'mp3', 'mp4'].includes(ext)) {
+						type = 'dynamic'
+					}
 				}
 			}
 		}

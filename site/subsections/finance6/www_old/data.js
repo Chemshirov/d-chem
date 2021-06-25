@@ -17,7 +17,6 @@ data.start = function(){
 				data.go('data.start');
 			}catch(e){
 				data.isFail();
-				console.log('error: getLS');
 			};
 		} else {
 			data.isFail();
@@ -220,7 +219,6 @@ data.rate = function(curr,date){
 						let dayCurrency = data['currencies']['byDate'][c]
 						Object.keys(dayCurrency).reverse().some(oneDay => {
 							if (oneDay < day) {
-								console.log(day, oneDay, curr, dayCurrency[oneDay])
 								rate = dayCurrency[oneDay]
 								dayCurrency[day] = dayCurrency[oneDay]
 								return true

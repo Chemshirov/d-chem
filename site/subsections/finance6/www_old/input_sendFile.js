@@ -251,7 +251,6 @@ class FileSender {
 			});
 		} else {
 			return new Promise( (resolve) => {
-				console.log('Can\'t _saveTemporaryOnTheDevice()')
 				resolve()
 			})
 		}
@@ -850,7 +849,6 @@ class SendError {
 			sending['t'] = 'error';
 			sending['label'] = 'inputFileSender: ' + this.path;
 			sending['err'] = this.error.toString();
-			console.log('Error', this.path, this.error);
 		new Socket(sending).send();
 	};
 }

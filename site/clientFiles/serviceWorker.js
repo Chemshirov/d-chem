@@ -1,4 +1,4 @@
-let cacheName = 'newCacheDate 23/06/2021, 20.08.16'
+let cacheName = 'newCacheDate 25/06/2021, 11.24.14'
 
 try{
 	self.addEventListener('install', event => {

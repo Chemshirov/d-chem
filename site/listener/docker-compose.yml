@@ -1,7 +1,7 @@
 version: '3.5'
 
 services:
-  listener:
+  d-listener:
     restart: unless-stopped
     image: ${PREFIX}${LABEL}_${NAME}
     container_name: ${PREFIX}${LABEL}_${NAME}

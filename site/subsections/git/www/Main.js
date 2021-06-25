@@ -34,7 +34,7 @@ class Main {
 			}
 		})
 		document.addEventListener('keydown', event => {
-			if (event.keyCode == 13) {
+			if (event.keyCode === 13) {
 				let element = event.target
 				if (element.getAttribute('id') === 'cliTextarea') {
 					event.preventDefault()

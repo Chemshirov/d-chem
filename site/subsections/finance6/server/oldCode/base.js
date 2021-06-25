@@ -76,8 +76,6 @@ obj.save.currencies = function(o){
 					};
 				}catch(e){};
 			};
-		} else {
-			// console.log('fileHasSaved', o['fileHasSaved'])
 		}
 	};
 };

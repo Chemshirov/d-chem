@@ -9,9 +9,9 @@ dockerName="$PREFIX"$NAME
 
 docker stop $dockerName 1>/dev/null 2>/dev/null;
 docker rm $dockerName 1>/dev/null 2>/dev/null;
-docker run --name $dockerName --hostname $NAME --network tilda -d $NAME 1>/dev/null 2>/dev/null;
-echo '\t' $NAME is starting;
-sleep 20;
+docker run --name $dockerName --hostname $dockerName --network tilda -d $NAME 1>/dev/null 2>/dev/null;
+echo '\t' $dockerName is starting;
+sleep 40;
 
 # i=0
 # while [ "$i" -lt 10 ]

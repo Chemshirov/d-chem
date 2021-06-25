@@ -46,7 +46,9 @@ class Router {
 			for (let i = 0; i < object.queue.length; i++) {
 				let queueUnit = object.queue.shift()
 				let otherArgs = queueUnit.args
-				object.socket.emit(queueUnit.event, ...otherArgs)
+				if (object.socket) {
+					object.socket.emit(queueUnit.event, ...otherArgs)
+				}
 			}
 		} else {
 			let object = this._clientSockets[clientSocket.id]
@@ -91,7 +93,7 @@ class Router {
 	_setSocketEvent(clientSocket, event) {
 		let eventName = 'eventNameIs_' + event
 		let nextSocket = this._clientSockets[clientSocket.id].socket
-		if (!nextSocket[eventName]) {
+		if (nextSocket && !nextSocket[eventName]) {
 			nextSocket[eventName] = true
 			nextSocket.on(event, data => {
 				// console.log('ans', clientSocket.id.substring(0, 6), event, JSON.stringify(data).substring(0, 20))

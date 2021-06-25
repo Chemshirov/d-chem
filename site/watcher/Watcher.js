@@ -1,6 +1,7 @@
 const Arbiter = require('./Arbiter.js')
 const FilesWatcher = require('../../_common/FilesWatcher.js')
 const fs = require('fs')
+const sda = '/usr/nodejs/sda/'
 const StaticSetter = require('./StaticSetter.js')
 const StaticAddRoute = require('./StaticAddRoute.js')
 const Starter = require('../../_common/Starter.js')
@@ -11,7 +12,9 @@ class Watcher extends Starter {
 		super()
 		this.currentPath = currentPath
 		this.label = this.constructor.name
-		this.clientFilesPath = process.env.TILDA + process.env.STAGE + '/' + process.env.LABEL + '/clientFiles/'
+		let stageLabelPath = process.env.STAGE + '/' + process.env.LABEL + '/'
+		this.clientFilesPath = process.env.TILDA + stageLabelPath + 'clientFiles/'
+		this.dataFilesPath = sda + stageLabelPath + 'subsections/data/files/'
 	}
 	
 	async atStart() {
@@ -40,9 +43,9 @@ class Watcher extends Starter {
 			filesWatcher.addStringToIgnore('_tempFiles', true)
 			filesWatcher.addStringToIgnore('.temp')
 			filesWatcher.addStringToIgnore('.log')
-			
-			let path = process.env.TILDA + process.env.STAGE
-			await filesWatcher.watchPath(path)
+			await filesWatcher.watchPath(process.env.TILDA + process.env.STAGE)
+			await filesWatcher.watchPath(this.dataFilesPath)
+			await filesWatcher.watchPath(process.env.TILDA + 'chem/https/files/')
 		} catch (error) {
 			this.onError(this.label, '_start', error)
 		}

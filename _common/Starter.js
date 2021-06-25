@@ -11,7 +11,7 @@ class Starter {
 				this.statistics = new Statistics(this.onError.bind(this), this.rabbitMQ)
 				await this.statistics.connect()
 			}
-				
+			
 			if (typeof this.atStart === 'function') {
 				await this.atStart()
 			}

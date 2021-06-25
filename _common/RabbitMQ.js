@@ -189,7 +189,7 @@ class RabbitMQ {
 	}
 	
 	_devOrNotName(name) {
-		if (process.env.STAGE === 'development' && name) {
+		if (name) {
 			let regexp = new RegExp('^' + process.env.PREFIX)
 			let notDevName = name.replace(regexp, '')
 			name = process.env.PREFIX + notDevName
@@ -238,7 +238,7 @@ class RabbitMQ {
 	_notAnError(error) {
 		let notAnError = false
 		if (error && typeof error === 'object') {
-			if (['ECONNREFUSED', 'EAI_AGAIN', 'ECONNRESET', 406].includes(error.code)) {
+			if (['ECONNREFUSED', 'EAI_AGAIN', 'ECONNRESET', 'EHOSTUNREACH', 406].includes(error.code)) {
 				notAnError = true
 			}
 		}
