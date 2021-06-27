@@ -24,7 +24,7 @@ class Watcher extends Starter {
 			this.syncer = new Syncer(this.onError.bind(this), this.rabbitMQ)
 			await this.syncer.init()
 			let staticSetter = new StaticSetter(this.onError.bind(this), this.currentPath, this.rabbitMQ)
-			this.staticAddRoute = new StaticAddRoute(this.onError.bind(this))
+			this.staticAddRoute = new StaticAddRoute(this.onError.bind(this), this.rabbitMQ)
 			if (process.env.CACHE_ON) {
 				await staticSetter.start()
 			}
@@ -45,9 +45,8 @@ class Watcher extends Starter {
 			filesWatcher.addStringToIgnore('.log')
 			await filesWatcher.watchPath(process.env.TILDA + process.env.STAGE)
 			await filesWatcher.watchPath(this.dataFilesPath)
-			await filesWatcher.watchPath(process.env.TILDA + 'chem/https/files/')
 		} catch (error) {
-			this.onError(this.label, '_start', error)
+			this.onError(this.label, '_watch', error)
 		}
 	}
 	
@@ -59,7 +58,7 @@ class Watcher extends Starter {
 			this._updateServiceWorkerFile(directory, fileName)
 			this.rabbitMQ.sendToAll(this._onFileChanged.name, { directory, fileName })
 		} catch (error) {
-			this.onError(this.label, '_start', error)
+			this.onError(this.label, '_onFileChanged', error)
 		}
 	}
 	

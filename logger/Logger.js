@@ -1,3 +1,4 @@
+const fs = require('fs')
 const Redis = require('../_common/Redis.js')
 const Settings = require('../_common/Settings.js')
 const Starter = require('../_common/Starter.js')
@@ -31,6 +32,14 @@ class Logger extends Starter {
 		setInterval(async () => {
 			try {
 				let array = Object.keys(this._queue)
+				if (array.length) {
+					let text = JSON.stringify(this._queue, null, 2)
+					fs.appendFile(process.env.TILDA + process.env.AFTER_TILDA + 'log.log', text, (err) => {
+						if (err) {
+							console.log(err)
+						}
+					})
+				}
 				for (let i = 0; i < array.length; i++) {
 					let date = array[i]
 					await this._sendToRedis(date)

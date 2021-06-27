@@ -4,11 +4,13 @@ const Settings = require('../../_common/Settings.js')
 const sha1 = require('sha1')
 const zlib = require('zlib')
 
-class AddRoute {
-	constructor(onError) {
-		this._onError = onError
+class StaticAddRoute {
+	constructor(onError, rabbitMQ) {
+		this.onError = onError
+		this.rabbitMQ = rabbitMQ
 		this.label = this.constructor.name
 		this.routeTable = Settings.staticRouteTable()
+		this.rabbitMQ.subscribe(this._addFiles.bind(this), 'AddFilesToRouter')
 	}
 	
 	async add(fileString) {
@@ -30,8 +32,8 @@ class AddRoute {
 				}
 			}
 			return answer
-		} catch(err) {
-			this._onError(this.label, 'add', err)
+		} catch(error) {
+			this.onError(this.label, 'add', error)
 		}
 	}
 	
@@ -58,15 +60,17 @@ class AddRoute {
 			}
 			await this._addToRedis(clientsPath, fileProperties, gzip)
 			return fileProperties
-		} catch(err) {
-			this._onError(this.label, 'work catch', err)
+		} catch(error) {
+			if (!(error && error.code === 'ENOENT')) {
+				this.onError(this.label, 'work catch', error)
+			}
 		}
 	}
 	
 	async _addToRedis(fromString, object, gzip) {
 		try {
 			if (!this.redis) {
-				let redis = new Redis(this._onError)
+				let redis = new Redis(this.onError)
 				this.redis = await redis.connect()
 			}
 			let key = 'StaticFiles:' + fromString
@@ -74,10 +78,25 @@ class AddRoute {
 			if (gzip) {
 				await this.redis.set(key + ':gzip', gzip)
 			}
-		} catch(err) {
-			this._onError(this.label, '_addToRedis', err)
+		} catch(error) {
+			this.onError(this.label, '_addToRedis', error)
+		}
+	}
+	
+	async _addFiles(filesArray, remove) {
+		try {
+			if (!remove) {
+				for (let i = 0; i < filesArray.length; i++) {
+					let fileString = filesArray[i]
+					await this.add(fileString)
+				}
+			} else {
+				// write remove files
+			}
+		} catch(error) {
+			this.onError(this.label, '_addFiles', error)
 		}
 	}
 }
 
-module.exports = AddRoute
+module.exports = StaticAddRoute

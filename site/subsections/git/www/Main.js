@@ -66,8 +66,8 @@ class Main {
 					return this._setSocket()
 				}, 2000)
 			}
-		}).catch(err => {
-			console.log(err)
+		}).catch(error => {
+			console.log(error)
 		})
 	}
 	

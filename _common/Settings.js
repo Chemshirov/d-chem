@@ -100,6 +100,9 @@ class Settings {
 	static get staticTtl() {
 		return 60 * 60 * 24 * 7
 	}
+	static get staticInterval() {
+		return 1000
+	}
 	static staticRouteTable() {
 		let sda = '/usr/nodejs/sda/'
 		let labelPath = process.env.TILDA + process.env.STAGE + '/' + process.env.LABEL + '/'
@@ -111,6 +114,7 @@ class Settings {
 			[labelPath + 'clientFiles/']: ['/'],
 			[subsections +  '/finance6/www_old/']: ['/finance6/'],
 			[subsections +  '/git/www/']: ['/git/'],
+			[subsections +  '/logs/.next']: ['/_next'],
 			[sdaLabelPath + 'subsections/data/files/']: ['/data/files/'],
 			[sda + '/audiobooks/']: ['/audiobooks/'],
 			[sda + '/films/']: ['/films/'],

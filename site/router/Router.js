@@ -64,11 +64,22 @@ class Router extends Starter {
 			let names = []
 			let sKey = 'Containers'
 			let containersArray = await this.redis.smembers(sKey)
+			let logHostname = process.env.PREFIX + process.env.LABEL + '_logs'
+			containersArray.push(logHostname)
 			if (containersArray) {
 				for (let i = 0; i < containersArray.length; i++) {
 					let hostname = containersArray[i]
 					let hKey = sKey + ':' + hostname
-					let containerData = await this.redis.hgetall(hKey)
+					let containerData = {}
+					if (logHostname === hostname) {
+						containerData = {
+							path: process.env.STAGE + '/' + process.env.LABEL + '/subsections/logs/',
+							name: 'logs',
+							hostname
+						}
+					} else {
+						containerData = await this.redis.hgetall(hKey)
+					}
 					if ((/subsections/).test(containerData.path)) {
 						names.push(containerData.name)
 						subsections.data[containerData.name] = {
@@ -79,6 +90,7 @@ class Router extends Starter {
 			}
 			let regexp = new RegExp('^(\/)?(' + names.join('|') + ')([^0-9a-z_\-])?.*$', 'i')
 			subsections.regexp = regexp
+			console.log(subsections)
 			return subsections
 		} catch(err) {
 			this.onError(this.label, '_getSubsections', err)

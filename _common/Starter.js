@@ -1,3 +1,6 @@
+const fs = require('fs')
+const sda = '/usr/nodejs/sda/'
+
 const cluster = require('cluster')
 const RabbitMQ = require('./RabbitMQ.js')
 const Statistics = require('./Statistics.js')
@@ -38,6 +41,12 @@ class Starter {
 	
 	onError(className, method, error) {
 		this.rabbitMQ.send('logger', {type: 'error', className, method, error})
+		let text = JSON.stringify({className, method, error}, null, 2)
+		fs.appendFile(sda + process.env.STAGE + '/log.log', text, (err) => {
+			if (err) {
+				console.log(err)
+			}
+		})
 	}
 }
 

@@ -47,15 +47,21 @@ class FilesWatcher {
 	}
 	
 	_watching(directory) {
-		fs.watch(directory, (eventType, fileName) => {
-			let ignore = this._checkForIgnoreness(fileName)
-			if (!ignore) {
-				let hasDot = (fileName.split('.').length > 1)
-				if (hasDot) {
-					this._whenFileHasChanged(directory, fileName)
+		if (!this._watchingPool) {
+			this._watchingPool = {}
+		}
+		if (!this._watchingPool[directory]) {
+			this._watchingPool[directory] = true
+			fs.watch(directory, (eventType, fileName) => {
+				let ignore = this._checkForIgnoreness(fileName)
+				if (!ignore) {
+					let hasDot = (fileName.split('.').length > 1)
+					if (hasDot) {
+						this._whenFileHasChanged(directory, fileName)
+					}
 				}
-			}
-		})
+			})
+		}
 	}
 	
 	_whenFileHasChanged(directory, fileName) {

@@ -44,6 +44,7 @@ class Onrequest extends Starter {
 				let prePath = process.env.STAGE + '/' + process.env.LABEL + '/'
 				await this.rabbitMQ.send('dockerrun', {type: 'start', path: prePath + 'subsections/finance6/'})
 				await this.rabbitMQ.send('dockerrun', {type: 'start', path: prePath + 'subsections/git/'})
+				await this.rabbitMQ.send('dockerrun', {type: 'start', path: prePath + 'subsections/logs/'})
 				await this.rabbitMQ.send('dockerrun', {
 					type: 'start',
 					path: prePath + 'watcher/',
