@@ -19,8 +19,44 @@ class Settings {
 	}
 	
 	
+	static get arbiterCheckTimeout() {
+		return 1000
+	}
+	static get arbiterChoosingInterval() {
+		return 1000 * 30
+	}
+	static get arbiterTimeInterval() {
+		return 1000 * 15
+	}
+	static get arbiterTimeSiteList() {
+		return ['www.google.com', 'https://www.cloudflare.com/', 'https://www.bbc.com/']
+	}
+	
+	static get connectTimeout() {
+		return 500
+	}
+	
+	static getPort(productionPort) {
+		let port = productionPort
+		if (Settings.stage === Settings.developmentStageName) {
+			port++
+		}
+		return port
+	}
+	
 	static get developmentStageName() {
 		return 'development'
+	}
+	
+	static get extraSocketSubsections() {
+		return ['logs']
+	}
+	
+	static get filesWatcherDelay() {
+		return 200
+	}
+	static get filesWatcherLimit() {
+		return 20
 	}
 	
 	static get httpTestPhrase() {
@@ -31,11 +67,36 @@ class Settings {
 		return process.env.LABEL || 'site'
 	}
 	
-	static get loggerLimit() {
-		return 1000
+	static get loggerErrorInterval() {
+		return 1000 * 60 * 60
+	}
+	static get loggerFileName() {
+		return '/log.log'
 	}
 	static get loggerInterval() {
 		return 500
+	}
+	static get loggerLimit() {
+		return 1000
+	}
+	
+	static get mysqlPort() {
+		return Settings.getPort(43005)
+	}
+	
+	static get mediaCheckInterval() {
+		return 1000 * 60 * 15
+	}
+	
+	static get nextJsRevalidateSecs() {
+		return 60 * 5
+	}
+	static nextJsWebsocketPortByStage(stage) {
+		let port = 43009
+		if (stage && stage === Settings.developmentStageName) {
+			port++
+		}
+		return port
 	}
 	
 	static get port() {
@@ -44,44 +105,47 @@ class Settings {
 	static get portS() {
 		return 443
 	}
-	static get redisPort() {
-		let port = 43003
-		if (process.env.STAGE === Settings.developmentStageName) {
-			port++
-		}
-		return port
-	}
-	static get mysqlPort() {
-		let port = 43005
-		if (process.env.STAGE === Settings.developmentStageName) {
-			port++
-		}
-		return port
-	}
-	
-	static get arbiterChoosingInterval() {
-		return 1000 * 3
-	}
-	static get arbiterTimeInterval() {
-		return 1000 * 15
-	}
-	static get arbiterTimeSiteList() {
-		return ['www.google.com', 'https://www.cloudflare.com/', 'https://www.bbc.com/']
-	}
-	static get arbiterTimeSiteTimeout() {
-		return 200
-	}
-	
-	static get connectTimeout() {
-		return 500
+	static get portChem() {
+		return 43111
 	}
 	
 	static get productionStageName() {
 		return 'production'
 	}
 	
+	static get proxyResetTimeout() {
+		return 1000 * 15
+	}
+	static get proxyCacheTtl() {
+		return 1000 * 60 * 60 * 24
+	}
+	
+	static get rabbitMqDefaultPort() {
+		return 5672
+	}
+	static get rabbitMqPort() {
+		return Settings.getPort(43007)
+	}
 	static get rabbitMqTimeout() {
 		return 5000
+	}
+	
+	static get redisDefaultPort() {
+		return 6379
+	}
+	static get redisPort() {
+		let port = Settings.redisPortByStage()
+		return Settings.getPort(port)
+	}
+	static redisPortByStage(stage) {
+		let port = 43003
+		if (stage && stage === Settings.developmentStageName) {
+			port++
+		}
+		return port
+	}
+	static get redisTimeout() {
+		return 1000
 	}
 	
 	static get socketMaxBufferSize() {
@@ -94,8 +158,29 @@ class Settings {
 		return 1000 * 60 * 60 * 16
 	}
 	
+	static get stage() {
+		return process.env.STAGE || Settings.productionStageName
+	}
+	
+	static stageByContainerName(containerName) {
+		let productionFirst = Settings.productionStageName.charAt(0)
+		let containerNameFirst = containerName.charAt(0)
+		if (productionFirst === containerNameFirst) {
+			return Settings.productionStageName
+		} else {
+			return Settings.developmentStageName
+		}
+	}
+	
+	static get standardTimeout() {
+		return 1000
+	}
+	static get standardTryLimit() {
+		return 60
+	}
+	
 	static get staticSizeLimit() {
-		return 1024 * 1024 / 5
+		return 1024 * 1024 / 10
 	}
 	static get staticTtl() {
 		return 60 * 60 * 24 * 7
@@ -105,27 +190,31 @@ class Settings {
 	}
 	static staticRouteTable() {
 		let sda = '/usr/nodejs/sda/'
-		let labelPath = process.env.TILDA + process.env.STAGE + '/' + process.env.LABEL + '/'
+		let labelPath = process.env.TILDA + Settings.stage + '/' + Settings.label + '/'
 		let subsections = labelPath + 'subsections'
-		let sdaLabelPath = sda + process.env.STAGE + '/' + process.env.LABEL + '/'
-		return {
+		let sdaLabelPath = sda + Settings.stage + '/' + Settings.label + '/'
+		let list = {
 			[process.env.TILDA + 'libraries/']: ['/libraries/', '/js/'],
-			[process.env.TILDA + 'libraries/bootstrap431/']: ['/bootstrap431/'],
 			[labelPath + 'clientFiles/']: ['/'],
 			[subsections +  '/finance6/www_old/']: ['/finance6/'],
 			[subsections +  '/git/www/']: ['/git/'],
-			[subsections +  '/logs/.next']: ['/_next'],
+			[subsections +  '/logs/.next']: ['/logs/_next'],
+			[sdaLabelPath + 'subsections/logs/']: ['/logs/'],
 			[sdaLabelPath + 'subsections/data/files/']: ['/data/files/'],
-			[sda + '/audiobooks/']: ['/audiobooks/'],
-			[sda + '/films/']: ['/films/'],
-			[sda + '/music/']: ['/music/'],
-			
-			[process.env.TILDA + 'chem/https/files/']: ['/data/files/'],
-			[process.env.TILDA + 'chem_develop/files/']: ['/data/files/'],
-			[process.env.TILDA + 'chem_develop/www/data/']: ['/data/'],
-			[process.env.TILDA + 'chem_develop/www/index/']: ['/index/'],
-			[process.env.TILDA + 'chem_develop/www/js/']: ['/js/'],
+			[sda + 'audiobooks/']: ['/audiobooks/'],
+			[sda + 'films/']: ['/films/'],
+			[sda + 'music/']: ['/music/'],
 		}
+		if (Settings.stage === Settings.developmentStageName) {
+			list[process.env.TILDA + 'chem_develop/www/data/'] = ['/data/']
+			list[process.env.TILDA + 'chem_develop/www/index/'] = ['/index/']
+			list[process.env.TILDA + 'chem_develop/www/js/'] = ['/js/']
+		} else {
+			list[process.env.TILDA + 'chem/https/www/data/'] = ['/data/']
+			list[process.env.TILDA + 'chem/https/www/index/'] = ['/index/']
+			list[process.env.TILDA + 'chem/https/www/js/'] = ['/js/']
+		}
+		return list
 	}
 	static get staticMimeTypes() {
 		return {
@@ -154,6 +243,33 @@ class Settings {
 	
 	static get timeZone() {
 		return 3
+	}
+	
+	static watcherMemoryLimitForContainerName(containerName) {
+		let limit = Settings.watcherMemoryLimitStandard
+		if (containerName) {
+			let suffix = '-' + Settings.label + '_'
+			let regExp = new RegExp('^[dp]' + suffix + '(.+)$')
+			let shortName = containerName.replace(regExp, '$1')
+			let containerLimit = Settings.watcherMemoryLimitList[shortName]
+			if (containerLimit) {
+				limit = containerLimit
+			}
+		}
+		return limit
+	}
+	static get watcherMemoryLimitList() {
+		return {
+			'logs': 500,
+			'proxy': 1500,
+			'worker': 2000
+		}
+	}
+	static get watcherMemoryLimitStandard() {
+		return 300
+	}
+	static get watcherWait() {
+		return 1000 * 60
 	}
 }
 

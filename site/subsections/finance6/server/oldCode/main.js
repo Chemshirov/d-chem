@@ -35,7 +35,8 @@ obj.connection = function(){
 			delete obj.o.base.sid2name[socket.id];
 		})
 	});
-	obj.o.rabbitMQ.subscribe(obj.onFileChanged.bind(this), '_onFileChanged')
+	obj.o.rabbitMQ.receive(obj.onRabbitMessage.bind(this))
+	obj.o.rabbitMQ.receive({ label: 'Watcher', callback: obj.onWatcher.bind(this) })
 };
 
 obj.currencies = function(o){
@@ -63,19 +64,20 @@ obj.html = function(res,url,cookies){
 	};
 };
 
-obj.onFileChanged = (object) => {
-	if (object && object.fileName === 'serviceWorker.js') {
-		obj.o.io.emit(obj.label, {t: 'serviceWorker'})
-	}
-}
-
-obj.slaveToMaster = (object) => {
-	obj.o.rabbitMQ.sendToAll(obj.label, object)
-}
-obj.masterToSlave = (object) => {
+obj.onRabbitMessage = (object) => {
 	if (object.type === 'new user') {
 		obj.o.base.admin['logins'][object.uid] = {login: obj.o.common.date(), name: object.name}
 		obj.o.base.save.admin()
+	}
+}
+
+obj.onWatcher = (object) => {
+	if (object) {
+		if (object.type === 'FileHasChanged') {
+			if (object.fileName === 'serviceWorker.js') {
+				obj.o.io.emit(obj.label, {t: 'serviceWorker'})
+			}
+		}
 	}
 }
 

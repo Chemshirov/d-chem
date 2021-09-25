@@ -10,18 +10,13 @@
 ```
 
 
-
 ### TLDR
 
 **Dockerrun**. It's an instrument to run Docker containers by Docker containers them selves.
 
-**OnRequest**. The gate to the system, it separates static, dynamic and Websockets contents and does proxy it to respective routers by using Node cluster with all CPUs. Also it initializes to run those containers using Dockerrun.
-
-**Router**. It is universal redirector, capable to distribute files from preferred cache storage or file system, retranslate requests to particular site content containers, or establish middleware Websockets to mentioned directions. It can be specialized by passing an extra key.
+**Proxy**. The gate to the system, it separates static, dynamic and Websockets contents and does proxy it to respective routers by using Node cluster with all CPUs. Also it initializes to run those containers using Dockerrun. At first, it separates static, dynamic and Websockets contents and does proxy it to respective subrouters by using Node cluster with all CPUs. Then subrouters distribute files from preferred cache storage or file system (S), retranslates requests to particular site content containers (D), and does establish middleware Websockets (W).
 
 **Watcher**. It takes all the work with files: cache (calculates and stores to base gzip, size, dates, Etag, TTL and etc.), fires events on changes, synchronises between hardwares, arbitrates the synchronization.
-
-**Logger**. It created to organise, store and retrieve the flow of logs and errors of all containers and clients produce.
 
 **RabbitMQ**. It is great to use message broker, because it becomes possible to restart some minor containers even every minute with assurance that all the work will be completed with no breaches.
 
@@ -32,6 +27,10 @@
 ___
 
 **Subsections**. The site is divided to several sections to aim to be possible to reload them independently and if necessary fabricate several working container clones working in cluster to bust up performance.
+
+**Git** - web interface for git cli.
+
+**Logs** - quick and useful table of thousands of log events and errors, implemented without pagination and plain scroll.
 
 **Finance6** - old system invented to book spends and income, debts and actives. At the first it created and used a few times to simplify calculations of final shares when group of tourists pays randomly by one's card or another's and it's too complicated to keep all napkin notes of dynamic distribution of each other's debts. But eventually it is too complicated because it is strictly necessary to input all the information for accurate results (even in case when one person or several write for all using auto splitters and such handy features, because they sometime forget to do the job). Now the 6th version barely breathing still handles my finances and keeps all and every pays I did since 2013, allowing to use search, filters, labels, indicators and images of important bills.
 

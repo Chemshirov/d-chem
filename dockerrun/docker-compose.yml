@@ -12,6 +12,7 @@ services:
         - NAME=${NAME}
         - TILDA=/usr/nodejs/tilda/
         - AFTER_TILDA=${AFTER_TILDA}
+        - START=${START}
     networks:
       - tilda
     volumes:

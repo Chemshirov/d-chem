@@ -1,18 +1,22 @@
 {
 	"name": "logs",
-	"version": "0.0.5",
+	"version": "0.0.15",
 	"scripts": {
-		"postinstall": "npx next telemetry disable",
-		"start": "node Start.js",
-		"build": "next build",
-		"dev": "next"
+		"start": "node Start.js"
 	},
 	"dependencies": {
-		"amqplib": "latest",
-		"ioredis": "latest",
-		"chokidar": "latest",
 		"next": "latest",
 		"react": "latest",
-		"react-dom": "latest"
+		"react-dom": "latest",
+		"eslint": "latest",
+		"eslint-config-next": "latest",
+		"typescript": "latest",
+		"amqplib": "latest",
+		"redis": "latest",
+		"chokidar": "latest",
+		"react-bootstrap": "latest",
+		"bootstrap": "4.6.0",
+		"socket.io": "latest",
+		"socket.io-client": "latest"
 	}
 }

@@ -1,25 +1,27 @@
 const ArbiterTime = require('./ArbiterTime.js')
 const child_process = require('child_process')
 const Redis = require('../../_common/Redis.js')
-const siteSettings = require('/usr/nodejs/sda/' + process.env.STAGE + '/' + process.env.LABEL + '/Settings.js')
 const Settings = require('../../_common/Settings.js')
 const Syncer = require('./Syncer.js')
 
 class Arbiter {
-	constructor(onError, rabbitMQ) {
-		this.onError = onError
-		this.rabbitMQ = rabbitMQ
+	constructor(setupObject) {
+		this.onError = setupObject.onError
+		this.log = setupObject.log
+		this.rabbitMQ = setupObject.rabbitMQ
+		this.currentIp = setupObject.currentIp
+		this.anotherIp = setupObject.anotherIp
+		this.predispositionalMasterIp = setupObject.predispositionalMasterIp
+		this.setupObject = setupObject
 		this.label = this.constructor.name
 	}
 	
 	async init() {
 		try {
+			let redis = new Redis(this.onError)
+			this.redis = await redis.connect()
 			await new ArbiterTime(this.onError).init()
-			this.currentIp = await siteSettings.getCurrentIp()
-			this.anotherIp = siteSettings.getAnotherIp(this.currentIp)
-			await this._setRedisInstances()
-			await this.currentRedis.hset(this.label, 'currentIp', this.currentIp)
-			await this.currentRedis.hset(this.label, 'anotherIp', this.anotherIp)
+			await this.rabbitMQ.receive({ label: this.label, callback: this._onArbiter.bind(this) })
 			await this._choosing()
 			this._setChoosingInterval()
 		} catch(error) {
@@ -27,10 +29,51 @@ class Arbiter {
 		}
 	}
 	
+	setSyncer(syncer) {
+		this.syncer = syncer
+		if (this._becomeSlaveEventHappenedBeforeSyncerSet) {
+			this.syncer.copyToSlave()
+		}
+	}
+	
+	async _onArbiter(object) {
+		try {
+			if (object.check) {
+				this._sendToAnotherServer({ checked: this.anotherIp })
+			} else
+			if (object.checked) {
+				if (object.checked === this.currentIp) {
+					if (this._isAnotherServerConnectedSuccess) {
+						this._isAnotherServerConnectedSuccess(true)
+						if (this._isAnotherServerConnectedST) {
+							clearTimeout(this._isAnotherServerConnectedST)
+						}
+					}
+				}
+			} else
+			if (object.exec) {
+				if (typeof this[object.exec] === 'function') {
+					this[object.exec](object)
+				}
+			}
+		} catch(error) {
+			this.onError(this.label, '_onArbiter', error)
+		}
+	}
+	
+	_sendToAnotherServer(message, getNewConnection) {
+		this.rabbitMQ.send({
+			getNewConnection,
+			rabbitHostName: this.anotherIp,
+			label: this.label,
+			message
+		})
+	}
+	
 	async _choosing() {
 		try {
 			if (await this._isInternetWorks()) {
-				if (await this._isAnotherRedisConnected()) {
+				if (await this._isAnotherServerConnected()) {
 					if (await this._wasMasterLastTime()) {
 						if (await this._wasInternetBreach()) {
 							await this._becomeSlave('There was internet breach')
@@ -41,10 +84,11 @@ class Arbiter {
 						await this._becomeSlave('Current server was not a master at last time')
 					}
 				} else {
-					await this._becomeMaster('Another redis has no connection')
+					await this._becomeMaster('Another server has no connection')
 				}
 			} else {
-				await this._becomeSlave('Internet does not work')
+				this.log({ label: this.label, data: 'Internet does not work' })
+				await this._becomeSlave('Internet does not work, reason: ' + this._isInternetWorks.reason)
 			}
 		} catch(error) {
 			this.onError(this.label, '_choosing', error)
@@ -55,9 +99,13 @@ class Arbiter {
 		try {
 			let ok = await this._become('master', reason)
 			if (ok) {
-				await this._hsetToBoth('masterIp', this.currentIp)
-				await this._hsetToBoth('slaveIp', this.anotherIp)
-				await this._hsetToBoth('masterDate', Date.now())
+				let masterDate = Date.now()
+				await this._setMasterInfo({
+					masterIp: this.currentIp,
+					slaveIp: this.anotherIp,
+					masterDate
+				})
+				this._sendToAnotherServer({ exec: '_becomeSlave' })
 			}
 		} catch(error) {
 			this.onError(this.label, '_becomeMaster', error)
@@ -69,8 +117,12 @@ class Arbiter {
 			let ok = await this._become('slave', reason)
 			if (ok && !this._copying) {
 				this._copying = true
-				let syncer = new Syncer(this.onError, this.rabbitMQ)
-				await syncer.copyToSlave()
+				if (this.syncer) {
+					this._becomeSlaveEventHappenedBeforeSyncerSet = false
+					await this.syncer.copyToSlave()
+				} else {
+					this._becomeSlaveEventHappenedBeforeSyncerSet = true
+				}
 				if (this._isPredispositionalMaster) {
 					this._becomeMaster('Ressurection')
 				}
@@ -82,100 +134,106 @@ class Arbiter {
 	}
 	
 	async _become(type, reason) {
-		let ok = false
-		if (await this._wasInternetBreach()) {
-			await this.currentRedis.hdel(ArbiterTime.name, 'internetBreach')
-			this.rabbitMQ.sendToAll('reconnectToRedis')
-			ok = true
-		}
-		if (this._lastBecoming !== type) {
-			let data = {
-				text: 'I am ' + type,
-				reason: reason
+		try {
+			let ok = false
+			if (await this._wasInternetBreach()) {
+				await this.redis.hdel(ArbiterTime.name, 'internetBreach')
+				ok = true
 			}
-			if (!this._lastBecoming) {
-				console.log(data.text)
-			} else {
-				console.log(data, this._wasMasterLastTimeLog)
+			if (this._lastBecoming !== type) {
+				let data = {
+					text: 'I am ' + type,
+					reason: reason
+				}
+				this._lastBecoming = type
+				this.log({ label: this.label, data })
+				ok = true
 			}
-			this._lastBecoming = type
-			this.rabbitMQ.send('logger', {type: 'log', label: process.env.HOSTNAME, data})
-			ok = true
-		}
-		if (ok) {
-			return ok
+			if (ok) {
+				return ok
+			}
+		} catch(error) {
+			this.onError(this.label, '_become', error)
 		}
 	}
 	
 	async _isInternetWorks() {
-		try {
-			return await this._isHealthy(this.currentRedis)
-		} catch(error) {
-			this.onError(this.label, '_isInternetWorks', error)
-		}
-	}
-	
-	async _isAnotherRedisConnected() {
-		try {
-			await this._setAnotherRedis()
-			let isConnected = false
-			if (this.anotherRedis) {
-				isConnected = await this._isHealthy(this.anotherRedis)
-			}
-			return isConnected
-		} catch(error) {
-			this.onError(this.label, '_isAnotherRedisConnected', error)
-		}
-	}
-	
-	_isHealthy(redis) {
-		return new Promise(success => {
+		return new Promise(async success => {
+			let tooLong = setTimeout(() => {
+				this._isInternetWorks.reason = 'tooLong'
+				success(false)
+			}, Settings.redisTimeout)
 			try {
-				let internetWorksPromise = redis.hget(ArbiterTime.name, 'internetWorks').catch(redis.onCatch)
-				internetWorksPromise.then(date => {
-					if ((Date.now() - date) < Settings.arbiterTimeInterval * 3) {
+				if (this.redis) {
+					let internetWorksDate = await this.redis.hget(ArbiterTime.name, 'internetWorks')
+					let timeSinceLastCheck = Date.now() - internetWorksDate
+					if (timeSinceLastCheck < Settings.arbiterTimeInterval * 2) {
+						clearTimeout(tooLong)
+						this._isInternetWorks.reason = timeSinceLastCheck
 						success(true)
 					} else {
+						this._isInternetWorks.reason = 'arbiterTimeInterval'
 						success(false)
 					}
-				}).catch(err => {
+				} else {
+					this._isInternetWorks.reason = '!this.redis'
 					success(false)
-				})
-			} catch(err) {
+				}
+			} catch (err) {
+				this._isInternetWorks.reason = 'catch'
 				success(false)
 			}
 		}).catch(error => {
-			this.onError(this.label, '_isHealthy', error)
+			this.onError(this.label, '_isInternetWorks', error)
+		})
+	}
+	
+	async _isAnotherServerConnected() {
+		return new Promise(success => {
+			this._sendToAnotherServer({ check: this.anotherIp }, !this._isAnotherServerConnectedLastTime)
+			this._isAnotherServerConnectedSuccess = success
+			if (this._isAnotherServerConnectedST) {
+				clearTimeout(this._isAnotherServerConnectedST) 
+			}
+			this._isAnotherServerConnectedST = setTimeout(() => {
+				this._isAnotherServerConnectedSuccess(false)
+				this.log({ label: this.label, data: 'Another server is not connected' })
+			}, Settings.arbiterCheckTimeout)
+		}).then(isConnected => {
+			this._isAnotherServerConnectedLastTime = isConnected
+			return isConnected
+		}).catch(error => {
+			this.onError(this.label, '_isAnotherServerConnected', error)
 		})
 	}
 	
 	async _wasMasterLastTime() {
 		try {
 			this._wasMasterLastTimeLog = []
-			let masterIpByCurrent = await this.currentRedis.hget(this.label, 'masterIp')
+			let masterIpByCurrent = await this.redis.hget(this.label, 'masterIp')
 			this._wasMasterLastTimeLog.push('masterIpByCurrent:' + masterIpByCurrent)
 			let masterIpByAnother = false
-			if (this.anotherRedis) {
-				masterIpByAnother = await this.anotherRedis.hget(this.label, 'masterIp').catch(this.anotherRedis.onCatch)
-				this._wasMasterLastTimeLog.push('masterIpByAnother: ' + masterIpByAnother)
-			}
+			// if (this.anotherRedis) {
+				// masterIpByAnother = await this.anotherRedis.hget(this.label, 'masterIp')
+				// this._wasMasterLastTimeLog.push('masterIpByAnother: ' + masterIpByAnother)
+			// }
 			let masterIp = masterIpByCurrent || masterIpByAnother
 			this._wasMasterLastTimeLog.push('masterIp: ' + masterIp)
-			if (masterIpByCurrent && masterIpByAnother && masterIpByCurrent !== masterIpByAnother) {
-				let masterDateByCurrent = await this.currentRedis.hget(this.label, 'masterDate')
-				this._wasMasterLastTimeLog.push('masterDateByCurrent: ' + masterDateByCurrent)
-				let masterDateByAnother = 0
-				if (this.anotherRedis) {
-					masterDateByAnother = await this.anotherRedis.hget(this.label, 'masterDate')
-					this._wasMasterLastTimeLog.push('masterDateByAnother: ' + masterDateByAnother)
-				}
-				let isCurrentMasterFresher = (masterDateByCurrent>>>0 > masterDateByAnother>>>0)
-				this._wasMasterLastTimeLog.push('isCurrentMasterFresher: ' + isCurrentMasterFresher)
-				masterIp = (isCurrentMasterFresher ? masterIpByCurrent : masterIpByAnother)
-				this._wasMasterLastTimeLog.push('masterIp2: ' + masterIp)
-			}
+			// if (masterIpByCurrent && masterIpByAnother && masterIpByCurrent !== masterIpByAnother) {
+				// let masterDateByCurrent = await this.redis.hget(this.label, 'masterDate')
+				// this._wasMasterLastTimeLog.push('masterDateByCurrent: ' + masterDateByCurrent)
+				// let masterDateByAnother = 0
+				// if (this.anotherRedis) {
+					// masterDateByAnother = await this.anotherRedis.hget(this.label, 'masterDate')
+					// this._wasMasterLastTimeLog.push('masterDateByAnother: ' + masterDateByAnother)
+				// }
+				// let isCurrentMasterFresher = (masterDateByCurrent>>>0 > masterDateByAnother>>>0)
+				// this._wasMasterLastTimeLog.push('isCurrentMasterFresher: ' + isCurrentMasterFresher)
+				// masterIp = (isCurrentMasterFresher ? masterIpByCurrent : masterIpByAnother)
+				// this._wasMasterLastTimeLog.push('masterIpAfter: ' + masterIp)
+			// }
 			if (!masterIp) {
-				masterIp = siteSettings.predispositionalMasterIp
+				masterIp = this.predispositionalMasterIp
 			}
 			return (masterIp === this.currentIp)
 		} catch(error) {
@@ -185,7 +243,10 @@ class Arbiter {
 	
 	async _wasInternetBreach() {
 		try {
-			let internetBreach = await this.currentRedis.hget(ArbiterTime.name, 'internetBreach')
+			let internetBreach = await this.redis.hget(ArbiterTime.name, 'internetBreach')
+			if (!internetBreach) {
+				internetBreach = 0
+			}
 			if (internetBreach && (Date.now() - internetBreach) > Settings.arbiterTimeInterval * 3) {
 				internetBreach = false
 			}
@@ -196,41 +257,31 @@ class Arbiter {
 	}
 	
 	get _isPredispositionalMaster() {
-		return (this.currentIp === siteSettings.predispositionalMasterIp)
+		return (this.currentIp === this.predispositionalMasterIp)
 	}
 	
-	async _setRedisInstances() {
+	async _getMasterInfo() {
 		try {
-			let currentRedis = new Redis(this.onError)
-			this.currentRedis = await currentRedis.connect(this.currentIp)
-			if (this.currentRedis) {
-				await this._setAnotherRedis()
-			}
+			let masterIp = await this.redis.hget(this.label, 'masterIp')
+			let slaveIp = await this.redis.hget(this.label, 'slaveIp')
+			let masterDate = await this.redis.hget(this.label, 'masterDate')
 		} catch(error) {
-			this.onError(this.label, '_setRedisInstances', error)
+			this.onError(this.label, '_getMasterInfo', error)
 		}
 	}
 	
-	async _setAnotherRedis() {
+	async _setMasterInfo(object) {
 		try {
-			if (this.anotherRedis) {
-				this.anotherRedis.disconnect()
-			}
-			let redis = new Redis(this.onError)
-			this.anotherRedis = await redis.connect(this.anotherIp, true)
-		} catch(error) {
-			this.onError(this.label, '_setAnotherRedis', error)
-		}
-	}
-	
-	async _hsetToBoth(key, value) {
-		try {
-			await this.currentRedis.hset(this.label, key, value).catch(this.currentRedis.onCatch)
-			if (this.anotherRedis) {
-				await this.anotherRedis.hset(this.label, key, value).catch(this.anotherRedis.onCatch)
+			await this.redis.hset(this.label, 'masterIp', object.masterIp)
+			await this.redis.hset(this.label, 'slaveIp', object.slaveIp)
+			await this.redis.hset(this.label, 'masterDate', object.masterDate)
+			console.log('_setMasterInfo masterIp', object.masterIp)
+			if (!object.exec) {
+				object.exec = this._setMasterInfo.name
+				this._sendToAnotherServer(object)
 			}
 		} catch(error) {
-			this.onError(this.label, '_writeHsetToBoth', error)
+			this.onError(this.label, '_setMasterInfo', error)
 		}
 	}
 	

@@ -1,4 +1,4 @@
-let cacheName = 'newCacheDate 27/06/2021, 12.04.24'
+let cacheName = 'newCacheDate 25/09/2021, 11.55.18'
 
 try{
 	self.addEventListener('install', event => {
@@ -11,7 +11,7 @@ try{
 			let keys = await caches.keys();
 			for (let i = 0; i < keys.length; i++) {
 				let key = keys[i]
-				if (key.includes('newCacheDate') && key != cacheName) {
+				if ((key.includes('newCacheDate') || key.includes('chemshirov_')) && key != cacheName) {
 					deleted = true
 					await caches.delete(key)
 				}
@@ -33,33 +33,15 @@ try{
 	self.addEventListener('fetch', event => {
 		let request = event.request
 		if (request.method !== 'HEAD') {
-			let isSocketIoRequests = (request.url.includes('/socket.io/') && request.url.includes('transport='))
-			let isGitPage = (request.url.includes('/git'))
-			let cleanUrl = request.url.split('?')[0]
-				cleanUrl = cleanUrl.split('#')[0]
-			let ext = cleanUrl.split('.').pop()
-			let isBigFile = (ext === 'mp3' || ext === 'mp4')
-			if (!isBigFile && !isSocketIoRequests && !isGitPage) {
-				event.respondWith(
-					caches.match(request).then(response => {
-						if (response) {
-							return response
-						} else {
-							return fetch(request).then(response => {
-								return caches.open(cacheName).then(cache => {
-									try {
-										cache.put(request, response.clone()).catch(error => {
-											onError(error)
-										})
-									} catch(error) {
-										onError(error)
-									}
-									return response
-								})
-							})
-						}
-					})
-				)
+			let isQuery = (request.url.split('?').length > 1)
+			if (!isQuery) {
+				let isGitPage = (request.url.includes('/git'))
+				let isLogsPage = (request.url.includes('/logs'))
+				let ext = request.url.split('#')[0].split('.').pop()
+				let isBigFile = (ext === 'mp3' || ext === 'mp4')
+				if (!isGitPage && !isLogsPage && !isBigFile) {
+					event.respondWith(getResponse(request))
+				}
 			}
 		}
 	})
@@ -68,8 +50,41 @@ try{
 	onError(error)
 }
 
+let getResponse = request => {
+	return caches.match(request).then(response => {
+		if (response && response.status === 200) {
+			return response
+		} else {
+			return fetch(request.url).then(response => {
+				let responseClone = response.clone()
+				if (response && response.status === 200) {
+					try {
+						self.caches.open(cacheName).then(cache => {
+							cache.put(request, responseClone).catch(error => {
+								onError(error)
+							})
+						})
+					} catch (error) {
+						onError(error)
+					}
+					return response
+				}
+			})
+		}
+	}).then(response => {
+		if (response) {
+			return response
+		}
+	}).catch(error => {
+		onError(error)
+	})
+}
 
 let onError = (error) => {
 	console.log(error)
-	// client.postMessage('error', error)
+	self.clients.matchAll().then(clients => {
+		clients.forEach(client => {
+			client.postMessage('error', error)
+		})
+	})
 }

@@ -1,52 +1,55 @@
 let obj = {};
 
-try{
-	document.addEventListener("DOMContentLoaded",function(e){
+try {
+	document.addEventListener("DOMContentLoaded", function(e) {
 		obj.idf();
-		document.dispatchEvent(new CustomEvent("triggers",{"detail":{'socket':'start'}}));
+		document.dispatchEvent(new CustomEvent("triggers", {"detail": {'socket': 'start'}}));
 	});
-	document.addEventListener("triggers",function(e){
-		if(e['detail']){
-			if(e['detail']['socket']){
-				if(e['detail']['socket']=='start'){
-					// obj.serviceWorker();
+	document.addEventListener("triggers", function(e) {
+		if (e['detail']) {
+			if (e['detail']['socket']) {
+				if (e['detail']['socket'] == 'start') {
 					obj.socketIni();
 				};
 			};
 		};
 	});
-	document.addEventListener('click', function(e){
+	document.addEventListener('click', function(e) {
 		addMedia.dropdown('hide', e.target);
 		list.showSum();
 		search.undo(e.target);
 		input.hideDropdowns();
 	});
-}catch(e){};
+} catch(e) { };
 
 
-obj.idf = function(){
-	if (!obj.uid||(obj.uid+'').length!=32)	obj.uid = ct2.getCookie('chem');
-	if (!obj.uid||(obj.uid+'').length!=32) {
-		obj.uid = 'chem'+ct2.date(32-4);
+obj.idf = function() {
+	if (!obj.uid || (obj.uid + '').length != 32)	obj.uid = ct2.getCookie('chem');
+	if (!obj.uid || (obj.uid + '').length != 32) {
+		obj.uid = 'chem' + ct2.date(32 - 4);
 	};
-	if (obj.uid&&(obj.uid+'').length==32) {
-		ct2.setCookie('chem',(obj.uid+''));
+	if (obj.uid && (obj.uid + '').length == 32) {
+		ct2.setCookie('chem',(obj.uid + ''));
 	};
 };
-obj.socketIni = function(){
-	obj.socket = io();
-	obj.socket.on('finance6',function(o){
-		if(o && typeof o=='object'){
-			let url = (window.location.pathname+'').replace(/^\/finance6/,'').replace(/^\//,'');
-			if(!url)	url = 'list';
-			if(o['t']=='login'){
+obj.socketIni = function() {
+	obj.socket = io({
+		query: {
+			label: 'finance6'
+		}
+	})
+	obj.socket.on('finance6', function(o) {
+		if(o && typeof o === 'object') {
+			let url = (window.location.pathname + '').replace(/^\/finance6/,'').replace(/^\//,'');
+			if (!url)	url = 'list';
+			if (o['t'] == 'login') {
 				let body = document.querySelector('body');
-				if(body){
+				if (body) {
 					let loginDiv = document.querySelector('login');
-					if(loginDiv){
+					if (loginDiv) {
 						loginDiv.remove();
 					};
-					document.body.insertAdjacentHTML('afterbegin',o['html']);
+					document.body.insertAdjacentHTML('afterbegin', o['html']);
 					login.ini();
 				};
 			};
@@ -65,8 +68,8 @@ obj.socketIni = function(){
 			if (o['t'] === 'refresh') {
 				location.reload(true)
 			};
-			if(o['t']=='url'){
-				if(url=='login' || o['force']){
+			if (o['t']=='url') {
+				if(url=='login' || o['force']) {
 					document.title = o['title'];
 					history.pushState(false,o['title'],'/finance6/'+o['url']);
 				};
@@ -227,17 +230,17 @@ obj.searchIconChange = function(){
 };
 
 obj.serviceWorker = () => {
-	if ('serviceWorker' in navigator) {
+	if ('serviceWorker' in window.navigator) {
 		let path = '/serviceWorker.js'
-		let register = navigator.serviceWorker.register(path)
+		let register = window.navigator.serviceWorker.register(path)
 		register.then(registration => {
 			registration.update()
 		}).catch(error => {
-			window.onerror(error, 'obj.serviceWorker')
+			window.window.onerror(error, 'obj.serviceWorker')
 		})
-		navigator.serviceWorker.addEventListener('message', event => {
+		window.navigator.serviceWorker.addEventListener('message', event => {
 			if (event.data && event.data == 'refresh') {
-				location.reload(true)
+				window.location.reload(true)
 			}
 		})
 	}

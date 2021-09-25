@@ -1,4 +1,4 @@
-import Settings from '/js/Settings.js'
+import Settings from './Settings.js'
 
 export default class Uid {
 	constructor() {
@@ -18,7 +18,7 @@ export default class Uid {
 			let dateString = new Date(moscowDate).toJSON().replace(/[^0-9]/g, '')
 			let randomTail = (Math.random() + '').replace(/^0\./, '')
 			this._uid = (Settings.cookiePrefix + dateString + randomTail).substring(0, 32)
-			let extraString = ';expires=Fri, 31 Dec 9999 23:59:59 GMT;path=/;'
+			let extraString = ';expires=Fri, 31 Dec 9999 23:59:59 GMT; path=/; SameSite=None; Secure'
 			document.cookie = Settings.cookiePrefix + '=' + this._uid + extraString
 		}
 	}

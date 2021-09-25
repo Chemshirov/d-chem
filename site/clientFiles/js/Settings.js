@@ -12,4 +12,8 @@ export default class Settings {
 	static get miniWidth() {
 		return '192px'
 	}
+	
+	static get timeZone() {
+		return 3
+	}
 }

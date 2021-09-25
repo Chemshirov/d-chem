@@ -46,7 +46,7 @@ class ArbiterTime {
 					break
 				}
 			}
-			if (!internetWorks) {
+			if (!internetWorks && this.redis) {
 				let lastTimeInternetWorked = await this.redis.hget(this.label, 'internetWorks')
 				await this._writeToRedis('lastTimeInternetWorked', lastTimeInternetWorked)
 				let now = Date.now()
@@ -77,7 +77,7 @@ class ArbiterTime {
 					ok = true
 					success(false)
 				}
-			}, Settings.arbiterTimeSiteTimeout)
+			}, Settings.standardTimeout)
 		}).catch(error => {
 			this._onError(this.label, '_isInternetWork', error)
 		})
@@ -85,7 +85,9 @@ class ArbiterTime {
 	
 	async _writeToRedis(key, value) {
 		try {
-			await this.redis.hset(this.label, key, value).catch(this.redis.onCatch)
+			if (this.redis) {
+				await this.redis.hset(this.label, key, value)
+			}
 		} catch(error) {
 			this._onError(this.label, '_writeToRedis', error)
 		}

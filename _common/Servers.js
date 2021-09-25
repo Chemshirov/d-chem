@@ -60,7 +60,7 @@ class Servers {
 							}
 						},
 						methods: ['GET', 'POST', 'OPTIONS'],
-						credentials: true
+						credentials: true,
 					}
 				})
 			}
@@ -194,7 +194,7 @@ class Servers {
 			certs = tls.createSecureContext({
 				key: fs.readFileSync(path + 'privkey.pem', 'utf8'),
 				cert: fs.readFileSync(path + 'cert.pem', 'utf8'),
-				ca: fs.readFileSync(path + 'chain.pem', 'utf8')
+				ca: fs.readFileSync(path + 'chain.pem', 'utf8'),
 			})
 		} catch(err) {
 			this._onError(this.label, '_getCertificate try', err)

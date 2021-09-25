@@ -18,6 +18,6 @@ docker run --name $dockerName --hostname $dockerName --network tilda \
 	-v $workingPath:/docker-entrypoint-initdb.d/ \
 	-e MYSQL_ROOT_PASSWORD=$secret \
 	-e TZ='Europe/Moscow' \
-	--memory="512m" \
+	--memory="256m" \
 	-d mysql:5.6 1>/dev/null 2>/dev/null;
 echo '\t' $dockerName is starting;

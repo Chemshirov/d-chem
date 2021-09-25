@@ -10,12 +10,12 @@ class Servers extends AbstractServers {
 	async start(commonObject, ports) {
 		this.o = commonObject
 		this.ports = ports
-		await super.startHttp()
-		super.setRouter(this._routes)
+		await this.startHttp()
+		this.setRouter(this._routes)
 		this.o.Sockets = new Sockets(this._onError, this.o, this.websockets)
 	}
 	
-	_routes(url, reqest, response) {
+	_routes(url, request, response) {
 		let html = this.o.Html.get()
 		response.send(html)
 	}

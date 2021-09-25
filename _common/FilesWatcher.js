@@ -1,5 +1,6 @@
 const child_process = require('child_process')
 const fs = require('fs')
+const Settings = require('./Settings.js') 
 
 class FilesWatcher {
 	constructor(onError) {
@@ -10,16 +11,16 @@ class FilesWatcher {
 	}
 	
 	addStringToIgnore(string, isInDirectories) {
-		if (!!isInDirectories) {
-			this._stringsToIgnoreInDirectories[string] = true
-		} else {
+		if (!isInDirectories) {
 			this._stringsToIgnoreInFiles[string] = true
+		} else {
+			this._stringsToIgnoreInDirectories[string] = true
 		}
 	}
 	
 	onFileChanged(callback) {
 		if (typeof callback === 'function') {
-			this._fileHasChanged = callback
+			this._fileHasBeenChanged = callback
 		}
 	}
 	
@@ -56,28 +57,82 @@ class FilesWatcher {
 				let ignore = this._checkForIgnoreness(fileName)
 				if (!ignore) {
 					let hasDot = (fileName.split('.').length > 1)
-					if (hasDot) {
-						this._whenFileHasChanged(directory, fileName)
+					let isRsyncTemp = (fileName.startsWith('.') && fileName.split('.').length > 2)
+					if (hasDot && !isRsyncTemp) {
+						this._whenFileHasBeenChanged(directory, fileName, eventType)
+					} else {
+						let maybeDirectory = directory + '/' + fileName
+						try {
+							let isDirectory = fs.lstatSync(maybeDirectory).isDirectory()
+							if (isDirectory) {
+								this.watchPath(maybeDirectory)
+							}
+						} catch(e) {
+							let tempFiles = 'areVeryQuickToVanish'
+						}
 					}
 				}
 			})
 		}
 	}
 	
-	_whenFileHasChanged(directory, fileName) {
-		if (this._whenFileHasChangedST) {
-			clearTimeout(this._whenFileHasChangedST)
+	_whenFileHasBeenChanged(directory, fileName, eventType) {
+		if (!this._whenFileHasBeenChangedStStorage) {
+			this._whenFileHasBeenChangedStStorage = {}
 		}
-		this._whenFileHasChangedST = setTimeout(() => {
-			if (this._fileHasChanged) {
-				this._fileHasChanged(directory, fileName)
+		this._whenFileHasBeenChangedStStorage[directory + '/' + fileName] = { directory, fileName, eventType }
+		if (this._whenFileBeenHasChangedST) {
+			clearTimeout(this._whenFileBeenHasChangedST)
+		}
+		this._whenFileBeenHasChangedST = setTimeout(() => {
+			this._filesHaveBeenChanged()
+		}, Settings.filesWatcherDelay)
+	}
+	
+	_filesHaveBeenChanged() {
+		if (!this._filesHaveBeenChangedCount) {
+			this._filesHaveBeenChangedCount = 0
+		}
+		let tempObject = JSON.parse(JSON.stringify(this._whenFileHasBeenChangedStStorage))
+		this._whenFileHasBeenChangedStStorage = {}
+		let array = Object.keys(tempObject)
+		let isTooMuch = (array.length > Settings.filesWatcherLimit)
+		let uniqueDirectoriesObject = {}
+		array.forEach(key => {
+			let { directory, fileName, eventType } = tempObject[key]
+			uniqueDirectoriesObject[directory] = { fileName, eventType }
+			if (!isTooMuch) {
+				this._filesHaveBeenChangedDelay(directory, fileName, eventType)
 			}
-		}, 100)
+		})
+		if (isTooMuch) {
+			let uniqueDirectories = Object.keys(uniqueDirectoriesObject)
+			this._filesHaveBeenChangedCount = Settings.filesWatcherLimit
+			uniqueDirectories.forEach(directory => {
+				let { fileName, eventType } = uniqueDirectoriesObject[directory]
+				this._filesHaveBeenChangedDelay(directory, fileName, eventType)
+			})
+			if (this._filesHaveBeenChangedCount >= Settings.filesWatcherLimit) {
+				this._filesHaveBeenChangedCount -= Settings.filesWatcherLimit
+			} else {
+				this._filesHaveBeenChangedCount = 0
+			}
+		}
+	}
+	
+	_filesHaveBeenChangedDelay(directory, fileName, eventType) {
+		setTimeout(() => {
+			this._filesHaveBeenChangedCount--
+			if (this._fileHasBeenChanged) {
+				this._fileHasBeenChanged(directory, fileName, eventType)
+			}
+		}, Settings.filesWatcherDelay * this._filesHaveBeenChangedCount)
+		this._filesHaveBeenChangedCount++
 	}
 	
 	_allDirectories(path) {
 		return new Promise(success => {
-			let cmd = `find ${path} -type d`
+			let cmd = `find "${path}" -type d`
 			child_process.exec(cmd, (error, stdin, stdout) => {
 				if (error) {
 					this._onError(this.label, '_allDirectories child_process', error)

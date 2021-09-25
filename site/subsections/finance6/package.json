@@ -1,13 +1,13 @@
 {
 	"name": "chem_finance",
-	"version": "0.6.133",
+	"version": "0.6.134",
 	"main": "Finance6.js",
 	"scripts": {
 		"start": "node Start.js"
 	},
 	"dependencies": {
 		"amqplib": "latest",
-		"ioredis": "latest",
+		"redis": "latest",
 		"express": "latest",
 		"compression": "latest",
 		"socket.io": "latest",

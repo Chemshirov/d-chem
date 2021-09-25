@@ -2,18 +2,18 @@ const AbstractServers = require('../../../../_common/Servers.js')
 const OldCode = require('./oldCode/Init.js')
 
 class Servers extends AbstractServers {
-	constructor(onError, currentPath, rabbitMQ) {
+	constructor(setupObject) {
 		super()
-		this._onError = onError
-		this.currentPath = currentPath
-		this.rabbitMQ = rabbitMQ
+		this.onError = setupObject.onError
+		this.setupObject = setupObject
 	}
 	
 	async start(ports) {
 		this.ports = ports
 		await super.startHttp()
 		super.setRouter(this._routes)
-		this.oldCode = new OldCode(this._onError, this.websockets, this.rabbitMQ)
+		this.setupObject.websockets = this.websockets
+		this.oldCode = new OldCode(this.setupObject)
 		this.finance6 = await this.oldCode.init()
 	}
 	

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-thisPath=$(dirname $(realpath $0)); 
+thisPath=$(dirname $(realpath $0));
 NAME="${thisPath##*/}";
 levelUp=$(dirname $(dirname $thisPath));
 LABEL="${levelUp##*/}";

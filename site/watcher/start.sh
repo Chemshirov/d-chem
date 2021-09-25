@@ -13,10 +13,10 @@ export PREFIX="$(echo ${stagePath##*/} | head -c 1)-";
 beforePath=$(dirname $stagePath);
 export AFTER_TILDA=$(echo $thisPath | sed -e "s|$beforePath/||")/;
 
+docker stop $PREFIX${LABEL}_$NAME 1>/dev/null 2>/dev/null;
 docker network create tilda 1>/dev/null 2>/dev/null;
 dc=/usr/local/bin/docker-compose;
 $dc -f $thisPath/docker-compose.yml down 1>/dev/null 2>/dev/null;
-
 if [ -z "$1" ]
 then
 	$dc -f $thisPath/docker-compose.yml -p $PREFIX$NAME up -d 1>/dev/null 2>/dev/null;

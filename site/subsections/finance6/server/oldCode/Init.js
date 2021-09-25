@@ -1,11 +1,12 @@
 const Mysql = require('./Mysql.js')
-const siteSettings = require('/usr/nodejs/sda/' + process.env.STAGE + '/' + process.env.LABEL + '/Settings.js')
 
 class Init {
-	constructor(onError, io, rabbitMQ) {
-		this.onError = onError
-		this.io = io
-		this.rabbitMQ = rabbitMQ
+	constructor(setupObject) {
+		this.onError = setupObject.onError
+		this.rabbitMQ = setupObject.rabbitMQ
+		this.currentIp = setupObject.currentIp
+		this.anotherIp = setupObject.anotherIp
+		this.io = setupObject.websockets
 		
 		this.fs = require('fs')
 		this.crypto = require('crypto')
@@ -22,12 +23,10 @@ class Init {
 	
 	async init() {
 		try {
-			let currentIp = await siteSettings.getCurrentIp(this.onError)
-			let anotherIp = await siteSettings.getAnotherIp(currentIp)
 			let Sql = new Mysql({
 				onError: this.onError,
-				currentIp,
-				anotherIp
+				currentIp: this.currentIp,
+				anotherIp: this.anotherIp
 			})
 			
 			let finance6 = {}
@@ -97,7 +96,9 @@ class Init {
 					Sql,
 					html: finance6.html,
 					getCurrencies: finance6.getCurrencies,
-					error: finance6.errors
+					error: finance6.errors,
+					anotherIp: this.anotherIp,
+					rabbitMQ: this.rabbitMQ
 				})
 				finance6.sendToV5 = require('./sendToV5.js')({
 					common: this.common,
@@ -126,7 +127,6 @@ class Init {
 					rabbitMQ: this.rabbitMQ
 				})
 				finance6.start.setSendNew(finance6.main.newDataHasAppeared.bind(finance6.main))
-				finance6.start.slaveToMaster(finance6.main.slaveToMaster.bind(finance6.main))
 			return finance6
 		} catch (err) {
 			this.onError('Init', 'init', err)

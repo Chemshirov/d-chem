@@ -35,7 +35,7 @@ class Html {
 				<head>
 					<meta charset="utf-8">
 					<title>Git</title>
-					<link rel="stylesheet" type="text/css" href="/bootstrap431/css/bootstrap.min.css">
+					<link rel="stylesheet" type="text/css" href="/js/bootstrap431/css/bootstrap.min.css">
 					<link rel="stylesheet" type="text/css" href="/git/main.css">
 					<script async type="module" src="/git/Main.js"></script>
 					<script src="/socket.io/socket.io.js"></script>

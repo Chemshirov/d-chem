@@ -1,115 +1,120 @@
 const sda = '/usr/nodejs/sda/'
 const sdaLabelPath = sda + process.env.STAGE + '/' + process.env.LABEL + '/'
 
-const child_process = require('child_process')
 const logins = require(sdaLabelPath + 'Logins.js')
-const Redis = require('../../_common/Redis.js')
 const siteSettings = require(sdaLabelPath + 'Settings.js')
 
 class Syncer {
-	constructor(onError, rabbitMQ) {
-		this.onError = onError
-		this.rabbitMQ = rabbitMQ
+	constructor(setupObject) {
+		this.onError = setupObject.onError
+		this.log = setupObject.log
+		this.rabbitMQ = setupObject.rabbitMQ
+		this.currentIp = setupObject.currentIp
+		this.anotherIp = setupObject.anotherIp
+		this.isMaster = setupObject.isMaster
 		this.label = this.constructor.name
-		this.financeLabel = 'finance6'
-		this.financeContainerName = process.env.PREFIX + process.env.LABEL + '_' + this.financeLabel
+		this._awaiterPool = {}
 	}
 	
 	async init() {
-		this.rabbitMQ.subscribe(this._reconnectToRedis.bind(this), 'reconnectToRedis')
-		this.rabbitMQ.subscribe(this._remoteSync.bind(this), 'remote' + this.label)
-		this.rabbitMQ.subscribe(this._finance6.bind(this), this.financeLabel)
-		await this._init()
+		try {
+			await this.rabbitMQ.receive({ label: this.label, callback: this._onSyncer.bind(this) })
+			await this.rabbitMQ.receive({ label: 'Worker', callback: this._onWorker.bind(this) })
+			await this.rabbitMQ.receive({ label: 'Finance6', callback: this._onFinance6.bind(this) })
+		} catch(error) {
+			this.onError(this.label, 'init', error)
+		}
+	}
+	
+	async _onSyncer(object) {
+		try {
+			if (object.pathToRsync) {
+				this.log('request to rsync has been catched, path: ' + object.pathToRsync)
+				await this._rsync(object.pathToRsync)
+			} else if (object.syncToSlave) {
+				this.request(object.syncToSlave)
+				if (object.resender !== this.anotherIp) {
+					object.resender = this.currentIp
+					this.rabbitMQ.send({
+						rabbitHostName: this.anotherIp,
+						label: this.label,
+						message: object
+					})
+				}
+			}
+		} catch(error) {
+			this.onError(this.label, '_onSyncer', error)
+		}
+	}
+	
+	_onWorker(object) {
+		if (object.hasOwnProperty('result') && object.request === 'execByCmd' && object.uniqueId) {
+			this._awaiter(object.uniqueId)
+		}
+	}
+	
+	_onFinance6(object) {
+		if (object.type === 'sqlSynced') {
+			this._awaiter(object.uniqueId)
+		}
 	}
 	
 	async copyToSlave() {
-		await this._copyFilesAndBasesFromMasterToSlave()
+		await this._copyFilesAndBasesFromMasterToHere()
 	}
 	
-	async request(path) {
-		await this._request({ path })
+	request(path) {
+		this._request({ pathToRsync: path })
 	}
 	
-	async _request(object, label, slaveToMaster) {
+	async _request(object, slaveToMaster) {
 		try {
-			this.masterIp = await this.currentRedis.hget('Arbiter', 'masterIp').catch(this.currentRedis.onCatch)
-			let currentIsMaster = (this.currentIp === this.masterIp)
+			let currentIsMaster = await this.isMaster()
 			let direction = currentIsMaster
 			if (slaveToMaster) {
 				direction = !currentIsMaster
 			}
 			if (direction) {
-				if (!label) {
-					label = this.label
-				}
-				await this._setRedis('anotherRedis', 'anotherIp', true)
-				if (this.anotherRedis) {
-					await this.anotherRedis.publish(label, JSON.stringify(object))
-					await this.rabbitMQ.send('logger', {type: 'log', label, object})
-				}
+				this.rabbitMQ.send({
+					rabbitHostName: this.anotherIp,
+					label: this.label,
+					message: object
+				})
 			}
 		} catch(error) {
 			this.onError(this.label, '_request', error)
 		}
 	}
 	
-	async _catchRequest() {
+	async _rsync(path, uniqueId) {
 		try {
-			this.subscribedRedis.on('message', async (channel, message) => {
-				try {
-					let object = JSON.parse(message)
-					if (channel === this.label) {
-						await this._rsync(object.path)
-					} else
-					if (channel === this.financeLabel) {
-						await this._finance6(object, 'catched')
-					}
-				} catch(error) {
-					this.onError(this.label, '_catchRequest onMessage', error)
-				}
-			})
+			let user = logins.sshUser
+			let host = this.anotherIp
+			path = path.replace(/\/$/, '')
+			let serverPath = siteSettings.dockerPathToServerPath(path)
+			let cmd = `rsync -a --protect-args --rsh=ssh ${user}@${host}:"${serverPath}/" "${path}"`
+				cmd += ` --exclude ".next"`
+				cmd += ` --delete;`
+			let message = { request: 'execByCmd', cmd, uniqueId }
+			this.rabbitMQ.send({ label: 'Worker', message })
 		} catch(error) {
-			this.onError(this.label, '_catchRequest', error)
+			this.onError(this.label, '_rsync catch', error)
 		}
 	}
 	
-	async _rsync(path) {
-		try {
-			return new Promise(success => {
-				let user = logins.sshUser
-				let host = this.anotherIp
-				path = path.replace(/\/$/, '')
-				let serverPath = siteSettings.dockerPathToServerPath(path)
-				let cmd = `rsync -a --rsh=ssh ${user}@${host}:${serverPath}/ ${path} --delete;`
-				child_process.exec(cmd, (error, stdout, stderr) => {
-					if (error) {
-						this.onError(this.label, 'work child_process', error)
-					} else {
-						this.rabbitMQ.send('logger', {type: 'log', label: process.env.HOSTNAME, data: cmd})
-					}
-					success()
-				})
-			}).catch(error => {
-				this.onError(this.label, '_rsync Promise', error)
-			})
-		} catch(error) {
-			this.onError(this.label, '_rsync', error)
-		}
-	}
-	
-	_copyFilesAndBasesFromMasterToSlave() {
+	_copyFilesAndBasesFromMasterToHere() {
 		return new Promise(async success => {
 			try {
-				this.rabbitMQ.send('logger', {type: 'log', label: process.env.HOSTNAME, data: 'copyingToSlave'})
-				await this._getIp()
-				await this._rsync(process.env.TILDA + process.env.STAGE + '/')
-				await this._rsync(sdaLabelPath)
-				await this._rsync(process.env.TILDA + 'libraries/')
-				let ok = await this.rabbitMQ.send(this.financeContainerName, {type: 'syncSql'})
-				this.rabbitMQ.send('logger', {type: 'log', label: process.env.HOSTNAME, data: 'copyedToSlave'})
-				if (ok) {
-					success()
-				}
+				this.log(this.label, 'copying has started')
+				await this._awaiterRsync(process.env.TILDA + process.env.STAGE + '/')
+				await this._awaiterRsync(process.env.TILDA + 'libraries/')
+				await this._awaiterRsync(sdaLabelPath)
+				await this._awaiterRsync(sda + 'audiobooks')
+				await this._awaiterRsync(sda + 'films')
+				await this._awaiterRsync(sda + 'music')
+				await this._awaiterSqlSync()
+				this.log(this.label, 'all data has been copyed to slave (' + this.currentIp + ')')
+				success()
 			} catch(error) {
 				this.onError(this.label, '_slaveCopyAtStart catch', error)
 			}
@@ -118,76 +123,42 @@ class Syncer {
 		})
 	}
 	
-	async _init() {
-		try {
-			await this._getIp()
-			await this._setRedis('currentRedis', 'currentIp')
-			await this._setRedis('anotherRedis', 'anotherIp', true)
-			await this._subscribeInit()
-		} catch(error) {
-			this.onError(this.label, '_init', error)
-		}
+	_awaiterRsync(path) {
+		return new Promise(success => {
+			let uniqueId = this._setAwaiter(success)
+			this._rsync(path, uniqueId)
+		}).catch(error => {
+			this.onError(this.label, '_awaiterRsync', error)
+		})
 	}
 	
-	async _getIp() {
-		try {
-			this.currentIp = await siteSettings.getCurrentIp()
-			this.anotherIp = siteSettings.getAnotherIp(this.currentIp)
-		} catch(error) {
-			this.onError(this.label, '_getIp', error)
-		}
+	_awaiterSqlSync() {
+		return new Promise(success => {
+			let uniqueId = this._setAwaiter(success)
+			this.rabbitMQ.send({ 
+				label: 'Finance6',
+				message: {
+					type: 'syncSql',
+					uniqueId
+				}
+			})
+		}).catch(error => {
+			this.onError(this.label, '_awaiterSqlSync', error)
+		})
 	}
 	
-	async _setRedis(redisName, ipName, isSecondary) {
-		try {
-			if (this[redisName]) {
-				this[redisName].disconnect()
+	_setAwaiter(success) {
+		let uniqueId = Date.now() + '_' + Math.random()
+		this._awaiterPool[uniqueId] = success
+		return uniqueId
+	}
+	
+	_awaiter(uniqueId) {
+		if (uniqueId) {
+			let success = this._awaiterPool[uniqueId]
+			if (success) {
+				success()
 			}
-			let redis = new Redis(this.onError)
-			this[redisName] = await redis.connect(this[ipName], isSecondary)
-		} catch(error) {
-			this.onError(this.label, '_setRedis', error)
-		}
-	}
-	
-	async _subscribeInit() {
-		try {
-			await this._setRedis('subscribedRedis', 'currentIp')
-			await this.subscribedRedis.subscribe(this.label)
-			await this.subscribedRedis.subscribe(this.financeLabel)
-			this._catchRequest()
-		} catch(error) {
-			this.onError(this.label, '_subscribeInit', error)
-		}
-	}
-	
-	async _reconnectToRedis() {
-		try {
-			if (this.subscribedRedis) {
-				await this._subscribeInit()
-			}
-		} catch(error) {
-			this.onError(this.label, '_reconnectToRedis', error)
-		}
-	}
-	
-	async _finance6(object, side) {
-		try {
-			if (!side) {
-				this._request(object, this.financeLabel, true)
-			} else if (side === 'catched') {
-				await this.rabbitMQ.send(this.financeContainerName, object)
-			}
-		} catch(error) {
-			this.onError(this.label, '_finance6', error)
-		}
-	}
-	
-	async _remoteSync(object) {
-		try {
-			this._request(object, this.label, object.slaveToMaster)
-		} catch(error) {
-			this.onError(this.label, '_get', error)
 		}
 	}
 }

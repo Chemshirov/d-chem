@@ -50,7 +50,11 @@ class Main {
 	_setSocket() {
 		return new Promise(success => {
 			if (window.io) {
-				let socket = window.io()
+				let socket = window.io({
+					query: {
+						label: this.label
+					}
+				})
 				socket.open()
 				socket.on(this.label, data => {
 					if (data) {

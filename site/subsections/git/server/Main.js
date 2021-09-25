@@ -10,8 +10,9 @@ const sda = '/usr/nodejs/sda/'
 const Logins = require(sda + process.env.STAGE + '/' + process.env.LABEL + '/Logins.js')
 
 class Main {
-	constructor(onError, rabbitMQ) {
+	constructor(onError, log, rabbitMQ) {
 		this._onError = onError
+		this.log = log
 		this.rabbitMQ = rabbitMQ
 		this.label = this.constructor.name
 		this.sda = sda
@@ -20,7 +21,7 @@ class Main {
 	
 	async start() {
 		try{
-			await this.rabbitMQ.subscribe(this._onFileChanged.bind(this))
+			this.rabbitMQ.receive({ label: 'Watcher', callback: this._onWatcher.bind(this) })
 			await this._configGit()
 			this.o = {}
 			this.o.Main = this
@@ -95,12 +96,16 @@ class Main {
 		this._onError(className, func, error)
 	}
 	
-	_onFileChanged(object) {
-		let path = [process.env.STAGE, process.env.LABEL, 'subsections', process.env.NAME, 'www'].join('/')
-		if (object.directory.includes(path)) {
-			this.sendReload(false)
-		} else {
-			this.sendReload(true)
+	_onWatcher(object) {
+		if (object) {
+			if (object.type === 'FileHasChanged') {
+				let path = [process.env.STAGE, process.env.LABEL, 'subsections', process.env.NAME, 'www'].join('/')
+				if (object.directory.includes(path)) {
+					this.sendReload(false)
+				} else {
+					this.sendReload(true)
+				}
+			}
 		}
 	}
 	

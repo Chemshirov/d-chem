@@ -3,9 +3,6 @@
 obj.setSendNew = (callback) => {
 	obj._setSendNewCallback = callback
 }
-obj.slaveToMaster = (callback) => {
-	obj._slaveToMasterCallback = callback
-}
 
 obj.go = function(socket,uid){
 	let url = (socket.handshake.headers.referer+'')
@@ -57,7 +54,12 @@ obj.login.sent = function(socket,uid,o){
 				sql += 'userName="'+o['n']+'" and userID="'+md5+'"';
 			obj.o.Sql.commit(sql).then(function(d){
 				if (d && d[0] && (d[0]['realDate'] + '').length == 19) {
-					obj._slaveToMasterCallback({ type: 'new user', uid, name: o['n'] })
+					obj.o.rabbitMQ.send({
+						rabbitHostName: obj.o.anotherIp,
+						message: {
+							type: 'new user', uid, name: o['n']
+						}
+					})
 					obj.o.base.admin['logins'][uid] = {login:obj.o.common.date(),name:o['n']};
 					obj.o.base.save.admin();
 					obj.go(socket,uid);

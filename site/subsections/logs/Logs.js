@@ -1,7 +1,8 @@
 const childProcess = require('child_process')
-const chokidar = require('chokidar')
+const LogsHandler = require('./LogsHandler.js')
 const Settings = require('../../../_common/Settings.js')
 const Starter = require('../../../_common/Starter.js')
+const Websockets = require('./Websockets.js')
 
 class Logs extends Starter {
 	constructor(currentPath) {
@@ -12,34 +13,57 @@ class Logs extends Starter {
 	
 	async atStart() {
 		try {
-			this._setUnhandledErrorsHandler()
-			chokidar.watch(this.currentPath + '.next').on('all', this._onFileChanged.bind(this))
-			await this._spawn('next build')
-			await this._spawn('next start -p 80')
+			await this.rabbitMQ.receive(this._onReceive.bind(this))
+			this.logsHandler = new LogsHandler(this.onError.bind(this))
+			await this.logsHandler.setProps()
+			this.pathToNextDirectory = this.currentPath + '.next'
+			let websockets = new Websockets(this.onError.bind(this), this.label.toLowerCase())
+			await websockets.start()
+			await this.getDomainAndIps()
+			if (!process.env.SHOW || process.env.STAGE === Settings.productionStageName) {
+				await this._spawn('next build')
+				await this._spawn('next start -p ' + Settings.port)
+				this._revalidateKicker()
+			} else {
+				await this._spawn('next dev -p ' + Settings.port)
+				this._spawn('tsc --noEmit')
+			}
 		} catch (error) {
 			this.onError(this.label, 'atStart', error)
 		}
 	}
 	
-	_spawn(cmd) {
+	_spawn(cmd, quite) {
 		return new Promise(success => {
-			let process = childProcess.spawn(`cd ${this.currentPath} && ${cmd}`, {shell: true})
-			process.stdout.on('data', data => {
+			let newProcess = childProcess.spawn(`cd ${this.currentPath} && ${cmd}`, {shell: true})
+			newProcess.stdout.on('data', data => {
 				let infoString = data.toString().trim()
-				console.log(infoString)
+				if (!quite) {
+					if (infoString.length > 1) {
+						if (!infoString.includes('error TS')) {
+							this.log(infoString)
+						} else {
+							this._showTsErrors(infoString)
+						}
+					}
+				}
 				if (infoString.includes('ready - started server on')) {
 					success()
 				}
 			})
-			process.stderr.on('data', error => {
-				let errorString = error.toString()
-				if (errorString.includes('warn  - ')) {
-					console.log(errorString)
-				} else {
-					this.onError(this.label, '_spawn ' + cmd, error)
+			newProcess.stderr.on('data', error => {
+				if (!quite) {
+					let errorString = error.toString()
+					if (!errorString.startsWith('warn') || errorString.includes('Warning')) {
+						this.log(errorString)
+					} else {
+						if (errorString.length > 2) {
+							this.onError(this.label, '_spawn ' + cmd, errorString)
+						}
+					}
 				}
 			})
-			process.on('close', () => {
+			newProcess.on('close', () => {
 				success()
 			})
 		}).catch(error => {
@@ -47,77 +71,90 @@ class Logs extends Starter {
 		})
 	}
 	
-	_onFileChanged(event, path) {
-		if (['add', 'change'].includes(event)) {
-			this._addFiles(path)
-		} else 
-		if (event === 'unlink') {
-			this._unlink(path)
+	async _revalidateKicker() {
+		try {
+			// For rebuild: at least one client must refresh one page
+			// every 'revalidate' amount of seconds plus little more
+			// to NextJs starts to check getStaticProps() and rebuild content.
+			// Otherwise NextJs does nothing.
+			let time = Settings.nextJsRevalidateSecs * 1000
+			setTimeout(() => {
+				this._setAndWget()
+				setInterval(() => {
+					this._setAndWget()
+				}, time / 3)
+			}, time / 3)
+		} catch (error) {
+			this.onError(this.label, '_revalidateKicker', error)
 		}
 	}
 	
-	_addFiles(path) {
-		let label = 'files'
-		if (!this._addFilesInit) {
-			this._addFilesInit = true
-			let callback = (array) => {
-				this.rabbitMQ.sendToAll('AddFilesToRouter', array)
+	async _setAndWget() {
+		try {
+			let hasNews = await this.logsHandler.setProps()
+			if (hasNews) {
+				await this._wget()
 			}
-			this._holdOver(label, path, callback, Settings.staticInterval)
-		} else {
-			this._holdOver(label, path)
+		} catch (error) {
+			this.onError(this.label, '_wget catch', error)
 		}
 	}
 	
-	_unlink(path) {
-		let label = 'unlink'
-		if (!this._unlinkInit) {
-			this._unlinkInit = true
-			let callback = (array) => {
-				this.rabbitMQ.sendToAll('AddFilesToRouter', array, true)
+	_wget() {
+		return new Promise(async success => {
+			try {
+				let url = this.domain + '/' + this.label.toLowerCase()
+				let cmd = `wget https://${url} -O - --no-check-certificate`
+				childProcess.exec(cmd, {maxBuffer: 1024 * 1024 * 100}, (error, stdin, stdout) => {
+					if (error) {
+						this.onError(this.label, '_wget childProcess: ' + cmd, error)
+					} else {
+						let resultLength = stdin.toString().length
+						// if (this.lastResultLength !== resultLength) {
+							// this.lastResultLength = resultLength
+							// this.log(`Logs' wget length is ` + resultLength)
+						// }
+						if (resultLength < 1000) {
+							let error = new Error('Length < 1000 at ' + url)
+							this.onError(this.label, '_wget childProcess ', error)
+						}
+					}
+					success()
+				})
+			} catch (error) {
+				this.onError(this.label, '_wget catch', error)
 			}
-			this._holdOver(label, path, callback, Settings.staticInterval * 100)
-		} else {
-			this._holdOver(label, path)
-		}
-	}
-	
-	_holdOver(label, path, callback, timeout) {
-		if (!this._holdOverObject) {
-			this._holdOverObject = {}
-		}
-		if (!this._holdOverObject[label]) {
-			this._holdOverObject[label] = {}
-		}
-		let object = this._holdOverObject[label]
-		if (callback && timeout) {
-			object.timeout = timeout
-			object.callback = callback
-		}
-		if (!object.paths) {
-			object.paths = {}
-		}
-		
-		object.paths[path] = true
-		if (object.ST) {
-			clearTimeout(object.ST)
-		}
-		object.ST = setTimeout(() => {
-			let holdOverArray = Object.keys(object.paths)
-			object.paths = {}
-			object.callback(holdOverArray)
-		}, object.timeout)
-	}
-	
-	_setUnhandledErrorsHandler() {
-		process.on('unhandledRejection', error => {
-			this.onError(this.label, 'unhandledRejection', error)
+		}).catch(error => {
+			this.onError(this.label, '_wget', error)
 		})
-		process.on('uncaughtException', error => {
-			if (error && error.code !== 'ECONNREFUSED') {
-				this.onError(this.label, 'uncaughtException', JSON.stringify(error))
+	}
+	
+	_showTsErrors(infoString) {
+		if (!this._showTsErrorsFirstString) {
+			this._showTsErrorsFirstString = infoString
+		}
+		if (!this._showTsErrorsCount) {
+			this._showTsErrorsCount = 0
+		}
+		this._showTsErrorsCount++
+		if (this._showTsErrorsST) {
+			clearTimeout(this._showTsErrorsST)
+		}
+		this._showTsErrorsST = setTimeout(() => {
+			this.log(this._showTsErrorsFirstString)
+			this.log('Ts error count:', this._showTsErrorsCount)
+		}, Settings.filesWatcherDelay)
+	}
+	
+	_onReceive(object) {
+		if (object.label === 'oldData') {
+			if (object.type === 'longTimeNoSee') {
+				this.log({
+					label: 'Data',
+					data: ['longTimeNoSee', object.userType, object.uid.substring(4,18), object.uid.substring(28)]
+				})
 			}
-		})
+		}
 	}
 }
 

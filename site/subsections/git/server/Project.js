@@ -129,7 +129,7 @@ class Project {
 					let array = stdin.toString().split('\n')
 					array.forEach(string => {
 						let fileString = string.replace(/add '([^ ]+)'/, '$1')
-						if (fileString) {
+						if (fileString && !fileString.includes(' ')) {
 							changedFiles.push(fileString)
 						}
 					})

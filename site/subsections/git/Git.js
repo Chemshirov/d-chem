@@ -11,7 +11,7 @@ class Git extends Starter {
 	async atStart() {
 		try {
 			this._setUnhandledErrorsHandler()
-			this.main = new Main(this.onError.bind(this), this.rabbitMQ)
+			this.main = new Main(this.onError.bind(this), this.log, this.rabbitMQ)
 			await this.main.start()
 		} catch (err) {
 			this.onError(this.label, 'atStart', err)

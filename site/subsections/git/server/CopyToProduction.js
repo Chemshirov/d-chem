@@ -11,6 +11,7 @@ class CopyToProduction {
 	copyFiles() {
 		return new Promise(async success => {
 			try {
+				this.o.Main.log('Coping files to production')
 				let tildaDevelopmentPath = process.env.TILDA + Settings.developmentStageName + '/*'
 				let tildaProductionPath = process.env.TILDA + Settings.productionStageName + '/'
 				let cmd = this._copyFilesCmd(tildaDevelopmentPath, tildaProductionPath)
@@ -18,12 +19,13 @@ class CopyToProduction {
 				let sdaProductionPath = sda + Settings.productionStageName + '/' +  process.env.LABEL + '/'
 				cmd += this._copyFilesCmd(sdaDevelopmentPath + 'Logins.js', sdaProductionPath)
 				cmd += this._copyFilesCmd(sdaDevelopmentPath + 'Settings.js', sdaProductionPath)
+				this.o.Main.log('cmd', cmd)
 				await this.o.Main.exec(cmd)
 				
 				await this._replaceServiceNameInDockerComposeFiles(tildaProductionPath)
 				
-				await this._syncToSlave(tildaProductionPath)
-				await this._syncToSlave(sdaProductionPath)
+				this.o.Main.rabbitMQ.send({ label: 'Syncer', syncToSlave: tildaProductionPath })
+				this.o.Main.rabbitMQ.send({ label: 'Syncer', syncToSlave: sdaProductionPath })
 				
 				success()
 			} catch(error) {
@@ -37,10 +39,10 @@ class CopyToProduction {
 	merge(gitCmd) {
 		return new Promise(async success => {
 			try {
-				// await this.o.Main.exec(`${gitCmd} checkout production`, true)
-				// await this.o.Main.exec(`${gitCmd} merge master`, true)
-				// await this.o.Main.exec(`${gitCmd} push`, true)
-				// await this.o.Main.exec(`${gitCmd} checkout master`, true)
+				await this.o.Main.exec(`${gitCmd} checkout production`, true)
+				await this.o.Main.exec(`${gitCmd} merge master`, true)
+				await this.o.Main.exec(`${gitCmd} push`, true)
+				await this.o.Main.exec(`${gitCmd} checkout master`, true)
 				success()
 			} catch(error) {
 				this.o.Main.setError(this.label, 'merge async', error)
@@ -54,17 +56,6 @@ class CopyToProduction {
 		let cmd = `cp -r ${from} ${to};`
 		cmd += `chown -R 1000:1000 ${to};`
 		return cmd
-	}
-	
-	async _syncToSlave(path) {
-		try {
-			await this.o.Main.rabbitMQ.sendToAll('remoteSyncer', {
-				path,
-				slaveToMaster: false
-			})
-		} catch(error) {
-			this.o.Main.setError(this.label, '_syncToSlave', error)
-		}
 	}
 	
 	async _replaceServiceNameInDockerComposeFiles(path) {
