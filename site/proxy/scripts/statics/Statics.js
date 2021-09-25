@@ -115,7 +115,7 @@ class Statics extends WorkerSetter {
 			response.statusCode = 500
 			response.write(error.toString())
 			response.end()
-			this.onError(this.label, 'sendFile catch: ' + url, error)
+			this.onError(this.label, 'sendFile catch ' + url, error)
 			sent = error.toString()
 		}
 		return sent

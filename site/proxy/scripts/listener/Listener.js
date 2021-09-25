@@ -151,7 +151,7 @@ class Listener {
 			} else if (object.socket) {
 				object.socket.end()
 			}
-			this.onError(this.label, 'onProxyError, ' + object.method + ', url:' + url, object.error)
+			this.onError(this.label, 'onProxyError, ' + object.method + ', url: ' + url, object.error)
 		}
 	}
 	_isError(error) {

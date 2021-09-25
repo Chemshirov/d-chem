@@ -1,6 +1,6 @@
 #!/bin/sh
 
-export SHOW=$1;
+export SHOW=$1; 
 export EXTRA=$2;
 
 thisPath=$(dirname $(realpath $0));

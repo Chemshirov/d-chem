@@ -1,6 +1,6 @@
 {
 	"name": "chem_proxy",
-	"version": "0.0.9",
+	"version": "0.0.10",
 	"main": "Start.js",
 	"scripts": {
 		"start": "node Start.js"

@@ -1,4 +1,4 @@
-FROM node:16-stretch-slim
+FROM node:16-stretch-slim 
 RUN apt-get update && apt-get install tzdata
 ENV TZ "Europe/Moscow"
 RUN cp /usr/share/zoneinfo/$TZ /etc/localtime
