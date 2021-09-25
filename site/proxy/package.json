@@ -1,0 +1,17 @@
+{
+	"name": "chem_proxy",
+	"version": "0.0.9",
+	"main": "Start.js",
+	"scripts": {
+		"start": "node Start.js"
+	},
+	"dependencies": {
+		"amqplib": "latest",
+		"redis": "latest",
+		"express": "latest",
+		"compression": "latest",
+		"socket.io": "latest",
+		"socket.io-client": "latest",
+		"http-proxy": "latest"
+	}
+}

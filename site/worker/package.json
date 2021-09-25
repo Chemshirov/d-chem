@@ -1,0 +1,13 @@
+{
+	"name": "chem_worker",
+	"version": "0.0.5",
+	"main": "Start.js",
+	"scripts": {
+		"start": "node Start.js"
+	},
+	"dependencies": {
+		"amqplib": "latest",
+		"redis": "latest",
+		"sha1": "latest"
+	}
+}
