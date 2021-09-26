@@ -14,7 +14,7 @@ class Worker extends Starter {
 		try {
 			await this.rabbitMQ.receive(this._onReceive.bind(this))
 			await this._onePerType()
-		} catch (error) {
+		} catch(error) {
 			this.onError(this.label, 'atStart', error)
 		}
 	}
@@ -31,7 +31,7 @@ class Worker extends Starter {
 			await this.redis.sadd(this.sKey + 'Types', object.request)
 			await this.redis.sadd(this.sKey + object.request, JSON.stringify(object))
 			this._onePerType()
-		} catch (error) {
+		} catch(error) {
 			this.onError(this.label, '_onRequest', error)
 		}
 	}
@@ -46,7 +46,7 @@ class Worker extends Starter {
 					this._oneByOne(type)
 				}
 			}
-		} catch (error) {
+		} catch(error) {
 			this.onError(this.label, '_onePerType', error)
 		}
 	}
@@ -73,7 +73,7 @@ class Worker extends Starter {
 					this._oneByOne(type)
 				}, Settings.standardTimeout)
 			}
-		} catch (error) {
+		} catch(error) {
 			this.onError(this.label, '_oneByOne', error)
 		}
 	}
@@ -91,7 +91,7 @@ class Worker extends Starter {
 				let preventLabelInterferenceObject = { message: resultObject }
 				this.rabbitMQ.send(preventLabelInterferenceObject)
 			}
-		} catch (error) {
+		} catch(error) {
 			this.onError(this.label, '_requestHandler', error)
 		}
 	}
@@ -123,7 +123,7 @@ class Worker extends Starter {
 				awaits.push(promise)
 			}
 			return await this._awaitForLatest(awaits)
-		} catch (error) {
+		} catch(error) {
 			this.onError(this.label, '_fileListSplitter', error)
 		}
 	}

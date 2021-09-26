@@ -117,7 +117,7 @@ class SiteSections {
 			},
 			ws: true,
 			// proxyTimeout: Settings.standardTimeout,
-			// timeout: Settings.standardTimeout * 3, // stops mp4 playing if removed
+			// timeout: Settings.standardTimeout * 3, ////// stops mp4 playing if removed
 			followRedirects: true,
 		}
 		if (host === 'd-site_logs') {

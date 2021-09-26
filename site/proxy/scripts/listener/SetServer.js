@@ -187,7 +187,7 @@ class SetServer {
 				cert: fs.readFileSync(path + 'cert.pem', 'utf8'),
 				ca: fs.readFileSync(path + 'chain.pem', 'utf8')
 			})
-		} catch (e) {}
+		} catch(err) { }
 		return certs
 	}
 }

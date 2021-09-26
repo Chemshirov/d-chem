@@ -27,7 +27,9 @@ class Proxy extends Starter {
 				filesWatcher.onFileChanged(this._onCertificatesChanged.bind(this))
 				await filesWatcher.watchPath('/usr/nodejs/le')
 			}
-			this.rabbitMQ.receive(this._onReceive.bind(this))
+			this.rabbitMQ.receive({
+				callback: this._onReceive.bind(this)
+			})
 			this.rabbitMQ.receive({
 				label: 'Dockerrun',
 				callback: this._onDockerrunMessage.bind(this)

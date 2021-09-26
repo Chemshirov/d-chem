@@ -1,4 +1,4 @@
-FROM node:16-alpine 
+FROM node:16-alpine
 RUN apk update && apk add tzdata ffmpeg openssh rsync
 RUN cp /usr/share/zoneinfo/Europe/Moscow /etc/localtime
 RUN echo "Europe/Moscow" > /etc/timezone

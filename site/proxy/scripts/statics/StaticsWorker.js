@@ -71,6 +71,7 @@ class StaticsWorker extends WorkerThreadSetter {
 	
 	async onNewFileList(object) {
 		if (object && typeof object.fileList === 'object') {
+			// this.log('onNewFileList', object.stage, 'list length: ' + object.fileList.length, object.fileList[0])
 			object.fileList.forEach(filePath => {
 				this.cache[object.stage][filePath] = {}
 			})

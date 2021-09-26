@@ -51,4 +51,4 @@ docker run \
 	-e EXTRA="$EXTRA" \
 	-e TZ='Europe/Moscow' \
 	--cpus="$CPUS" \
-	$dockerImage;
+	$dockerImage; 

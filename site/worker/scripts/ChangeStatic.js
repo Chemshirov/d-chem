@@ -35,7 +35,7 @@ class ChangeStatic {
 				}
 			}
 			return answer
-		} catch (error) {
+		} catch(error) {
 			this.onError(this.label, 'add', error)
 		}
 	}
@@ -64,7 +64,7 @@ class ChangeStatic {
 			}
 			await this._addToRedis(clientsPath, fileProperties, gzip)
 			return clientsPath
-		} catch (error) {
+		} catch(error) {
 			if (!(error && error.code === 'ENOENT')) {
 				console.log('error', error)
 				this.onError(this.label, 'work catch ' + clientsPath, error)
@@ -107,7 +107,7 @@ class ChangeStatic {
 				}
 				await this.redis.pipe(comands)
 			}
-		} catch (error) {
+		} catch(error) {
 			this.onError(this.label, '_addToRedis', error)
 		}
 	}

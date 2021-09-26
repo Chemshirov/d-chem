@@ -18,7 +18,16 @@ class RabbitMQ extends RabbitMQextension {
 				let channel = await this.getChannel(options)
 				if (channel) {
 					if (!channel.isClosedByError) {
-						await channel.assertExchange(queueName, 'fanout', { durable: false })
+						try {
+							await channel.assertExchange(queueName, 'fanout', { durable: false })
+						} catch (error) {
+							if (typeof error === 'object' && error.message === 'Channel closed') {
+								await this.reconnect(options)
+								await this.send(options)
+							} else {
+								this.onError(this.label, 'send assertExchange', error)
+							}
+						}
 						let buffer = this.getFramedBuffer(message)
 						channel.publish(queueName, '', buffer)
 					}

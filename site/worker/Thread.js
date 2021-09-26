@@ -4,7 +4,7 @@ const Converter = require('./scripts/Converter.js')
 const { parentPort } = require('worker_threads')
 
 class Tread {
-	constructor() { 
+	constructor() {
 		this.label = this.constructor.name
 		this.onError = this._onError.bind(this)
 		this.log = this._log.bind(this)

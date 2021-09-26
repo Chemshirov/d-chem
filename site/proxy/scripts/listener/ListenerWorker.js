@@ -81,7 +81,6 @@ class ListenerWorker extends WorkerThreadSetter {
 		}
 		return { hostDomain, originDomain, origin, referer, refererDomain, refererUrl, socketLabel }
 	}
-	
 	getDomainFromString(string) {
 		string = this._getRidOfExtra(string, 'https://', true)
 		string = this._getRidOfExtra(string, 'http://', true)
