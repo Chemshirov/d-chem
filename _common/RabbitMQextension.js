@@ -122,9 +122,8 @@ class RabbitMQextension {
 	async _getConnection(options) {
 		try {
 			let uniqueId = this._getQueueUniqueId(options)
-			console.log('_getConnection', uniqueId, options)
 			if (!this._connections[uniqueId] || options.getNewConnection) {
-				let connector = new RabbitMQconnector(this.onError, this.log)
+				let connector = new RabbitMQconnector(this.onError, this.log, this.rabbitHostName)
 				this._connections[uniqueId] = await connector.establish(options)
 			}
 			return this._connections[uniqueId]
@@ -142,9 +141,10 @@ class RabbitMQextension {
 }
 
 class RabbitMQconnector {
-	constructor(onError, log) {
+	constructor(onError, log, rabbitHostName) {
 		this.onError = onError
 		this.log = log
+		this.rabbitHostName = rabbitHostName
 		this.label = this.constructor.name
 		this.commonLabel = this.label.substring(0, 8).toLowerCase()
 		this._connectionIntervals = {}
