@@ -18,6 +18,7 @@ class Arbiter {
 	
 	async init() {
 		try {
+			this._sendToAnotherServer({ exec: '_connectToAnotherServer' })
 			let redis = new Redis(this.onError)
 			this.redis = await redis.connect()
 			this.arbiterTime = new ArbiterTime(this.onError)
@@ -26,11 +27,7 @@ class Arbiter {
 				label: this.label,
 				callback: this._onArbiter.bind(this)
 			})
-			await this.rabbitMQ.receive({
-				rabbitHostName: this.anotherIp,
-				label: this.label,
-				callback: this._onAnotherServerArbiter.bind(this)
-			})
+			await this._connectToAnotherServer()
 			await this._choosing()
 			this._setChoosingInterval()
 		} catch(error) {
@@ -47,19 +44,6 @@ class Arbiter {
 	
 	async _onArbiter(object) {
 		try {
-			if (object.check) {
-				this._sendToAnotherServer({ checked: this.anotherIp })
-			} else
-			// if (object.checked) {
-				// if (object.checked === this.currentIp) {
-					// if (this._isAnotherServerConnectedSuccess) {
-						// this._isAnotherServerConnectedSuccess(true)
-						// if (this._isAnotherServerConnectedST) {
-							// clearTimeout(this._isAnotherServerConnectedST)
-						// }
-					// }
-				// }
-			// } else
 			if (object.exec) {
 				if (typeof this[object.exec] === 'function') {
 					this[object.exec](object)
@@ -74,11 +58,13 @@ class Arbiter {
 		try {
 			if (object.check) {
 				if (object.check === this.currentIp) {
-					console.log(11111111111, object.check)
 					if (this._isAnotherServerConnectedSuccess) {
+						if (!this._isAnotherServerConnectedStatus) {
+							this._isAnotherServerConnectedStatus = true
+							this.log({ label: this.label, data: 'Another server has become available' })
+						}
 						this._isAnotherServerConnectedSuccess(true)
 						if (this._isAnotherServerConnectedST) {
-							console.log(2222222222, object.check)
 							clearTimeout(this._isAnotherServerConnectedST)
 						}
 					}
@@ -96,6 +82,18 @@ class Arbiter {
 			label: this.label,
 			message
 		})
+	}
+	
+	async _connectToAnotherServer() {
+		try {
+			await this.rabbitMQ.receive({
+				rabbitHostName: this.anotherIp,
+				label: this.label,
+				callback: this._onAnotherServerArbiter.bind(this)
+			})
+		} catch(error) {
+			this.onError(this.label, '_connectToAnotherServer', error)
+		}
 	}
 	
 	async _choosing() {
@@ -205,6 +203,7 @@ class Arbiter {
 				clearTimeout(this._isAnotherServerConnectedST) 
 			}
 			this._isAnotherServerConnectedST = setTimeout(() => {
+				this._isAnotherServerConnectedStatus = false
 				this._isAnotherServerConnectedSuccess(false)
 				this.log({ label: this.label, data: 'Another server is not connected' })
 			}, Settings.arbiterCheckTimeout)
@@ -284,7 +283,6 @@ class Arbiter {
 			await this.redis.hset(this.label, 'masterIp', object.masterIp)
 			await this.redis.hset(this.label, 'slaveIp', object.slaveIp)
 			await this.redis.hset(this.label, 'masterDate', object.masterDate)
-			console.log('_setMasterInfo masterIp', object.masterIp)
 			if (!object.exec) {
 				object.exec = this._setMasterInfo.name
 				this._sendToAnotherServer(object)
