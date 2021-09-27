@@ -87,8 +87,9 @@ class Arbiter {
 					await this._becomeMaster('Another server has no connection')
 				}
 			} else {
-				this.log({ label: this.label, data: 'Internet does not work' })
-				await this._becomeSlave('Internet does not work, reason: ' + this._isInternetWorks.reason)
+				let message = 'Internet does not work, reason: ' + this._isInternetWorks.reason
+				this.log({ label: this.label, data: message })
+				await this._becomeSlave(message)
 			}
 		} catch(error) {
 			this.onError(this.label, '_choosing', error)

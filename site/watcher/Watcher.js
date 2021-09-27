@@ -93,12 +93,12 @@ class Watcher extends Starter {
 			let isFileTreeJson = (containsWww && fileName === 'fileTree.json')
 			let isClientFiles = ((directory + '/') === this.clientFilesPath)
 			if ((containsWww && !isFileTreeJson) || isClientFiles) {
-				let writeAcknowledgeThatSyncerHasFinishedLastJob = Settings.standardTimeout
+				let writeAcknowledgeThatSyncerHasFinishedLastJob = Settings.standardTimeout * 10
 				let ok = false
 				let itself = fileName.includes('serviceWorker.js')
 				if (itself) {
 					let lastWriteTimeout = Date.now() - (this._serviceWorkerAvoidingLoopTime || 0)
-					if (lastWriteTimeout > writeAcknowledgeThatSyncerHasFinishedLastJob * 10) {
+					if (lastWriteTimeout > writeAcknowledgeThatSyncerHasFinishedLastJob * 2) {
 						await this._readServiceWorker()
 						ok = true
 					}
