@@ -22,7 +22,15 @@ class Arbiter {
 			this.redis = await redis.connect()
 			this.arbiterTime = new ArbiterTime(this.onError)
 			await this.arbiterTime.init()
-			await this.rabbitMQ.receive({ label: this.label, callback: this._onArbiter.bind(this) })
+			await this.rabbitMQ.receive({
+				label: this.label,
+				callback: this._onArbiter.bind(this)
+			})
+			await this.rabbitMQ.receive({
+				rabbitHostName: this.anotherIp,
+				label: this.label,
+				callback: this._onAnotherServerArbiter.bind(this)
+			})
 			await this._choosing()
 			this._setChoosingInterval()
 		} catch(error) {
@@ -42,16 +50,16 @@ class Arbiter {
 			if (object.check) {
 				this._sendToAnotherServer({ checked: this.anotherIp })
 			} else
-			if (object.checked) {
-				if (object.checked === this.currentIp) {
-					if (this._isAnotherServerConnectedSuccess) {
-						this._isAnotherServerConnectedSuccess(true)
-						if (this._isAnotherServerConnectedST) {
-							clearTimeout(this._isAnotherServerConnectedST)
-						}
-					}
-				}
-			} else
+			// if (object.checked) {
+				// if (object.checked === this.currentIp) {
+					// if (this._isAnotherServerConnectedSuccess) {
+						// this._isAnotherServerConnectedSuccess(true)
+						// if (this._isAnotherServerConnectedST) {
+							// clearTimeout(this._isAnotherServerConnectedST)
+						// }
+					// }
+				// }
+			// } else
 			if (object.exec) {
 				if (typeof this[object.exec] === 'function') {
 					this[object.exec](object)
@@ -59,6 +67,25 @@ class Arbiter {
 			}
 		} catch(error) {
 			this.onError(this.label, '_onArbiter', error)
+		}
+	}
+	
+	async _onAnotherServerArbiter(object) {
+		try {
+			if (object.check) {
+				if (object.check === this.currentIp) {
+					console.log(11111111111, object.check)
+					if (this._isAnotherServerConnectedSuccess) {
+						this._isAnotherServerConnectedSuccess(true)
+						if (this._isAnotherServerConnectedST) {
+							console.log(2222222222, object.check)
+							clearTimeout(this._isAnotherServerConnectedST)
+						}
+					}
+				}
+			}
+		} catch(error) {
+			this.onError(this.label, '_onAnotherServerArbiter', error)
 		}
 	}
 	
@@ -172,7 +199,7 @@ class Arbiter {
 	
 	async _isAnotherServerConnected() {
 		return new Promise(success => {
-			this._sendToAnotherServer({ check: this.anotherIp }, !this._isAnotherServerConnectedLastTime)
+			this._sendToAnotherServer({ check: this.currentIp }, !this._isAnotherServerConnectedLastTime)
 			this._isAnotherServerConnectedSuccess = success
 			if (this._isAnotherServerConnectedST) {
 				clearTimeout(this._isAnotherServerConnectedST) 
