@@ -42,16 +42,21 @@ class ArbiterTime {
 				let ok = await this._isInternetWork(cmd)
 				if (ok) {
 					internetWorks = true
-					await this._writeToRedis('internetWorks', Date.now())
+					this.internetWorksDate = Date.now()
+					await this._writeToRedis('internetWorks', this.internetWorksDate)
 					break
 				}
 			}
-			if (!internetWorks && this.redis) {
-				let lastTimeInternetWorked = await this.redis.hget(this.label, 'internetWorks')
-				await this._writeToRedis('lastTimeInternetWorked', lastTimeInternetWorked)
+			if (!internetWorks) {
+				let lastTimeInternetWorked = this.internetWorks
 				let now = Date.now()
-				await this._writeToRedis('noInternet', now)
-				await this._writeToRedis('internetBreach', now)
+				this.noInternet = now
+				this.internetBreach = now
+				if (this.redis) {
+					await this._writeToRedis('lastTimeInternetWorked', lastTimeInternetWorked)
+					await this._writeToRedis('noInternet', this.noInternet)
+					await this._writeToRedis('internetBreach', this.internetBreach)
+				}
 			}
 		} catch(error) {
 			this._onError(this.label, '_setInternetUpTime', error)

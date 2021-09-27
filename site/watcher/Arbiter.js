@@ -20,7 +20,8 @@ class Arbiter {
 		try {
 			let redis = new Redis(this.onError)
 			this.redis = await redis.connect()
-			await new ArbiterTime(this.onError).init()
+			this.arbiterTime = new ArbiterTime(this.onError)
+			await this.arbiterTime.init()
 			await this.rabbitMQ.receive({ label: this.label, callback: this._onArbiter.bind(this) })
 			await this._choosing()
 			this._setChoosingInterval()
@@ -72,7 +73,7 @@ class Arbiter {
 	
 	async _choosing() {
 		try {
-			if (await this._isInternetWorks()) {
+			if (this._isInternetWorks()) {
 				if (await this._isAnotherServerConnected()) {
 					if (await this._wasMasterLastTime()) {
 						if (await this._wasInternetBreach()) {
@@ -158,35 +159,15 @@ class Arbiter {
 		}
 	}
 	
-	async _isInternetWorks() {
-		return new Promise(async success => {
-			let tooLong = setTimeout(() => {
-				this._isInternetWorks.reason = 'tooLong'
-				success(false)
-			}, Settings.redisTimeout)
-			try {
-				if (this.redis) {
-					let internetWorksDate = await this.redis.hget(ArbiterTime.name, 'internetWorks')
-					let timeSinceLastCheck = Date.now() - internetWorksDate
-					if (timeSinceLastCheck < Settings.arbiterTimeInterval * 2) {
-						clearTimeout(tooLong)
-						this._isInternetWorks.reason = timeSinceLastCheck
-						success(true)
-					} else {
-						this._isInternetWorks.reason = 'arbiterTimeInterval'
-						success(false)
-					}
-				} else {
-					this._isInternetWorks.reason = '!this.redis'
-					success(false)
-				}
-			} catch (err) {
-				this._isInternetWorks.reason = 'catch'
-				success(false)
-			}
-		}).catch(error => {
-			this.onError(this.label, '_isInternetWorks', error)
-		})
+	_isInternetWorks() {
+		let timeSinceLastCheck = Date.now() - (this.arbiterTime.internetWorksDate || 0)
+		if (timeSinceLastCheck < Settings.arbiterTimeInterval * 2) {
+			this._isInternetWorks.reason = timeSinceLastCheck
+			return true
+		} else {
+			this._isInternetWorks.reason = 'waiting is too long, timeSinceLastCheck: ' + timeSinceLastCheck
+			return false
+		}
 	}
 	
 	async _isAnotherServerConnected() {
