@@ -23,8 +23,8 @@ class RabbitMQ extends RabbitMQextension {
 						} catch (error) {
 							if (typeof error === 'object' && error.message === 'Channel closed') {
 								this.log(error.message)
-								await this.reconnect(options)
-								await this.send(options)
+								// await this.reconnect(options)
+								// await this.send(options)
 							} else {
 								this.onError(this.label, 'send assertExchange', error)
 							}

@@ -111,7 +111,6 @@ class RabbitMQextension {
 				})
 				channel.on('close', () => {
 					channel.isClosed = 'Channel close event has been chatched'
-					this.onError(this.label, '_getChannel channel.on close', channel.isClosed)
 				})
 			}
 			return channel
