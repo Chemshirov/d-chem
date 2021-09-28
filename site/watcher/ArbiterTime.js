@@ -48,7 +48,7 @@ class ArbiterTime {
 				}
 			}
 			if (!internetWorks) {
-				let lastTimeInternetWorked = this.internetWorks
+				let lastTimeInternetWorked = this.internetWorksDate || 0
 				let now = Date.now()
 				this.noInternet = now
 				this.internetBreach = now
