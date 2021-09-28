@@ -1,9 +1,11 @@
 const fs = require('fs')
+const Logger = require('../../../_common/Logger.js')
 const Settings = require('../../../_common/Settings.js')
 
 class LogsHandler {
-	constructor(onError) {
+	constructor(onError, redis) {
 		this.onError = onError
+		this.redis = redis
 		this.label = this.constructor.name
 		this.loggerLabel = 'Logger'
 		this.commonLabel = 'commonInfo'
@@ -18,11 +20,28 @@ class LogsHandler {
 	
 	async setProps() {
 		try {
-			if (!this.redis) {
-				let Redis = require('../../../_common/Redis.js')
-				let redis = new Redis(this._onError.bind(this))
-				this.redis = await redis.connect()
+			await this._setProps()
+		} catch(error) {
+			this._onError('setProps', error)
+		}
+	}
+	
+	async recoveryProps() {
+		try {
+			let props = await this._propsFromFile()
+			if (props) {
+				let logger = new Logger()
+				await logger.initiate()
+				await this._recovery(logger, props.logs, 'logs')
+				await this._recovery(logger, props.errors, 'errors')
 			}
+		} catch(error) {
+			this._onError('recoveryProps', error)
+		}
+	}
+	
+	async _setProps() {
+		try {
 			if (this.redis) {
 				this.domain = await this.redis.hget(this.commonLabel, 'domain')
 				this.ip = await this.redis.hget(this.commonLabel, 'currentIp')
@@ -33,7 +52,7 @@ class LogsHandler {
 				return ok
 			}
 		} catch(error) {
-			this._onError('setProps', error)
+			this._onError('_setProps', error)
 		}
 	}
 	
@@ -128,6 +147,22 @@ class LogsHandler {
 		}).catch(error => {
 			this._onError('_propsFromFile catch', error)
 		})
+	}
+	
+	async _recovery(logger, object, type) {
+		try {
+			if (typeof object === 'object') {
+				let dateArray = Object.keys(object)
+				for (let i = 0; i < dateArray.length; i++) {
+					let date = dateArray[i]
+					let value = object[date]
+					let string = JSON.stringify(value)
+					await logger.addToRedis(date, type, string)
+				}
+			}
+		} catch(error) {
+			this._onError('_recovery', error)
+		}
 	}
 	
 	_onError(method, error) {

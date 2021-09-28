@@ -6,12 +6,12 @@ const Settings = require('./Settings.js')
 class Logger {
 	constructor() {
 		this.label = this.constructor.name
+		this.typesKey = this.label + ':types'
 		//  tail -f -n 100 /mnt/sda/development/log.log
 	}
 	
 	async initiate() {
 		try {
-			this.typesKey = this.label + ':types'
 			this.dater = new Dater()
 			this.errorThinner = new Thinner(Settings.loggerErrorInterval)
 			this.logThinner = new Thinner(Settings.loggerInterval)
@@ -37,33 +37,7 @@ class Logger {
 		this._write(object, true)
 	}
 	
-	_write(object, isError) {
-		object.hostName = process.env.HOSTNAME
-		let now = this.dater.now
-		this._fileAddition(object, now)
-		let newString = false
-		if (isError) {
-			newString = this.errorThinner.add(object)
-		} else {
-			newString = this.logThinner.add(object)
-		}
-		if (newString) {
-			this._echo(object, now)
-			this._redisAddition(now, object.type, newString)
-		}
-	}
-	
-	_echo(object, now) {
-		if (object.error) {
-			console.log(object.className, object.method, object.error)
-		} else if (typeof object.data === 'string') {
-			console.log(object.data)
-		} else {
-			console.log(now, object)
-		}
-	}
-	
-	async _redisAddition(date, type, string) {
+	async addToRedis(date, type, string) {
 		try {
 			let hKey = this.label + ':' + type
 			let lKey = hKey + ':list'
@@ -77,7 +51,33 @@ class Logger {
 				await this.redis.publish(this.label, date)
 			}
 		} catch(error) {
-			this._internalError('_redisAddition', error)
+			this._internalError('addToRedis', error)
+		}
+	}
+	
+	_write(object, isError) {
+		object.hostName = process.env.HOSTNAME
+		let now = this.dater.now
+		this._fileAddition(object, now)
+		let newString = false
+		if (isError) {
+			newString = this.errorThinner.add(object)
+		} else {
+			newString = this.logThinner.add(object)
+		}
+		if (newString) {
+			this._echo(object, now)
+			this.addToRedis(now, object.type, newString)
+		}
+	}
+	
+	_echo(object, now) {
+		if (object.error) {
+			console.log(object.className, object.method, object.error)
+		} else if (typeof object.data === 'string') {
+			console.log(object.data)
+		} else {
+			console.log(now, object)
 		}
 	}
 	

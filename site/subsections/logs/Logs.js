@@ -14,7 +14,9 @@ class Logs extends Starter {
 	async atStart() {
 		try {
 			await this.rabbitMQ.receive(this._onReceive.bind(this))
-			this.logsHandler = new LogsHandler(this.onError.bind(this))
+			await this.connectToRedis()
+			this.logsHandler = new LogsHandler(this.onError.bind(this), this.redis)
+			await this.logsHandler.recoveryProps()
 			await this.logsHandler.setProps()
 			this.pathToNextDirectory = this.currentPath + '.next'
 			let websockets = new Websockets(this.onError.bind(this), this.label.toLowerCase())
