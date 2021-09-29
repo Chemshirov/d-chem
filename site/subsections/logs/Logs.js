@@ -106,7 +106,7 @@ class Logs extends Starter {
 		return new Promise(async success => {
 			try {
 				let url = this.domain + '/' + this.label.toLowerCase()
-				let cmd = `wget https://${url} -O - --no-check-certificate`
+				let cmd = `wget https://${url} -O -`
 				childProcess.exec(cmd, {maxBuffer: 1024 * 1024 * 100}, (error, stdin, stdout) => {
 					if (error) {
 						this.onError(this.label, '_wget childProcess: ' + cmd, error)
