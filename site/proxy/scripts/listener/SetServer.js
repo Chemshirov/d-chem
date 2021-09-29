@@ -184,8 +184,7 @@ class SetServer {
 		try {
 			certs = tls.createSecureContext({
 				key: fs.readFileSync(path + 'privkey.pem', 'utf8'),
-				cert: fs.readFileSync(path + 'cert.pem', 'utf8'),
-				ca: fs.readFileSync(path + 'chain.pem', 'utf8')
+				cert: fs.readFileSync(path + 'fullchain.pem', 'utf8')
 			})
 		} catch(err) { }
 		return certs
