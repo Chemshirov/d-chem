@@ -63,6 +63,7 @@ class Dockerrun extends Starter {
 				await this._localStart(this.prePath + 'subsections/finance6/')
 				await this._localStart(this.prePath + 'subsections/git/')
 				await this._localStart(this.prePath + 'subsections/logs/')
+				await this._localStart(this.prePath + 'subsections/multiserver/')
 				await this._localStart(this.prePath + 'worker/')
 				await this._localStart(this.prePath + 'watcher/')
 			}

@@ -47,6 +47,43 @@ class FilesWatcher {
 		})
 	}
 	
+	getList(path, selectiveRegExp) {
+		let cmd = `find ${path} -type f`
+		return new Promise(success => {
+			child_process.exec(cmd, (error, stdin, stdout) => {
+				if (!error) {
+					let suitableFiles = []
+					let fileList = stdin.toString().trim().split('\n')
+					for (let i = 0; i < fileList.length; i++) {
+						let fileString = fileList[i]
+						let isFiltered = true
+						if (selectiveRegExp) {
+							if (!(new RegExp(selectiveRegExp)).test(fileString)) {
+								isFiltered = false
+							}
+						}
+						if (isFiltered) {
+							let regExp = /^(.+\/)([^\/]+)$/
+							let directory = fileString.replace(regExp, '$1')
+							let fileName = fileString.replace(regExp, '$2')
+							let directoryIgnore = this._checkForIgnoreness(directory, true)
+							let fileIgnore = this._checkForIgnoreness(fileName)
+							if (!directoryIgnore && !fileIgnore) {
+								suitableFiles.push(fileString)
+							}
+						}
+					}
+					success(suitableFiles)
+				} else {
+					this._onError(this.label, 'this.o.child_process.exec', err)
+				}
+				success()
+			})
+		}).catch(error => {
+			this._onError(this.label, 'getList', error)
+		})
+	}
+	
 	_watching(directory) {
 		if (!this._watchingPool) {
 			this._watchingPool = {}

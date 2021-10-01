@@ -112,10 +112,6 @@ class Logs extends Starter {
 						this.onError(this.label, '_wget childProcess: ' + cmd, error)
 					} else {
 						let resultLength = stdin.toString().length
-						// if (this.lastResultLength !== resultLength) {
-							// this.lastResultLength = resultLength
-							// this.log(`Logs' wget length is ` + resultLength)
-						// }
 						if (resultLength < 1000) {
 							let error = new Error('Length < 1000 at ' + url)
 							this.onError(this.label, '_wget childProcess ', error)
