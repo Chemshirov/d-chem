@@ -120,10 +120,6 @@ class SiteSections {
 			// timeout: Settings.standardTimeout * 3, ////// stops mp4 playing if removed
 			followRedirects: true,
 		}
-		if (host === 'd-site_logs') {
-			delete options.proxyTimeout
-			delete options.timeout
-		}
 		let proxy = proxyServer.createProxyServer(options)
 		proxy.on('error', (error, request, response) => {
 			if (!(typeof error && error.code === 'ECONNRESET')) {
