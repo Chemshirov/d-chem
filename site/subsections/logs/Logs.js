@@ -26,6 +26,7 @@ class Logs extends Starter {
 				await this._spawn('next build')
 				await this._spawn('next start -p ' + Settings.port)
 				this._revalidateKicker()
+				this._tempCheckNetworkErrors()
 			} else {
 				await this._spawn('next dev -p ' + Settings.port)
 				this._spawn('tsc --noEmit')
@@ -125,6 +126,14 @@ class Logs extends Starter {
 		}).catch(error => {
 			this.onError(this.label, '_wget', error)
 		})
+	}
+	
+	_tempCheckNetworkErrors() {
+		setTimeout(() => {
+			setInterval(() => {
+				this._wget()
+			}, 2000)
+		}, Settings.nextJsRevalidateSecs * 1000)
 	}
 	
 	_showTsErrors(infoString) {
