@@ -1,4 +1,4 @@
-let cacheName = 'newCacheDate 30/09/2021, 01.11.40'
+let cacheName = 'newCacheDate 04/10/2021, 05.50.34'
 
 try{
 	self.addEventListener('install', event => {
@@ -37,9 +37,10 @@ try{
 			if (!isQuery) {
 				let isGitPage = (request.url.includes('/git'))
 				let isLogsPage = (request.url.includes('/logs'))
+				let isMultiserverPage = (request.url.includes('/multiserver'))
 				let ext = request.url.split('#')[0].split('.').pop()
 				let isBigFile = (ext === 'mp3' || ext === 'mp4')
-				if (!isGitPage && !isLogsPage && !isBigFile) {
+				if (!isGitPage && !isLogsPage && !isMultiserverPage && !isBigFile) {
 					event.respondWith(getResponse(request))
 				}
 			}

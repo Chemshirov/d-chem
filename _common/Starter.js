@@ -58,6 +58,7 @@ class Starter {
 			this.currentIp = await this.redis.hget(commonLabel, 'currentIp')
 			this.anotherIp = await this.redis.hget(commonLabel, 'anotherIp')
 			this.domain = await this.redis.hget(commonLabel, 'domain')
+			this.anotherDomain = await this.redis.hget(commonLabel, 'anotherDomain')
 			this.predispositionalMasterIp = await this.redis.hget(commonLabel, 'predispositionalMasterIp')
 		} catch(err) {
 			this.onError(this.label, 'getDomainAndIps', err)

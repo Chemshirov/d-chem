@@ -103,22 +103,25 @@ class Logs extends Starter {
 		}
 	}
 	
-	_wget() {
+	_wget(url) {
 		return new Promise(async success => {
 			try {
-				let url = this.domain + '/' + this.label.toLowerCase()
+				if (!url) {
+					url = this.domain + '/' + this.label.toLowerCase()
+				}
 				let cmd = `wget https://${url} -O -`
 				childProcess.exec(cmd, {maxBuffer: 1024 * 1024 * 100}, (error, stdin, stdout) => {
+					let resultLength = 0
 					if (error) {
 						this.onError(this.label, '_wget childProcess: ' + cmd, error)
 					} else {
-						let resultLength = stdin.toString().length
+						resultLength = stdin.toString().length
 						if (resultLength < 1000) {
 							let error = new Error('Length < 1000 at ' + url)
 							this.onError(this.label, '_wget childProcess ', error)
 						}
 					}
-					success()
+					success(resultLength)
 				})
 			} catch (error) {
 				this.onError(this.label, '_wget catch', error)
@@ -130,10 +133,19 @@ class Logs extends Starter {
 	
 	_tempCheckNetworkErrors() {
 		setTimeout(() => {
-			setInterval(() => {
-				this._wget()
-			}, 2000)
-		}, Settings.nextJsRevalidateSecs * 1000)
+			setInterval(async () => {
+				try {
+					let anotherDomainUrl = this.anotherDomain + '/' + this.label.toLowerCase()
+					let resultLength = await this._wget()
+					if (this._lastResultLength !== resultLength) {
+						this.log(`${anotherDomainUrl} length is ${resultLength}`)
+					}
+					this._lastResultLength = resultLength
+				} catch (error) {
+					this.onError(this.label, '_tempCheckNetworkErrors catch', error)
+				}
+			}, Settings.standardTimeout * 2)
+		}, Settings.standardTimeout * 5)
 	}
 	
 	_showTsErrors(infoString) {

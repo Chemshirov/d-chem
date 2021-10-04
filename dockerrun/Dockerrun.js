@@ -121,6 +121,7 @@ class Dockerrun extends Starter {
 			let currentIp = await siteSettings.getCurrentIp()
 			let anotherIp = siteSettings.getAnotherIp(currentIp)
 			let domain = siteSettings.stageIpDomain[process.env.STAGE][currentIp]
+			let anotherDomain = siteSettings.stageIpDomain[process.env.STAGE][anotherIp]
 			let predispositionalMasterIp = siteSettings.predispositionalMasterIp
 			
 			await this.connectToRedis()
@@ -129,6 +130,7 @@ class Dockerrun extends Starter {
 			await this.redis.hset(label, 'currentIp', currentIp)
 			await this.redis.hset(label, 'anotherIp', anotherIp)
 			await this.redis.hset(label, 'domain', domain)
+			await this.redis.hset(label, 'anotherDomain', anotherDomain)
 			await this.redis.hset(label, 'predispositionalMasterIp', predispositionalMasterIp)
 		} catch (error) {
 			this.onError(this.label, '_setDomainAndIps', error)
