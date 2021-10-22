@@ -219,7 +219,7 @@ class Project {
 	copyToProduction() {
 		return new Promise(async success => {
 			await this.o.CopyToProduction.copyFiles()
-			await this.o.CopyToProduction.merge(this.gitCmd)
+			// await this.o.CopyToProduction.merge(this.gitCmd)
 			await this.cliShows('graph')
 			success()
 		}).catch(err => {

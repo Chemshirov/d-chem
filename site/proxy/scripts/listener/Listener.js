@@ -90,7 +90,10 @@ class Listener {
 				} else if (key === 'referer') {
 					referer = stringWithDomain
 					refererDomain = this.getDomainFromString(stringWithDomain)
-					refererUrl = this._getUrlFromString(stringWithDomain)
+					let refererUrlOrNot = this._getUrlFromString(stringWithDomain)
+					if (refererUrlOrNot && refererUrlOrNot.length > 1) {
+						refererUrl = refererUrlOrNot
+					}
 				}
 				if (hostDomain && originDomain && referer) {
 					break

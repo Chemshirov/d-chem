@@ -41,6 +41,15 @@ class Syncer {
 						message: object
 					})
 				}
+			} else if (object.allToSlave) {
+				this._request({ allToSlave: object.allToSlave })
+				let currentIsMaster = await this.isMaster()
+				if (!currentIsMaster) {
+					await this._copyFilesAndBasesFromMasterToHere()
+					this._request({ allToSlaveDone: object.allToSlave }, true)
+				} else {
+					this.log('Copy to slave has been initialized by uid: ' + object.allToSlave.uid)
+				}
 			}
 		} catch(error) {
 			this.onError(this.label, '_onSyncer', error)
@@ -94,6 +103,7 @@ class Syncer {
 			let serverPath = siteSettings.dockerPathToServerPath(path)
 			let cmd = `rsync -a --protect-args --rsh=ssh ${user}@${host}:"${serverPath}/" "${path}"`
 				cmd += ` --exclude ".next"`
+				cmd += ` --exclude "stageSensitive"`
 				cmd += ` --delete;`
 			let message = { request: 'execByCmd', cmd, uniqueId }
 			this.rabbitMQ.send({ label: 'Worker', message })
@@ -109,9 +119,9 @@ class Syncer {
 				await this._awaiterRsync(process.env.TILDA + process.env.STAGE + '/')
 				await this._awaiterRsync(process.env.TILDA + 'libraries/')
 				await this._awaiterRsync(sdaLabelPath)
-				await this._awaiterRsync(sda + 'audiobooks')
-				await this._awaiterRsync(sda + 'films')
-				await this._awaiterRsync(sda + 'music')
+				await this._awaiterRsync(sda + 'audiobooks/')
+				await this._awaiterRsync(sda + 'films/')
+				await this._awaiterRsync(sda + 'music/')
 				await this._awaiterSqlSync()
 				this.log(this.label, 'all data has been copyed to slave (' + this.currentIp + ')')
 				success()

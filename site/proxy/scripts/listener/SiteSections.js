@@ -37,7 +37,10 @@ class SiteSections {
 	_getProxy(request, isProxy) {
 		let url = this.parentContext.getUrl(request)
 		let { hostDomain, originDomain, refererUrl, socketLabel } = this.parentContext.getHeaders(request)
-		let eventualUrl = refererUrl || url
+		let eventualUrl = url
+		if (socketLabel && refererUrl && typeof request.url === 'string' && request.url.includes('socket.io')) {
+			eventualUrl = refererUrl
+		}
 		let eventualDomain = originDomain || hostDomain
 		let host = this._getHostByUrlAndDomain(eventualUrl, eventualDomain)
 		if (isProxy) {
@@ -134,8 +137,13 @@ class SiteSections {
 	
 	_getProxyForWebsockets(host, port) {
 		let proxyForWebsockets = false
-		let isLogs = host.endsWith(process.env.LABEL + '_logs')
-		if (isLogs && !port) {
+		let isNextJs = false
+		Settings.nextJsList.forEach(name => {
+			if (host.endsWith('_' + name)) {
+				isNextJs = true
+			}
+		})
+		if (isNextJs && !port) {
 			let stage = Settings.stageByContainerName(host)
 			let port = Settings.nextJsWebsocketPortByStage(stage)
 			if (port) {

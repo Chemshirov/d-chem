@@ -1,5 +1,6 @@
 const child_process = require('child_process')
 const cpuAmount = require('os').cpus().length
+const fs = require('fs')
 const sda = '/usr/nodejs/sda/'
 const Settings = require('../_common/Settings.js')
 const siteSettings = require(sda + process.env.STAGE + '/' + Settings.label + '/Settings.js')
@@ -15,7 +16,6 @@ class Dockerrun extends Starter {
 		this.prePath = process.env.STAGE + '/' + Settings.label + '/'
 		this.defaultSettings = {
 			[this.prePath + 'watcher/']: [true],
-			[this.prePath + 'listener/']: [Settings.port, Settings.portS],
 			[this.prePath + 'worker/']: [Math.ceil(cpuAmount / 2)]
 		}
 	}
@@ -30,31 +30,45 @@ class Dockerrun extends Starter {
 		}
 	}
 	
-	_onReceive(object) {
-		if (object.type === 'start') {
-			let date = Date.now()
-			this._startArray.push(date)
-			let settings = object.settings
-			if (!settings) {
-				settings = this.defaultSettings[object.path]
-			}
-			this._startObject[date] = { path: object.path, settings }
-			this._containerUp()
-		} else if (object.type === 'started') {
-			if (object.date) {
-				if (this._startObject[object.date]) {
-					if (this._startObject[object.date].success) {
-						this._startObject[object.date].success(true)
+	async _onReceive(object) {
+		try {
+			if (object.type === 'start') {
+				let path = object.path
+				if (object.hostname) {
+					if (object.hostname === '_all') {
+						path = process.env.STAGE + '/'
+					} else {
+						path = await this._getPathByHostname(object.hostname)
 					}
-					delete this._startObject[object.date]
+				}
+				if (path) {
+					let date = Date.now()
+					this._startArray.push(date)
+					let settings = object.settings
+					if (!settings) {
+						settings = this.defaultSettings[path]
+					}
+					this._startObject[date] = { path, settings }
+					this._containerUp()
+				}
+			} else if (object.type === 'started') {
+				if (object.date) {
+					if (this._startObject[object.date]) {
+						if (this._startObject[object.date].success) {
+							this._startObject[object.date].success(true)
+						}
+						delete this._startObject[object.date]
+					}
+				}
+			} else if (object.type === 'StaticsSetterHasDone') {
+				if (process.env.STAGE === Settings.developmentStageName) {
+					this._localStart(this.prePath + 'proxy/')
 				}
 			}
-		} else if (object.type === 'StaticsSetterHasDone') {
-			if (process.env.STAGE === Settings.developmentStageName) {
-				this._localStart(this.prePath + 'proxy/')
-			}
+			this.log(object)
+		} catch (error) {
+			this.onError(this.label, '_onReceive', error)
 		}
-		this.log(object)
 	}
 	
 	async _startDockers() {
@@ -132,8 +146,31 @@ class Dockerrun extends Starter {
 			await this.redis.hset(label, 'domain', domain)
 			await this.redis.hset(label, 'anotherDomain', anotherDomain)
 			await this.redis.hset(label, 'predispositionalMasterIp', predispositionalMasterIp)
+			
+			let fileDate = fs.readFileSync(sda + process.env.STAGE + '/startDate.txt')
+			if (fileDate) {
+				let date = +fileDate.toString()
+				await this.redis.hset(label, 'systemUptime', date)
+			}
 		} catch (error) {
 			this.onError(this.label, '_setDomainAndIps', error)
+		}
+	}
+	
+	async _getPathByHostname(hostname) {
+		try {
+			await this.connectToRedis()
+			let key = 'Containers' + ':' + hostname
+			let path = await this.redis.hget(key, 'path')
+			if (!path) {
+				let { object } = Settings.unstaticsContainters(Settings.stage)
+				if (object[hostname]) {
+					path = object[hostname].path
+				}
+			}
+			return path
+		} catch (error) {
+			this.onError(this.label, '_getPathByHostname', error)
 		}
 	}
 }

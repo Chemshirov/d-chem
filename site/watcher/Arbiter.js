@@ -1,5 +1,4 @@
 const ArbiterTime = require('./ArbiterTime.js')
-const child_process = require('child_process')
 const Redis = require('../../_common/Redis.js')
 const Settings = require('../../_common/Settings.js')
 const Syncer = require('./Syncer.js')

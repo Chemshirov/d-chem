@@ -27,16 +27,24 @@ fi;
 
 TILDA="/usr/nodejs/tilda/"
 SDA="/usr/nodejs/sda"
+STAGE_PATH="/usr/nodejs/stagePath"
+CURRENT_PATH="/usr/nodejs/currentPath"
+
 docker run \
 	--name $DOCKER_NAME \
 	--hostname $DOCKER_NAME \
 	--network tilda \
 	-v ~/:"$TILDA" \
 	-v /mnt/sda:"$SDA" \
+	-v "$stagePath":"$STAGE_PATH" \
+	-v "$thisPath":"$CURRENT_PATH" \
 	-e STAGE="$STAGE" \
+	-e STAGE_PATH="$STAGE_PATH" \
+	-e CURRENT_PATH="$CURRENT_PATH" \
 	-e PREFIX="$PREFIX" \
 	-e LABEL="$LABEL" \
 	-e NAME="$NAME" \
+	-e DOCKER_NAME="$DOCKER_NAME" \
 	-e TILDA="$TILDA" \
 	-e AFTER_TILDA="$AFTER_TILDA" \
 	-e SDA="$SDA" \

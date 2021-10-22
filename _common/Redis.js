@@ -9,10 +9,10 @@ class Redis {
 		this.label = this.constructor.name
 	}
 	
-	async connect(host, isSecondary) {
+	async connect(host, isSecondary, port) {
 		this.isSecondary = isSecondary
 		try {
-			let redis = await this._getRedis(host)
+			let redis = await this._getRedis(host, port)
 			return redis
 		} catch(error) {
 			this._onError(this.label, 'connect', error)
@@ -42,17 +42,17 @@ class Redis {
 		})
 	}
 	
-	_getRedis(host) {
+	_getRedis(host, port) {
 		return new Promise(async success => {
 			try {
 				let defaultHost = process.env.PREFIX + 'redis'
-				let port = Settings.redisPort
 				if (!host || host === defaultHost) {
 					host = defaultHost
 					port = Settings.redisDefaultPort
 				} else if (host && host.charAt(1) === '-') {
 					port = Settings.redisDefaultPort
-				} else {
+				}
+				if (!port) {
 					let stage = Settings.stageByContainerName(host)
 					port = Settings.redisPortByStage(stage)
 				}

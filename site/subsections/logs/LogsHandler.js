@@ -9,9 +9,8 @@ class LogsHandler {
 		this.label = this.constructor.name
 		this.loggerLabel = 'Logger'
 		this.commonLabel = 'commonInfo'
-		let path = '/usr/nodejs/sda/' + process.env.STAGE + '/' + process.env.LABEL + '/subsections/logs/'
-		let fileName = 'props.json'
-		this.propsFileString = path + fileName
+		let labelPath = '/usr/nodejs/sda/' + process.env.STAGE + '/' + process.env.LABEL
+		this.propsFileString = labelPath + '/subsections/logs/stageSensitive/props.json'
 	}
 	
 	async getProps() {

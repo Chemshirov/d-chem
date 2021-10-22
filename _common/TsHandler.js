@@ -6,6 +6,7 @@ class TsHandler {
 		this.onError = onError
 		this.log = log
 		this.label = this.constructor.name
+		this._excludeDirectories = []
 		
 		this.filesWatcher = new FilesWatcher(this.onError)
 	}

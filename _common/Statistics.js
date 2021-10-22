@@ -60,11 +60,8 @@ class Statistics {
 		try {
 			let date = Date.now()
 			let { cpu, memoryUsed } = await this._getMetrics()
-			await this.redis.pipe([
-				['hset', this.hKey, 'now', date],
-				['hset', this.hKey, 'cpu', cpu],
-				['hset', this.hKey, 'mem', memoryUsed],
-			])
+			let dataString = cpu + ':' + memoryUsed + ':' + date
+			await this.redis.hset(this.sKey + ':metrics', this.hostname, dataString)
 		} catch(error) {
 			this._onError(this.label, '_setMetrics', error)
 		}
@@ -104,7 +101,7 @@ class Statistics {
 					
 					let cpu = 0
 					if (time) {
-						cpu = Math.round((cpuTime / time) * 100)
+						cpu = Math.round(((cpuTime / time) * 100) * 100) / 100
 					}
 					
 					this._lastCpuObject = currentCpuObject
@@ -119,7 +116,7 @@ class Statistics {
 	
 	_getMemory() {
 		return new Promise(success => {
-			let doNotUse = 'memory.usage_in_bytes!' + 'It includes cache that grows using http proxy (and seeing films)'
+			let doNotUse = 'memory.usage_in_bytes! Plus it includes cache which grows using http proxy (and seeing films)'
 			fs.readFile('/sys/fs/cgroup/memory/memory.stat', (error, result) => {
 				if (error) {
 					this._onError(this.label, '_getMemory readFile', error)
@@ -143,48 +140,6 @@ class Statistics {
 			this._onError(this.label, '_getMemory', error)
 		})
 	}
-	
-		// async _setHealth() {
-		// try {
-			// let date = Date.now()
-			// let { cpu, memoryUsed } = await this._getMetrics()
-			// let roundedDate = Math.round(date / this.healthInterval) * this.healthInterval
-			// let rdKey = this.hKey + ':roundedDates'
-			// let rdhKey = rdKey + ':' + roundedDate
-			// let ttlSeconds = (this.healthInterval / 1000) * 2
-			// await this.redis.pipe([
-				// ['hset', this.hKey, 'now', date],
-				// ['hincrby', rdhKey, 'cpu', cpu],
-				// ['hincrby', rdhKey, 'mem', memoryUsed],
-				// ['expire', rdhKey, ttlSeconds],
-				// ['sadd', rdKey, roundedDate],
-			// ])
-			// await this._onNewRoundedDate(rdKey)
-			// this._previousRoundedDate = roundedDate
-		// } catch(error) {
-			// this._onError(this.label, '_setHealth', error)
-		// }
-	// }
-	
-	// async _onNewRoundedDate(rdKey) {
-		// try {
-			// if (this._previousRoundedDate) {
-				// let previousRoundedDate = this._previousRoundedDate
-				// let prevRdhKey = rdKey + ':' + previousRoundedDate
-				// let result = await this.redis.hgetall(prevRdhKey)
-				// if (result && result.hasOwnProperty('cpu')) {
-					// await this.redis.pipe([
-						// ['hset', this.hKey, 'cpu', result.cpu],
-						// ['hset', this.hKey, 'mem', result.mem],
-						// ['del', prevRdhKey],
-						// ['srem', rdKey, previousRoundedDate],
-					// ])
-				// }
-			// }
-		// } catch(error) {
-			// this._onError(this.label, '_onNewRoundedDate', error)
-		// }
-	// }
 }
 
 module.exports = Statistics

@@ -26,7 +26,7 @@ class Logs extends Starter {
 				await this._spawn('next build')
 				await this._spawn('next start -p ' + Settings.port)
 				this._revalidateKicker()
-				this._tempCheckNetworkErrors()
+				// this._tempCheckNetworkErrors()
 			} else {
 				await this._spawn('next dev -p ' + Settings.port)
 				this._spawn('tsc --noEmit')
@@ -145,7 +145,7 @@ class Logs extends Starter {
 					this.onError(this.label, '_tempCheckNetworkErrors catch', error)
 				}
 			}, Settings.standardTimeout * 2)
-		}, Settings.standardTimeout * 5)
+		}, Settings.standardTimeout * 25)
 	}
 	
 	_showTsErrors(infoString) {

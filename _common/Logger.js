@@ -7,6 +7,7 @@ class Logger {
 	constructor() {
 		this.label = this.constructor.name
 		this.typesKey = this.label + ':types'
+		this.datesKey = this.label + ':dates'
 		//  tail -f -n 100 /mnt/sda/development/log.log
 	}
 	
@@ -44,6 +45,7 @@ class Logger {
 			let pipe = []
 				pipe.push(['sadd', this.typesKey, type])
 				pipe.push(['lpush', lKey, date])
+				pipe.push(['lpush', this.datesKey, date])
 				pipe.push(['hset', hKey, date, string])
 			if (this.redis) {
 				await this._redisAddCleaner(pipe)
@@ -102,6 +104,7 @@ class Logger {
 					}
 					pipe.push(['ltrim', lKey, 0, Settings.loggerLimit])
 				}
+				pipe.push(['ltrim', this.datesKey, 0, Settings.loggerLimit])
 			}
 		} catch(error) {
 			this._internalError('_redisAddCleaner', error)

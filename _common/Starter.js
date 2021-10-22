@@ -3,7 +3,6 @@ const fs = require('fs')
 const Logger = require('./Logger.js')
 const RabbitMQ = require('./RabbitMQ.js')
 const Redis = require('./Redis.js')
-const sda = '/usr/nodejs/sda/'
 const Settings = require('./Settings.js')
 const Statistics = require('./Statistics.js')
 

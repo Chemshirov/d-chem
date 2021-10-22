@@ -1,4 +1,5 @@
 const Arbiter = require('./Arbiter.js')
+const ContainersHandler = require('./ContainersHandler.js')
 const FilesWatcher = require('../../_common/FilesWatcher.js')
 const fs = require('fs')
 const Media = require('./media/Media.js')
@@ -20,11 +21,13 @@ class Watcher extends Starter {
 	async atStart() {
 		try {
 			await this.getDomainAndIps()
+			await this.connectToRedis()
 			let setupObject = {
 				currentPath: this.currentPath,
 				onError: this.boundOnError,
 				log: this.log,
 				rabbitMQ: this.rabbitMQ,
+				redis: this.redis,
 				currentIp: this.currentIp,
 				anotherIp: this.anotherIp,
 				predispositionalMasterIp: this.predispositionalMasterIp,
@@ -35,6 +38,8 @@ class Watcher extends Starter {
 			this.syncer = new Syncer(setupObject)
 			await this.syncer.init()
 			this.arbiter.setSyncer(this.syncer)
+			this.containersHandler = new ContainersHandler(setupObject)
+			this.containersHandler.start()
 			this.staticsSetter = new StaticsSetter(setupObject)
 			if (process.env.CACHE_ON) {
 				this.staticsSetter.start()
@@ -42,7 +47,6 @@ class Watcher extends Starter {
 			await this._readServiceWorker()
 			await this._watch()
 			new Media(setupObject)
-			this._memoryLimiter()
 		} catch(error) {
 			this.onError(this.label, 'atStart', error)
 		}
@@ -177,43 +181,6 @@ class Watcher extends Starter {
 		}).catch(error => {
 			this.onError(this.label, '_writeServiceWorker', error)
 		})
-	}
-	
-	_memoryLimiter() {
-		this._setMemoryLimiter()
-		setInterval(() => {
-			this._setMemoryLimiter()
-		}, Settings.watcherWait)
-	}
-	
-	async _setMemoryLimiter() {
-		try {
-			await this.connectToRedis()
-			let sKey = 'Containers'
-			let containersList = await this.redis.smembers(sKey)
-			if (containersList) {
-				for (let i = 0; i < containersList.length; i++) {
-					let containerName = containersList[i]
-					let hKey = sKey + ':' + containerName
-					let memoryUsed = await this.redis.hget(hKey, 'mem')
-					let previousMemoryUsed = this._setMemoryLimiter[containerName] || 0
-					let limit = Settings.watcherMemoryLimitForContainerName(containerName)
-					if (memoryUsed > limit && previousMemoryUsed > limit) {
-						let containerPath = await this.redis.hget(hKey, 'path')
-						let data = [ containerName, memoryUsed, previousMemoryUsed ]
-						this.log({ label: 'memoryLimitRestart', data })
-						let message = {
-							type: 'start',
-							path: containerPath
-						}
-						this.rabbitMQ.send({ label: 'Dockerrun', message })
-					}
-					this._setMemoryLimiter[containerName] = memoryUsed
-				}
-			}
-		} catch (error) {
-			this.onError(this.label, '_setMemoryLimiter', error)
-		}
 	}
 }
 
