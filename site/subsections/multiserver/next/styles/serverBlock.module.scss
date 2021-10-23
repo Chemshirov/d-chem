@@ -1,0 +1,28 @@
+$gap: 0.25em;
+$border: 1px solid greenyellow;
+
+.bottomBorder {
+	grid-row: 3 / 6;
+	border-top: $border;
+	border-bottom: $border;
+	margin-bottom: $gap / 2;
+}
+.left {
+	border-top-left-radius: $gap;
+	border-bottom-left-radius: $gap;
+	border-left: $border;
+}
+.right {
+	border-top-right-radius: $gap;
+	border-bottom-right-radius: $gap;
+	border-right: $border;
+}
+.current {
+	border-top: none;
+}
+.leftCurrent {
+	border-top-left-radius: 0;
+}
+.rightCurrent {
+	border-top-right-radius: 0;
+}

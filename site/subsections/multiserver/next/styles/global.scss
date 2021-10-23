@@ -1,0 +1,59 @@
+$blue: #0d6efd;
+$gap: 0.25em;
+
+.link {
+	color: $blue;
+	cursor: pointer;
+}
+.hiddenLink {
+	cursor: pointer;
+}
+.link.clicked {
+	color: purple;
+	cursor: wait;
+}
+
+.hidden {
+	display: none;
+}
+
+.p05 {
+	padding: $gap * 2;
+}
+.p1 {
+	padding: $gap * 4;
+}
+.mbg {
+	margin-bottom: $gap;
+}
+
+.noWrap {
+	white-space: nowrap;
+}
+
+.comma {
+	display: inline-block;
+	width: $gap * 2;
+}
+.buttonComma {
+	display: inline-block;
+	width: $gap * 3;
+}
+
+.textBetweener {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+}
+
+.closeButton:after {
+	content: "\2716";
+	position: absolute;
+	top: 0;
+	right: 0;
+	font-size: $gap * 6;
+	line-height: 1;
+	color: red;
+	padding: $gap * 2;
+	cursor: pointer;
+}

@@ -151,9 +151,9 @@ class Starter {
 		let notAnError = false
 		if (error && typeof error === 'object') {
 			let errorChunks = ['ECONNREFUSED', 'EAI_AGAIN', 'ECONNRESET', 'EHOSTUNREACH']
-				errorChunks = errorChunks.concat(['Connection closed', 'Connection lost'])
-				errorChunks = errorChunks.concat(['The connection is not yet established'])
-				errorChunks = errorChunks.concat(['Operation failed', 'wrong number'])
+				// errorChunks = errorChunks.concat(['Connection closed', 'Connection lost'])
+				// errorChunks = errorChunks.concat(['The connection is not yet established'])
+				// errorChunks = errorChunks.concat(['Operation failed', 'wrong number'])
 			if (typeof error.code === 'string') {
 				errorChunks.some(key => {
 					if (error.code.includes(key)) {

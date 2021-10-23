@@ -1,0 +1,26 @@
+$gap: 0.25em;
+
+.container{
+	white-space: nowrap;
+}
+
+.main {
+	white-space: nowrap;
+	color: darkgreen;
+	padding-right: 2px;
+}
+.current {
+	padding-right: $gap;
+	vertical-align: baseline;
+}
+
+.indicator{
+	display: inline-block;
+	width: $gap;
+	height: $gap * 3;
+	vertical-align: baseline;
+	background: linear-gradient(0deg, #00f3ff52 0%, transparent 100%);
+}
+.cpu {
+	margin-right: 1px;
+}

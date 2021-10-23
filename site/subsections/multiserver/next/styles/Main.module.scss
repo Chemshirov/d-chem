@@ -1,0 +1,26 @@
+$phones: 576px;
+$gap: 0.25em;
+
+.container {
+	display: grid;
+	grid-template-columns: $gap repeat(4, 1fr $gap);
+	grid-template-rows: 2em repeat(4, 1fr);
+	justify-content: center;
+	align-content: center;
+	height: 100vh;
+	width: 100vw;
+}
+
+.flag {
+	grid-column: 3 / 3;
+	grid-row: 1 / 6;
+}
+
+@media screen and (max-width: $phones) {
+	.container {
+		display: block;
+		height: 100vh;
+		width: 100vw;
+		background-color: green;
+	}
+}

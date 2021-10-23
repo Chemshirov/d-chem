@@ -1,0 +1,52 @@
+$gap: 0.25em;
+
+.main {
+	grid-row-start: 1;
+	grid-row-end: 3;
+}
+
+.notCurrent {
+	margin-top: $gap / 2;
+	padding: $gap;
+	border: 1px solid gold;
+	border-radius: $gap;
+	overflow: hidden;
+}
+
+.bold {
+	font-weight: bold;
+}
+
+.containers {
+	display: inline;
+}
+
+.log {
+	overflow: hidden;
+}
+
+.line {
+	white-space: nowrap;
+}
+
+.day {
+	color: plum;
+}
+.second {
+	color: darkorange;
+}
+
+.paddingH {
+	padding: 0 $gap;
+}
+
+.label {
+	color: darkblue;
+	padding-right: $gap;
+}
+.errors {
+	color: red;
+}
+.data {
+	color: grey;
+}

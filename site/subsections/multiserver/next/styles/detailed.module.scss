@@ -1,0 +1,59 @@
+$gap: 0.25em;
+$color: greenyellow;
+
+.logs {
+	grid-column: 4 / 9;
+	grid-row: 3 / 6;
+	padding: 1px 1px $gap 0;
+}
+
+.containers {
+	grid-column: 2 / 2;
+	grid-row: 3 / 6;
+	margin: $gap * 2;
+	margin-top: $gap * 8;
+	padding: $gap * 2;
+	padding-right: $gap * 4;
+	align-self: start;
+	justify-self: end;
+	border: 1px solid $color;
+	border-radius: $gap;
+}
+.containers::before {
+	content: "Containers:";
+	font-size: 2em;
+	color: $color;
+}
+
+.right {
+	text-align: right;
+	padding-left: $gap * 2;
+	min-width: 2em;
+}
+
+.cpu::after {
+	color: red;
+	content: "%";
+	font-size: 0.75em;
+}
+.memory::after {
+	color: SlateBlue;
+	content: "M";
+	font-size: 0.75em;
+}
+
+.td {
+	padding-top: $gap * 2;
+}
+.pl {
+	padding-left: $gap * 4;
+}
+.pt {
+	padding-top: $gap * 4;
+}
+
+.iframe {
+	width: calc(100% - 0.25em);
+	height: 100%;
+	border: none;
+}

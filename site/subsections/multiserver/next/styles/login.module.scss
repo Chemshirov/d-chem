@@ -1,0 +1,61 @@
+.floatRight {
+	float: right;
+	position: relative;
+	user-select: none;
+}
+
+.menu{
+	position: absolute;
+	top: -0.5em;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 3;
+	padding: 3em 8em;
+	border-radius: 0.25em;
+	background-color: white;
+	border: 1px solid greenyellow;
+	cursor: auto;
+	color: grey;
+	user-select: none;
+}
+.menu:before{
+	content: "Login:";
+	display: block;
+	text-align: center;
+	font-size: 2em;
+	color: greenyellow;
+}
+.right {
+	left: unset;
+	right: 0;
+	transform: none;
+}
+
+.passLine {
+	padding-top: 3em;
+	display: flex;
+	align-items: baseline;
+}
+.passWord {
+	
+}
+.passWord:after{
+	content: ":";
+	padding-right: 0.5em;
+}
+.input {
+	padding: 0.5em;
+	border: 1px solid greenyellow;
+	border-radius: 0.25em;
+	appearance: none;
+}
+
+.passIsIncorrect{
+	color: red;
+	text-align: right;
+	padding-right: 1em;
+}
+
+.ask {
+	padding-top: 2em;
+}
