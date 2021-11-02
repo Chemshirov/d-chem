@@ -82,12 +82,16 @@ class ColoredContainer extends Component<props> {
 	}
 	
 	render() {
+		let containerClass = styles.container
+		if (this.props.statisticsArray && +this.props.statisticsArray[0] > 1) {
+			containerClass += ' ' + styles.alarm
+		}
 		let classCpu = styles.indicator + ' ' + styles.cpu
 		let classMemory = styles.indicator
 		let cpuStyle = this._getCpuStyle()
 		let memStyle = this._getMemStyle()
 		return (
-			<span className={styles.container}>
+			<span className={containerClass}>
 				{this._getMainJSX()}
 				<span 
 					className={classCpu}

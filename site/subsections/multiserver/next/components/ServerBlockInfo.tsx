@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import ServerBlockTitle from './ServerBlockTitle'
+import ServerBlockButtons from './ServerBlockButtons'
 import ColoredContainer from './ColoredContainer'
 import styles from '../styles/serverBlockInfo.module.scss'
 import { staticObjectDomain, containers } from '../../../../../../../currentPath/DataHandler'
@@ -19,49 +20,102 @@ class ServerBlockInfo extends Component<props> {
 		this.props.onClick(this.props.number)
 	}
 	
-	_getItem(key, bold) {
+	_getItem(key, bold, value, isFinal) {
 		let className = null
 		if (bold) {
 			className = styles.bold
+		}
+		if (!value) {
+			value = this.props.serverStaticProps[key]
 		}
 		
 		return (
 			<>
 				<small className={className}>
-					{this.props.serverStaticProps[key]}
+					{value}
 				</small>
-				<small>{', '}</small>
+				{this._getComma(isFinal)}
 			</>
 		)
 	}
 	
-	render() {
-		let isCurrentBlock = (this.props.number === this.props.serverBlockNumber)
-		if (!isCurrentBlock) {
-			let gridColumnNumber = this.props.number * 2
-			let gridColumn = gridColumnNumber + ' / ' + gridColumnNumber
-			let mainClassName = styles.main + ' mbg hiddenLink ' + styles.notCurrent
+	_getComma(isFinal) {
+		if (!isFinal) {
 			return (
+				<small>
+					{', '}
+				</small>
+			)
+		} else {
+			return null
+		}
+	}
+	
+	_getButtons(showButtons) {
+		if (showButtons) {
+			return (
+				<ServerBlockButtons
+					serverStaticProps={this.props.serverStaticProps}
+					role={this.props.role}
+					containers={this.props.containers}
+					isAdmin={this.props.isAdmin}
+					loginMenuOpener={this.props.loginMenuOpener}
+					emit={this.props.emit}
+					buttonsState={this.props.buttonsState}
+				/>
+			)
+		} else {
+			return null
+		}
+	}
+	
+	render() {
+		let mainClassName = styles.main + ' hiddenLink '
+			mainClassName += 'serverInfoH-' + this.props.number + ' '
+		if (!this.props.chosenServerBlock) {
+			mainClassName += 'serverInfoV2-' + this.props.number + ' '
+		} else {
+			if (this.props.number === this.props.chosenServerBlock) {
+				mainClassName += 'serverInfoVC-' + this.props.number + ' '
+			} else {
+				if (this.props.number < this.props.chosenServerBlock) {
+					mainClassName += 'serverInfoVB-' + this.props.number + ' '
+				} else {
+					mainClassName += 'serverInfoVE-' + this.props.number + ' '
+				}
+			}
+		}
+		let isCurrentBlock = (this.props.number === this.props.serverBlockNumber)
+		if (isCurrentBlock) {
+			mainClassName += styles.current
+		}
+		let showButtons = (isCurrentBlock && this.props.number === this.props.chosenServerBlock)
+		
+		return (
+			<div
+				className={mainClassName}
+			>
+				{this._getButtons(showButtons)}
 				<div
-					className={mainClassName}
-					style={{ gridColumn }}
 					onClick={this.onClick.bind(this)}
 				>
-					{this._getItem('domain', true)}
-					{this._getItem('ip')}
-					{this._getItem('stage', true)}
+					<div>
+						{this._getItem('domain', true)}
+						{this._getItem('ip')}
+						{this._getItem('stage')}
+						{this._getItem('isMaster', true, this.props.role, true)}
+					</div>
 					<Containers
-						containers={this.props.serverStaticProps.Containers}
+						containers={this.props.containers}
+						serverStaticProps={this.props.serverStaticProps}
 						currentStatistics={this.props.currentStatistics}
 					/>
 					<ShortLog
 						log={this.props.shortLog}
 					/>
 				</div>
-			)
-		} else {
-			return null
-		}
+			</div>
+		)
 	}
 }
 
@@ -76,9 +130,8 @@ class Containers extends Component<containersState> {
 	_getJSX() {
 		let jsx = []
 		if (this.props.containers) {
-			let containersArray = Object.keys(this.props.containers)
-			containersArray.sort().forEach((hostname, i) => {
-				let name = this.props.containers[hostname].name
+			this.props.containers.forEach((hostname, i) => {
+				let name = this.props.serverStaticProps.Containers[hostname].name
 				let statisticsArray = this.props.currentStatistics[hostname]
 				jsx.push(
 					<span key={hostname}>
@@ -89,7 +142,7 @@ class Containers extends Component<containersState> {
 							current={false}
 							small={true}
 						/>
-						{this._getComma(containersArray.length !== i + 1)}
+						{this._getComma(this.props.containers.length !== i + 1)}
 					</span>
 				)
 			})
@@ -127,18 +180,18 @@ class ShortLog extends Component {
 		let currentMinuteDate = date.substring(0, 16)
 		if (currentMinuteDate !== nextMinuteDate) {
 			return (
-				<small className={styles.day}>
-					<small>
+				<small className={styles.date + ' ' + styles.day}>
+					<small className={styles.paddingR}>
 						{date.substring(8, 10)}
 					</small>
-					<small className={styles.paddingH}>
+					<small>
 						{date.substring(11, 16)}
 					</small>
 				</small>
 			)
 		} else {
 			return (
-				<small className={styles.paddingH}>
+				<small className={styles.date}>
 					<small className={styles.day}>
 						{date.substring(14, 17)}
 					</small>
@@ -158,7 +211,6 @@ class ShortLog extends Component {
 				nextMinuteDate = log[i + 1].date.substring(0, 16)
 			}
 			let { date, type, value } = line
-			// console.log(date, nextMinuteDate)
 			let className = styles.data
 			if (type === 'errors') {
 				className = styles.errors

@@ -10,3 +10,6 @@ docker exec -it d-site_git sh
 
 
 /bin/su -c "git --git-dir=/usr/nodejs/sda/development/d-chem.git remote -v" - node;
+
+
+get all untracked files: ls-files --others --exclude-standard

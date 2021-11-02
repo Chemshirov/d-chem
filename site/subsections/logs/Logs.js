@@ -14,7 +14,6 @@ class Logs extends Starter {
 	async atStart() {
 		try {
 			await this.rabbitMQ.receive(this._onReceive.bind(this))
-			await this.connectToRedis()
 			this.logsHandler = new LogsHandler(this.onError.bind(this), this.redis)
 			await this.logsHandler.recoveryProps()
 			await this.logsHandler.setProps()
@@ -26,7 +25,7 @@ class Logs extends Starter {
 				await this._spawn('next build')
 				await this._spawn('next start -p ' + Settings.port)
 				this._revalidateKicker()
-				// this._tempCheckNetworkErrors()
+				// this._tempCheckNetworkErrors() 
 			} else {
 				await this._spawn('next dev -p ' + Settings.port)
 				this._spawn('tsc --noEmit')

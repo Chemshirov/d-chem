@@ -74,7 +74,7 @@ class Login extends Component<props> {
 	
 	_getMenu() {
 		if (this.state.menu) {
-			let menuClass = styles.menu
+			let menuClass = 'loginMenu'
 			if (this.props.serverBlockNumber >= 4) {
 				menuClass += ' ' + styles.right
 			}

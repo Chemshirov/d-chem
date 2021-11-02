@@ -1,11 +1,148 @@
-$blue: #0d6efd;
-$gap: 0.25em;
+:root {
+	--gap: 0.25em;
+	--displayBlock: block;
+	--displayBlockInvert: none;
+	--grid-template-columns: var(--gap) repeat(4, 1fr var(--gap));
+	--grid-template-rows: 2em repeat(4, 1fr);
+	--info-grid-column: unset;
+	--info-grid-row-start: 1;
+	--info-grid-row-end: 3;
+	--info-current-display: none;
+	--100vh: calc(var(--vh) * 100);
+	--headerFontSize: calc(var(--gap) * 6);
+	--mainBorderColor: greenyellow;
+	--mainBorder: 1px solid var(--mainBorderColor);
+}
+
+@mixin headerGridColumn($i) {
+	grid-column-start: $i * 2 - 1;
+	grid-column-end: $i *2 + 1;
+}
+@mixin serverInfoH($i) {
+	grid-column: $i * 2;
+	grid-row: 1 / 3;
+	display: var(--displayBlock);
+}
+@for $i from 1 through 4 {
+	.headerGridColumn-#{$i} {
+		@include headerGridColumn($i);
+	}
+	.serverInfoH-#{$i} {
+		@include serverInfoH($i);
+	}
+}
+
+.loginMenu {
+	position: absolute;
+	top: calc(var(--gap) * -2);
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 3;
+	padding: 3em 8em;
+	background-color: white;
+	border: var(--mainBorder);
+	border-radius: var(--gap);
+	cursor: auto;
+	color: grey;
+	user-select: none;
+}
+
+.restartMenu {
+	position: absolute;
+	top: calc(var(--gap) * 5);
+	left: -50%;
+	padding: calc(var(--gap) * 2) 0;
+	margin: 0;
+	background-color: white;
+	color: #212529;
+	border: 1px solid grey;
+	box-shadow: 0 0 calc(var(--gap) / 2) 0 var(--mainBorderColor);
+	border-radius: var(--gap);
+	list-style: none;
+	z-index: 2;
+	min-width: 15em;
+}
+
+@media screen and (max-width: 576px) {
+	:root {
+		--displayBlock: none;
+		--displayBlockInvert: block;
+		--grid-template-columns: var(--gap) 1fr var(--gap);
+		--grid-template-rows: 2em repeat(8, 1fr);
+		--info-grid-column: 2;
+		--info-grid-row-start: unset;
+		--info-grid-row-end: unset;
+		--info-current-display: block;
+		--headerFontSize: calc(var(--gap) * 5);
+	}
+	
+	@mixin serverInfoVB($i) {
+		grid-row-start: $i + 1;
+		grid-row-end: $i + 2;
+		display: var(--displayBlockInvert);
+	}
+	@mixin serverInfoVC($i) {
+		grid-row-start: $i + 1;
+		grid-row-end: $i + 6;
+		display: var(--displayBlockInvert);
+	}
+	@mixin serverInfoVE($i) {
+		grid-row-start: $i + 5;
+		grid-row-end: $i + 6;
+		display: var(--displayBlockInvert);
+	}
+	@mixin serverInfoV2($i) {
+		grid-row-start: $i * 2;
+		grid-row-end: $i * 2 + 2;
+		display: var(--displayBlockInvert);
+	}
+	
+	@for $i from 1 through 4 {
+		.headerGridColumn-#{$i} {
+			grid-column: 2;
+		}
+		.serverInfoVB-#{$i} {
+			grid-column: 2;
+			@include serverInfoVB($i);
+		}
+		.serverInfoVC-#{$i} {
+			grid-column: 2;
+			@include serverInfoVC($i);
+		}
+		.serverInfoVE-#{$i} {
+			grid-column: 2;
+			@include serverInfoVE($i);
+		}
+		.serverInfoV2-#{$i} {
+			grid-column: 2;
+			@include serverInfoV2($i);
+		}
+	}
+	
+	.loginMenu {
+		position: fixed;
+		top: calc(var(--gap) * 8);
+		left: calc(var(--gap) * 1);
+		transform: unset;
+		width: calc(100vw - var(--gap) * 2);
+		height: calc(var(--vh) * 100 - var(--gap) * 21);
+		padding: calc(var(--gap) * 12) 0 0 calc(var(--gap) * 4);
+		max-width: calc(100vw  - var(--gap) * 6);
+	}
+	
+	.restartMenu {
+		position: fixed;
+		top: 0;
+		left: 0;
+		bottom: 0;
+		right: 0;
+		margin: calc(var(--gap) * 8) var(--gap) var(--gap) calc(var(--gap) * 28);
+		min-width: unset;
+	}
+}
 
 .link {
-	color: $blue;
-	cursor: pointer;
-}
-.hiddenLink {
+	color: #0d6efd;
 	cursor: pointer;
 }
 .link.clicked {
@@ -13,18 +150,12 @@ $gap: 0.25em;
 	cursor: wait;
 }
 
-.hidden {
-	display: none;
+.hiddenLink {
+	cursor: pointer;
 }
 
-.p05 {
-	padding: $gap * 2;
-}
-.p1 {
-	padding: $gap * 4;
-}
-.mbg {
-	margin-bottom: $gap;
+.hidden {
+	display: none;
 }
 
 .noWrap {
@@ -33,17 +164,11 @@ $gap: 0.25em;
 
 .comma {
 	display: inline-block;
-	width: $gap * 2;
+	width: calc(var(--gap) * 2);
 }
 .buttonComma {
 	display: inline-block;
-	width: $gap * 3;
-}
-
-.textBetweener {
-	display: flex;
-	justify-content: space-between;
-	align-items: baseline;
+	width: calc(var(--gap) * 3);
 }
 
 .closeButton:after {
@@ -51,9 +176,9 @@ $gap: 0.25em;
 	position: absolute;
 	top: 0;
 	right: 0;
-	font-size: $gap * 6;
+	font-size: calc(var(--gap) * 6);
 	line-height: 1;
 	color: red;
-	padding: $gap * 2;
+	padding: calc(var(--gap) * 2);
 	cursor: pointer;
 }

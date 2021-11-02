@@ -6,14 +6,14 @@
 
 .menu{
 	position: absolute;
-	top: -0.5em;
+	top: calc(var(--gap) * -2);
 	left: 50%;
 	transform: translateX(-50%);
 	z-index: 3;
 	padding: 3em 8em;
-	border-radius: 0.25em;
 	background-color: white;
-	border: 1px solid greenyellow;
+	border: var(--mainBorder);
+	border-radius: var(--gap);
 	cursor: auto;
 	color: grey;
 	user-select: none;
@@ -23,7 +23,7 @@
 	display: block;
 	text-align: center;
 	font-size: 2em;
-	color: greenyellow;
+	color: var(--mainBorderColor);
 }
 .right {
 	left: unset;
@@ -32,7 +32,7 @@
 }
 
 .passLine {
-	padding-top: 3em;
+	padding-top: calc(var(--gap) * 6);
 	display: flex;
 	align-items: baseline;
 }
@@ -41,21 +41,21 @@
 }
 .passWord:after{
 	content: ":";
-	padding-right: 0.5em;
+	padding-right: calc(var(--gap) * 2);
 }
 .input {
-	padding: 0.5em;
-	border: 1px solid greenyellow;
-	border-radius: 0.25em;
+	padding: calc(var(--gap) * 2);
+	border: var(--mainBorder);
+	border-radius: var(--gap);
 	appearance: none;
 }
 
 .passIsIncorrect{
 	color: red;
 	text-align: right;
-	padding-right: 1em;
+	padding-right: calc(var(--gap) * 4);
 }
 
 .ask {
-	padding-top: 2em;
+	padding-top: calc(var(--gap) * 8);
 }

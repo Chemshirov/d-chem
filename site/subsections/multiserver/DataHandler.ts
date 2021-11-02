@@ -1,4 +1,4 @@
-const cpus = require('os').cpus().length
+const DataHandlerDynamic = require('./DataHandlerDynamic')
 const FileHandler = require('../stagePath/_common/FileHandler')
 const Redis = require('../stagePath/_common/Redis')
 const Settings = require('../stagePath/_common/Settings')
@@ -13,7 +13,7 @@ interface settings {
 	productionStageName: string,
 	developmentStageName: string,
 	stageByContainerName: ((hostname: string) => string),
-	unstaticsContainters: ((hostname: string) => {
+	otherContainters: ((hostname: string) => {
 		[type: string]: {
 			[name: string]: string
 		}
@@ -82,15 +82,14 @@ class DataHandler {
 	settings!: settings
 	redis!: redis | void
 	currentDomain!: string
-	_domainRedises!: {
+	domainRedises!: {
 		[id: string]: redis | void,
 	}
-	_shortLogsCache: {
-		[domain: string]: domainShortLogData
-	}
 	
-	constructor(onError?: onError) {
+	constructor(onError?: onError, redis) {
 		this.onError = onError
+		this.redis = redis
+		
 		this.label = this.constructor.name
 		this.commonLabel = 'commonInfo'
 		this.sKey = 'Containers'
@@ -101,15 +100,11 @@ class DataHandler {
 		
 		this.error = false
 		this._staticObject = {}
-		this._domainRedises = {}
-		this._shortLogsCache = {}
+		this.domainRedises = {}
 	}
 	
 	public async setStatic(): Promise<void> {
 		try {
-			let redis = new Redis(this._onError.bind(this))
-			this.redis = await redis.connect()
-			
 			await this._getStaticObject()
 			
 			let fileHandler = new FileHandler(this.onError, this.staticFileString)
@@ -120,7 +115,10 @@ class DataHandler {
 	}
 	
 	public setDynamic(websocket: any, label: string): void {
-		this._setDynamic(websocket, label)
+		if (!this.dataHandlerDynamic) {
+			this.dataHandlerDynamic = new DataHandlerDynamic(this.onError, this.commonLabel)
+			this.dataHandlerDynamic.start(websocket, label, this.domainRedises)
+		}
 	}
 	
 	public async getProps(): Promise<props> {
@@ -138,7 +136,7 @@ class DataHandler {
 	}
 	
 	public getDomainShortLogData(domain: string): domainShortLogData {
-		return this._shortLogsCache[domain]
+		return this.dataHandlerDynamic.shortLogsCache[domain]
 	}
 	
 	private async _getStaticObject(): Promise<void> {
@@ -161,25 +159,23 @@ class DataHandler {
 				}
 			})
 			
-			if (this.redis) {
-				this.currentDomain = await this.redis.hget(this.commonLabel, 'domain')
-				this._staticObject[this.currentDomain]['isCurrent'] = true
-				
-				let currentIp = await this.redis.hget(this.commonLabel, 'currentIp')
-				this._setIp(this.currentDomain, currentIp)
-				
-				let anotherDomain = await this.redis.hget(this.commonLabel, 'anotherDomain')
-				let anotherIp = await this.redis.hget(this.commonLabel, 'anotherIp')
-				this._setIp(anotherDomain, anotherIp)
-				
-				let masterIp = await this.redis.hget('Arbiter', 'masterIp')
-				this._staticObject[this.currentDomain]['isMaster'] = (masterIp === currentIp)
-				let systemUptime = await this.redis.hget(this.commonLabel, 'systemUptime')
-				this._staticObject[this.currentDomain]['systemUptime'] = systemUptime
-				this._staticObject[this.currentDomain]['now'] = Date.now()
-				
-				await this._getDomainContainers()
-			}
+			this.currentDomain = await this.redis.hget(this.commonLabel, 'domain')
+			this._staticObject[this.currentDomain]['isCurrent'] = true
+			
+			let currentIp = await this.redis.hget(this.commonLabel, 'currentIp')
+			this._setIp(this.currentDomain, currentIp)
+			
+			let anotherDomain = await this.redis.hget(this.commonLabel, 'anotherDomain')
+			let anotherIp = await this.redis.hget(this.commonLabel, 'anotherIp')
+			this._setIp(anotherDomain, anotherIp)
+			
+			let masterIp = await this.redis.hget('Arbiter', 'masterIp') //
+			this._staticObject[this.currentDomain]['isMaster'] = (masterIp === currentIp) //
+			let systemUptime = await this.redis.hget(this.commonLabel, 'systemUptime') //
+			this._staticObject[this.currentDomain]['systemUptime'] = systemUptime //
+			this._staticObject[this.currentDomain]['now'] = Date.now() //
+			
+			await this._getDomainContainers()
 		} catch (error) {
 			this._onError(this.label, '_getStaticObject', error)
 		}
@@ -194,7 +190,7 @@ class DataHandler {
 				if (domain !== this.currentDomain) {
 					redis = await this._getDomainRedis(domain, stage)
 				} else {
-					this._domainRedises[domain] = this.redis
+					this.domainRedises[domain] = this.redis
 				}
 				await this._getContainers(domain, stage, redis)
 			}
@@ -206,23 +202,20 @@ class DataHandler {
 	private async _getContainers(domain: string, stage: string, redis: redis | void): Promise<void> {
 		try {
 			let containers: containers = {}
-			
-			if (redis) {
-				let staticsContainers = await redis.smembers(this.sKey)
-				for (let i = 0; i < staticsContainers.length; i++) {
-					let hostname = staticsContainers[i]
-					let hKey = this.sKey + ':' + hostname
-					let name = await redis.hget(hKey, 'name')
-					let path = await redis.hget(hKey, 'path')
-					let type = '1_main'
-					if (path.includes('/subsections/')) {
-						type = '2_subsections'
-					}
-					containers[hostname] = { name, path, type }
+			let staticsContainers = await redis.smembers(this.sKey)
+			for (let i = 0; i < staticsContainers.length; i++) {
+				let hostname = staticsContainers[i]
+				let hKey = this.sKey + ':' + hostname
+				let name = await redis.hget(hKey, 'name')
+				let path = await redis.hget(hKey, 'path')
+				let type = '1_main'
+				if (path.includes('/subsections/')) {
+					type = '2_subsections'
 				}
+				containers[hostname] = { name, path, type }
 			}
 			
-			let { object } = Settings.unstaticsContainters(stage)
+			let { object } = Settings.otherContainters(stage)
 			Object.keys(object).forEach(hostname => {
 				containers[hostname] = {
 					name: hostname.replace(/^[a-z]\-/, ''),
@@ -252,12 +245,11 @@ class DataHandler {
 				let ip = this._staticObject[domain].ip
 				let port = Settings.redisPortByStage(stage)
 				if (ip && port) {
-					if (!this._domainRedises[domain]) {
-						let redis = new Redis(this._onError.bind(this))
-						let domainRedis = await redis.connect(ip, true, port)
-						this._domainRedises[domain] = domainRedis
+					if (!this.domainRedises[domain]) {
+						let domainRedis = new Redis(this._onError.bind(this), ip, port)
+						this.domainRedises[domain] = domainRedis
 					}
-					success(this._domainRedises[domain])
+					success(this.domainRedises[domain])
 				}
 			} catch (error) {
 				this._onError(this.label, '_getDomainRedis catch: ' + domain + ', ' + stage, error)
@@ -265,93 +257,6 @@ class DataHandler {
 		}).catch(error => {
 			this._onError(this.label, '_getDomainRedis: ' + domain + ', ' + stage, error)
 		})
-	}
-	
-	async _setDynamic(websockets: typeof WebsocketServer, label: string) {
-		try {
-			setInterval(async () => {
-				if (websockets) {
-					let dynamic = await this._getDynamic()
-					websockets.emit(label.toLowerCase(), dynamic)
-				}
-			}, 500)
-		} catch (error) {
-			this._onError(this.label, '_setDynamic', error)
-		}
-	}
-	
-	async _getDynamic() {
-		let statistics = {}
-		let shortLogDates = {}
-		try {
-			for (let i = 0; i < Object.keys(this._domainRedises).length; i++) {
-				let domain = Object.keys(this._domainRedises)[i]
-				let redis = this._domainRedises[domain]
-				let domainStatistics = await this._getDynamicStatistics(domain, redis)
-				statistics[domain] = domainStatistics
-				let domainShortLogDate = await this._setDomainShortLogs(domain, redis)
-				shortLogDates[domain] = domainShortLogDate
-			}
-		} catch (error) {
-			this._onError(this.label, '_getDynamic', error)
-		}
-		let dynamic = { statistics, shortLogDates }
-		return dynamic
-	}
-	
-	async _getDynamicStatistics(domain: string, redis: redis | void) {
-		let statistics = {}
-		try {
-			let allString = await redis.hgetall('Containers:metrics')
-			if (allString) {
-				Object.keys(allString).forEach(hostname => {
-					let metricsString = allString[hostname]
-					let metricsArray = metricsString.split(':')
-					let now = +metricsArray[2]
-					if ((Date.now() - now) < Settings.standardTimeout) {
-						let cpu = Math.ceil(metricsArray[0] * 100 / cpus) / 100
-						let mem = Math.ceil(metricsArray[1])
-						statistics[hostname] = [cpu, mem]
-					}
-				})
-			}
-		} catch (error) {
-			this._onError(this.label, '_getDynamicStatistics', error)
-		}
-		return statistics
-	}
-	
-	async _setDomainShortLogs(domain: string, redis: redis | void) {
-		let shortLog = []
-		let lastDate = false
-		try {
-			if (redis) {
-				let label = 'Logger'
-				let dates = await redis.lrange(label + ':dates', 0, 30)
-				if (typeof dates === 'object') {
-					lastDate = dates[0]
-					let cache = this._shortLogsCache[domain]
-					if (cache && cache.lastDate === lastDate) {
-						shortLog = cache.shortLog
-					} else {
-						for (let i =0; i < dates.length; i++) {
-							let date = dates[i]
-							let type = 'logs'
-							let value = await redis.hget(label + ':' + type, date)
-							if (!value) {
-								type = 'errors'
-								value = await redis.hget(label + ':' + type, date)
-							}
-							shortLog.push({ date, type, value })
-						}
-						this._shortLogsCache[domain] = { lastDate, shortLog }
-					}
-				}
-			}
-		} catch (error) {
-			this._onError(this.label, '_getShortLogs', error)
-		}
-		return lastDate
 	}
 	
 	_onError(className: string, method: string, error: unknown) {

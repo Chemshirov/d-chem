@@ -1,12 +1,13 @@
 const crypto = require('crypto')
 const FileHandler = require('../stagePath/_common/FileHandler')
-const Redis = require('../stagePath/_common/Redis')
 const Settings = require('../stagePath/_common/Settings')
 const { Server, Socket } = require('socket.io')
 const WebsocketOnServer = require('./common/WebsocketOnServer')
 
 const sdaLabelPath = '/usr/nodejs/sda/' + process.env.STAGE + '/' + Settings.label + '/'
-const siteSettings = require(sdaLabelPath + 'Logins.js')
+const siteLogins = require(sdaLabelPath + 'Logins.js')
+const siteSettings = require(sdaLabelPath + 'Settings.js')
+
 
 type onError = (className: string, method: string, error: unknown) => void
 
@@ -15,9 +16,13 @@ class Websocket extends WebsocketOnServer {
 	label: string
 	server!: Server
 	
-	constructor(onError: onError, rabbitMQ, socketLabel: string) {
-		super(onError, socketLabel.toLowerCase())
-		this.rabbitMQ = rabbitMQ
+	constructor(object) {
+		super(object.onError, object.label.toLowerCase())
+		this.rabbitMQ = object.rabbitMQ
+		this.commonLabel = object.label
+		this.domain = object.domain
+		this.currentIp = object.currentIp
+		this.anotherIp = object.anotherIp
 		this.label = this.constructor.name
 		this.syncerLabel = 'Syncer'
 		this.clickless = false
@@ -30,6 +35,7 @@ class Websocket extends WebsocketOnServer {
 			await this.adminsFileHandler.ifNotExistsCreateEmpty()
 			this.admins = await this.adminsFileHandler.objectFromFile()
 			this.setSocket()
+			await this.rabbitMQ.receive({ label: this.commonLabel, callback: this._onMultiServer.bind(this) })
 			await this.rabbitMQ.receive({ label: this.syncerLabel, callback: this._onSyncer.bind(this) })
 		} catch (error) {
 			this.onError(this.label, 'start', error)
@@ -42,6 +48,14 @@ class Websocket extends WebsocketOnServer {
 	
 	onConnection(socket) {
 		this._checkForAdmin(socket)
+		if (this.dataHandler) {
+			let dataHandlerDynamic = this.dataHandler.dataHandlerDynamic
+			if (dataHandlerDynamic) {
+				let uptimeDates = dataHandlerDynamic.uptimeDates
+				let roles = dataHandlerDynamic.roles
+				socket.emit(this.socketLabel, { uptimeDates, roles })
+			}
+		}
 	}
 	
 	async onData(socket, data) {
@@ -52,7 +66,7 @@ class Websocket extends WebsocketOnServer {
 				this._copyToAnotherServer(socket, data.domain)
 			} else if (data.type === 'pass') {
 				let sha1 = crypto.createHash('sha1').update(data.value).digest('hex')
-				this._checkForAdmin(socket, sha1 === siteSettings.dataAdminPasswordSha1)
+				this._checkForAdmin(socket, sha1 === siteLogins.dataAdminPasswordSha1)
 			} else if (data.type === 'logout') {
 				let uid = this.getUid(socket)
 				delete this.admins[uid]
@@ -60,12 +74,43 @@ class Websocket extends WebsocketOnServer {
 				socket.emit(this.socketLabel, { type: data.type })
 			} else if (data.type === 'restartContainer') {
 				let uid = this.getUid(socket)
-				this._restartContainer(data.value, uid)
+				if (this.domain === data.domain) {
+					this._restartContainer(data.value, uid)
+				} else {
+					data.uid = uid
+					let ip = this.currentIp
+					
+					let stage = Settings.productionStageName
+					if (Settings.developmentDomains.includes(data.domain)) {
+						stage = Settings.developmentStageName
+					}
+					Object.keys(siteSettings.stageIpDomain[stage]).forEach(ipString => {
+						let domain = siteSettings.stageIpDomain[stage][ipString]
+						if (domain === data.domain) {
+							ip = ipString
+						}
+					})
+					let port = Settings.rabbitPortByStage(stage)
+					this.rabbitMQ.send({
+						rabbitHostName: ip,
+						port,
+						label: this.commonLabel,
+						message: data
+					})
+				}
 			} else {
 				console.log(data)
 			}
 		} catch (error) {
 			this.onError(this.label, 'onData', error)
+		}
+	}
+	
+	_onMultiServer(object) {
+		if (object.type === 'restartContainer') {
+			if (object.domain === this.domain) {
+				this._restartContainer(object.value, object.uid)
+			}
 		}
 	}
 	
@@ -123,7 +168,12 @@ class Websocket extends WebsocketOnServer {
 	}
 	
 	_restartContainer(hostname, uid) {
-		this.rabbitMQ.send({ label: 'Dockerrun', type: 'start', hostname, uid })
+		this.rabbitMQ.send({
+			label: 'Dockerrun',
+			type: 'start',
+			hostname,
+			uid
+		})
 	}
 }
 

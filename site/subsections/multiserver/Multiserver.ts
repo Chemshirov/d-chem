@@ -18,12 +18,8 @@ class Multiserver extends Starter {
 		try {
 			await this._handleTsFiles()
 			await this.getDomainAndIps()
-			const Websocket = require('./assets/Websocket')
-			let websocket = new Websocket(this.onError.bind(this), this.rabbitMQ, this.label)
-			websocket.start()
-			const DataHandler = require('./assets/DataHandler')
-			let dataHandler = new DataHandler(this.onError.bind(this))
-			await dataHandler.setStatic()
+			let websocket = this._startWebsocket()
+			let dataHandler = await this._startDataHandler()
 			dataHandler.setDynamic(websocket.sockets, this.label)
 			websocket.setDataHandler(dataHandler)
 			await this._startNextFramework()
@@ -44,7 +40,7 @@ class Multiserver extends Starter {
 			let tsCommonHandler = new TsHandler(this.onError.bind(this), this.log)
 			tsCommonHandler.tsDirectory = stagePath + '_common/'
 			tsCommonHandler.jsDirectory = '/usr/nodejs/assets/common'
-			tsCommonHandler.excludeDirectories = ['/next'] //?
+			tsCommonHandler.excludeDirectories = ['/next'] //? doesn't work without the line.
 			await tsCommonHandler.convertOnce()
 			await tsCommonHandler.watch()
 		} catch (error) {
@@ -52,11 +48,37 @@ class Multiserver extends Starter {
 		}
 	}
 	
+	_startWebsocket() {
+		const Websocket = require('./assets/Websocket')
+		let object = {
+			onError: this.onError.bind(this),
+			rabbitMQ: this.rabbitMQ,
+			label: this.label,
+			domain: this.domain,
+			currentIp: this.currentIp,
+			anotherIp: this.anotherIp,
+		}
+		let websocket = new Websocket(object)
+		websocket.start()
+		return websocket
+	}
+	
+	async _startDataHandler() {
+		try {
+			const DataHandler = require('./assets/DataHandler')
+			let dataHandler = new DataHandler(this.onError.bind(this), this.redis)
+			await dataHandler.setStatic()
+			return dataHandler
+		} catch (error) {
+			this.onError(this.label, '_startDataHandler', error)
+		}
+	}
+	
 	async _startNextFramework() {
 		try {
 			let nextPath = currentPath + 'next/'
 			let nextHandler = new NextHandler(this.onError.bind(this), this.log, nextPath)
-			await nextHandler.start()
+			await nextHandler.start(this.domain)
 		} catch (error) {
 			this.onError(this.label, '_startNextFramework', error)
 		}

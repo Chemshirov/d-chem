@@ -1,10 +1,10 @@
 const fs = require('fs')
-const Redis = require('./Redis.js')
 const sda = '/usr/nodejs/sda/'
 const Settings = require('./Settings.js') 
 
 class Logger {
-	constructor() {
+	constructor(redis) {
+		this.redis = redis
 		this.label = this.constructor.name
 		this.typesKey = this.label + ':types'
 		this.datesKey = this.label + ':dates'
@@ -18,8 +18,6 @@ class Logger {
 			this.logThinner = new Thinner(Settings.loggerInterval)
 			this.fileThinner = new Thinner(Settings.loggerInterval)
 			this.filePath = sda + process.env.STAGE + Settings.loggerFileName
-			let redis = new Redis(this.writeError.bind(this))
-			this.redis = await redis.connect()
 		} catch(error) {
 			this._internalError('initiate', error)
 		}

@@ -134,8 +134,9 @@ class RabbitMQextension {
 	
 	_getQueueUniqueId(options) {
 		let rabbitHostName = options.rabbitHostName || this.rabbitHostName
+		let rabbitPort = options.port || ''
 		let queueName = options.label || this.defaultQueueName
-		let uniqueId = rabbitHostName + '_' + queueName
+		let uniqueId = rabbitHostName + '_' + rabbitPort + '_' + queueName
 		return uniqueId
 	}
 }
@@ -152,15 +153,15 @@ class RabbitMQconnector {
 	
 	async establish(options) {
 		try {
-			let hostName = this._getHostName(options)
-			await this._connect(hostName)
+			let { hostName, port } = this._getHostnameAndPort(options)
+			await this._connect(hostName, port)
 			return this._connection
 		} catch(error) {
 			this.onError(this.label, 'establish', error)
 		}
 	}
 	
-	_getHostName(options) {
+	_getHostnameAndPort(options) {
 		let prefix = options.prefix
 		if (!prefix) {
 			prefix = process.env.PREFIX
@@ -168,6 +169,7 @@ class RabbitMQconnector {
 		if (!prefix) {
 			prefix = 'd-'
 		}
+		
 		let hostName = options.rabbitHostName
 		if (!hostName) {
 			hostName = this.rabbitHostName
@@ -175,20 +177,29 @@ class RabbitMQconnector {
 				hostName = prefix + this.commonLabel
 			}
 		}
-		return hostName
+		
+		let port = options.port
+		if (!options.port) {
+			port = Settings.rabbitMqDefaultPort
+			let isHostExternal = hostName.split('.').length >= 2
+			if (isHostExternal) {
+				port = Settings.rabbitMqPort
+			}
+		}
+		return { hostName, port }
 	}
 	
-	_connect(hostName) {
+	_connect(hostName, port) {
 		return new Promise(success => {
 			if (this._connection && this._connected) {
 				success()
 			} else {
-				this._tryToConnect(hostName, success)
-				if (this._connectionIntervals[hostName]) {
-					clearInterval(this._connectionIntervals[hostName])
+				this._tryToConnect(hostName, port, success)
+				if (this._connectionIntervals[hostName + port]) {
+					clearInterval(this._connectionIntervals[hostName + port])
 				}
-				this._connectionIntervals[hostName] = setInterval(() => {
-					this._tryToConnect(hostName, success)
+				this._connectionIntervals[hostName + port] = setInterval(() => {
+					this._tryToConnect(hostName, port, success)
 				}, Settings.rabbitMqTimeout)
 			}
 		}).catch(error => {
@@ -196,17 +207,17 @@ class RabbitMQconnector {
 		})
 	}
 	
-	async _tryToConnect(hostName, success) {
+	async _tryToConnect(hostName, port, success) {
 		try {
 			if (!this._connected) {
 				if (this._connection) {
 					this._connection.close()
 				}
-				await this._setConnection(hostName)
+				await this._setConnection(hostName, port)
 			}
 			if (this._connected) {
-				if (this._connectionIntervals[hostName]) {
-					clearInterval(this._connectionIntervals[hostName])
+				if (this._connectionIntervals[hostName + port]) {
+					clearInterval(this._connectionIntervals[hostName + port])
 				}
 				success()
 			}
@@ -215,15 +226,10 @@ class RabbitMQconnector {
 		}
 	}
 	
-	async _setConnection(hostName) {
+	async _setConnection(hostName, port) {
 		try {
-			let port = Settings.rabbitMqDefaultPort
-			let password = await this._getPassword()
 			let user = this.commonLabel
-			let isHostExternal = hostName.split('.').length >= 2
-			if (isHostExternal) {
-				port = Settings.rabbitMqPort
-			}
+			let password = await this._getPassword()
 			let url = 'amqp://' + user + ':' + password + '@' + hostName + ':' + port
 			this._connection = await Amqplib.connect(url)
 			if (this._connection) {

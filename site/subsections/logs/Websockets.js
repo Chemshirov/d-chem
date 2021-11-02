@@ -62,7 +62,7 @@ class Websockets {
 		try {
 			let redis = new Redis(this.onError)
 			let callback = this._redisOnMessage.bind(this)
-			await redis.setSubscribeFunction(this.redisLabel, callback)
+			await redis.subscribe(this.redisLabel, callback)
 		} catch (error) {
 			this.onError(this.label, '_subscribe', error)
 		}
@@ -73,8 +73,7 @@ class Websockets {
 			let result = {}
 			this._newMaxDate = this._lastDate
 			if (!this.redis) {
-				let redis = new Redis(this.onError)
-				this.redis = await redis.connect()
+				this.redis = new Redis(this.onError)
 			}
 			let types = await this.redis.smembers(this.redisLabel + ':types')
 			if (typeof types === 'object') {

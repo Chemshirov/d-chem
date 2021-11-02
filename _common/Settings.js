@@ -127,7 +127,15 @@ class Settings {
 		return 5672
 	}
 	static get rabbitMqPort() {
-		return Settings.getPort(43007)
+		let port = Settings.rabbitPortByStage()
+		return Settings.getPort(port)
+	}
+	static rabbitPortByStage(stage) {
+		let port = 43007
+		if (stage && stage === Settings.developmentStageName) {
+			port++
+		}
+		return port
 	}
 	static get rabbitMqTimeout() {
 		return 5000
@@ -251,7 +259,7 @@ class Settings {
 		return 3
 	}
 	
-	static unstaticsContainters(stage) {
+	static otherContainters(stage) {
 		let tree = {}
 		let prefix = stage.substring(0, 1) + '-'
 		tree['3_services'] = {
@@ -274,7 +282,7 @@ class Settings {
 				browser: 'browser/',
 				git: 'git/',
 				redis: 'redis/',
-				psql: 'psql/',
+				'psql_postgres_1': 'psql/',
 			}
 		}
 		

@@ -1,7 +1,8 @@
-$gap: 0.25em;
-
 .container{
 	white-space: nowrap;
+}
+.alarm {
+	background-color: #ff000020;
 }
 
 .main {
@@ -10,16 +11,16 @@ $gap: 0.25em;
 	padding-right: 2px;
 }
 .current {
-	padding-right: $gap;
+	padding-right: var(--gap);
 	vertical-align: baseline;
 }
 
 .indicator{
 	display: inline-block;
-	width: $gap;
-	height: $gap * 3;
+	width: var(--gap);
+	height: calc(var(--gap) * 3);
 	vertical-align: baseline;
-	background: linear-gradient(0deg, #00f3ff52 0%, transparent 100%);
+	background: linear-gradient(0deg, #99999950 0%, transparent 100%);
 }
 .cpu {
 	margin-right: 1px;

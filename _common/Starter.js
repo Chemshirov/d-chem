@@ -2,7 +2,7 @@ const cluster = require('cluster')
 const fs = require('fs')
 const Logger = require('./Logger.js')
 const RabbitMQ = require('./RabbitMQ.js')
-const Redis = require('./Redis.js')
+const Redis = require('./Redis.js') 
 const Settings = require('./Settings.js')
 const Statistics = require('./Statistics.js')
 
@@ -13,7 +13,8 @@ class Starter {
 	
 	async start() {
 		try {
-			this.logger = new Logger()
+			this.redis = new Redis(this.boundOnError)
+			this.logger = new Logger(this.redis)
 			await this.logger.initiate()
 			this._setLogFunction()
 			this.boundLog = this.log.bind(this)
@@ -26,7 +27,7 @@ class Starter {
 			this.rabbitMQ = new RabbitMQ(this.boundOnError, this.boundLog)
 			this.rabbitMQ.setDefaultQueueName(this.label)
 			if (cluster.isPrimary) {
-				this.statistics = new Statistics(this.boundOnError, this.boundLog)
+				this.statistics = new Statistics(this.boundOnError, this.boundLog, this.redis)
 				await this.statistics.connect()
 			}
 			
@@ -53,7 +54,6 @@ class Starter {
 	async getDomainAndIps() {
 		try {
 			let commonLabel = 'commonInfo'
-			await this.connectToRedis()
 			this.currentIp = await this.redis.hget(commonLabel, 'currentIp')
 			this.anotherIp = await this.redis.hget(commonLabel, 'anotherIp')
 			this.domain = await this.redis.hget(commonLabel, 'domain')
@@ -66,22 +66,10 @@ class Starter {
 	
 	async isMaster() {
 		try {
-			await this.connectToRedis()
 			let masterIp = await this.redis.hget('Arbiter', 'masterIp')
 			return this.currentIp === masterIp
 		} catch(error) {
 			this.onError(this.label, 'isMaster', error)
-		}
-	}
-	
-	async connectToRedis() {
-		try {
-			if (!this.redis) {
-				let redis = new Redis(this.boundOnError)
-				this.redis = await redis.connect()
-			}
-		} catch(error) {
-			this.onError(this.label, 'connectToRedis', error)
 		}
 	}
 	

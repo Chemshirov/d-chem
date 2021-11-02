@@ -15,6 +15,7 @@ class Multiserver extends Component<props, IndexState> {
 		super(props)
 		this.label = 'Multiserver'
 		this.state = {
+			uptimeDates: {},
 			shortLogDates: {},
 			shortLogs: {},
 			buttonsState: {},
@@ -39,7 +40,7 @@ class Multiserver extends Component<props, IndexState> {
 					<title>
 						{title}
 					</title>
-					<meta name="viewport" content="initial-scale=1.0, width=device-width" />
+					<meta name="viewport" content="initial-scale=1.0, width=device-width, user-scalable=no" />
 					<meta name="description" content={description} />
 					<meta property="og:site_name" content={this.props.domain} key="siteName" />
 					<meta property="og:title" content={title} key="title" />
@@ -48,6 +49,8 @@ class Multiserver extends Component<props, IndexState> {
 				</Head>
 				<Main 
 					staticProps={this.props.staticObject}
+					uptimeDates={this.state.uptimeDates}
+					roles={this.state.roles}
 					statistics={this.state.statistics}
 					shortLogs={this.state.shortLogs}
 					emit={this.emit.bind(this)}
@@ -57,6 +60,10 @@ class Multiserver extends Component<props, IndexState> {
 				/>
 			</>
 		)
+	}
+	
+	componentDidMount() {
+		document.documentElement.style.setProperty('--vh', `${window.innerHeight/100}px`);
 	}
 	
 	private _setSocket() {
@@ -90,6 +97,20 @@ class Multiserver extends Component<props, IndexState> {
 				let shortLogs = this.state.shortLogs
 				shortLogs[data.domain] = data.domainShortLogData.shortLog
 				this.setState({ shortLogDates, shortLogs })
+			}
+			if (data.uptimeDates) {
+				let uptimeDates = this.state.uptimeDates
+				let now = Date.now()
+				Object.keys(data.uptimeDates).forEach(domain => {
+					let dates = data.uptimeDates[domain]
+					if (dates.now) {
+						uptimeDates[domain] = +(dates.systemUptime + '000') - (now - data.uptimeDates[domain].now)
+					}
+				})
+				this.setState({ uptimeDates })
+			}
+			if (data.roles) {
+				this.setState({ roles: data.roles })
 			}
 			if (data.type === 'copyToAnotherServerHasReceived') {
 				let buttonsState = this.state.buttonsState
@@ -154,9 +175,11 @@ class Multiserver extends Component<props, IndexState> {
 				newStatistics[domain] = {}
 				Object.keys(this.state.statisticsTree[domain]).forEach(hostname => {
 					newStatistics[domain][hostname] = false
-					let newData = statistics[domain][hostname]
-					if (newData) {
-						newStatistics[domain][hostname] = newData
+					if (statistics[domain]) {
+						let newData = statistics[domain][hostname]
+						if (newData) {
+							newStatistics[domain][hostname] = newData
+						}
 					}
 				})
 			})

@@ -21,7 +21,6 @@ class Watcher extends Starter {
 	async atStart() {
 		try {
 			await this.getDomainAndIps()
-			await this.connectToRedis()
 			let setupObject = {
 				currentPath: this.currentPath,
 				onError: this.boundOnError,

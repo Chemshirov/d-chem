@@ -69,7 +69,7 @@ class ContainersHandler {
 	
 	_writeStatsToRedis() {
 		return new Promise(success => {
-			let { object: unstaticsContainters } = Settings.unstaticsContainters(Settings.stage)
+			let { object: otherContainters } = Settings.otherContainters(Settings.stage)
 			let date = Date.now()
 			let pipe = []
 			let statsFileString = '/usr/nodejs/sda/' + Settings.stage + '/dockerStats.txt'
@@ -93,7 +93,7 @@ class ContainersHandler {
 						let statsArray = Object.keys(stats)
 						for (let i = 0; i < statsArray.length; i++) {
 							let hostname = statsArray[i]
-							if (unstaticsContainters[hostname]) {
+							if (otherContainters[hostname]) {
 								let { cpu, mem } = stats[hostname]
 								let dataString = cpu + ':' + mem + ':' + date
 								pipe.push(['hset', this.sKey + ':metrics', hostname, dataString])

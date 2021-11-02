@@ -27,7 +27,6 @@ class Worker extends Starter {
 	
 	async _onRequest(object) {
 		try {
-			await this.connectToRedis()
 			await this.redis.sadd(this.sKey + 'Types', object.request)
 			await this.redis.sadd(this.sKey + object.request, JSON.stringify(object))
 			this._onePerType()
@@ -38,7 +37,6 @@ class Worker extends Starter {
 	
 	async _onePerType() {
 		try {
-			await this.connectToRedis()
 			let types = await this.redis.smembers(this.sKey + 'Types')
 			if (types) {
 				for (let i = 0; i < types.length; i++) {
@@ -58,7 +56,6 @@ class Worker extends Starter {
 			}
 			if (!this._oneByOneBusy[type]) {
 				this._oneByOneBusy[type] = true
-				await this.connectToRedis()
 				let string = await this.redis.srandmember(this.sKey + type)
 				if (string) {
 					await this._requestHandler(string)

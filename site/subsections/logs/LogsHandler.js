@@ -41,15 +41,13 @@ class LogsHandler {
 	
 	async _setProps() {
 		try {
-			if (this.redis) {
-				this.domain = await this.redis.hget(this.commonLabel, 'domain')
-				this.ip = await this.redis.hget(this.commonLabel, 'currentIp')
-				this.logs = await this._getByType(this.loggerLabel + ':logs')
-				this.errors = await this._getByType(this.loggerLabel + ':errors')
-				this._composeProps()
-				let ok = await this._propsToFile()
-				return ok
-			}
+			this.domain = await this.redis.hget(this.commonLabel, 'domain')
+			this.ip = await this.redis.hget(this.commonLabel, 'currentIp')
+			this.logs = await this._getByType(this.loggerLabel + ':logs')
+			this.errors = await this._getByType(this.loggerLabel + ':errors')
+			this._composeProps()
+			let ok = await this._propsToFile()
+			return ok
 		} catch(error) {
 			this._onError('_setProps', error)
 		}

@@ -1,11 +1,11 @@
 const fs = require('fs')
-const Redis = require('./Redis.js')
 const Settings = require('./Settings.js')
 
 class Statistics {
-	constructor(onError, log) {
+	constructor(onError, log, redis) {
 		this._onError = onError
 		this.log = log
+		this.redis = redis
 		
 		this.label = this.constructor.name
 		this.hostname = process.env.HOSTNAME
@@ -28,8 +28,6 @@ class Statistics {
 	
 	async connect() {
 		try {
-			let redis = new Redis(this._onError)
-			this.redis = await redis.connect()
 			await this.redis.pipe([
 				['sadd', this.sKey, this.hostname],
 				['hset', this.hKey, 'name', this.name],

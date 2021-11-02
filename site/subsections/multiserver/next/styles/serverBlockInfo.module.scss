@@ -1,16 +1,16 @@
-$gap: 0.25em;
-
 .main {
-	grid-row-start: 1;
-	grid-row-end: 3;
+	margin-top: calc(var(--gap) / 2);
+	padding: var(--gap);
+	margin-bottom: var(--gap);
+	border: 1px solid gold;
+	border-radius: var(--gap);
+	overflow: hidden;
+	user-select: none;
 }
 
-.notCurrent {
-	margin-top: $gap / 2;
-	padding: $gap;
-	border: 1px solid gold;
-	border-radius: $gap;
-	overflow: hidden;
+
+.current {
+	display: var(--info-current-display);
 }
 
 .bold {
@@ -29,6 +29,12 @@ $gap: 0.25em;
 	white-space: nowrap;
 }
 
+.date {
+	display: inline-block;
+	width: calc(var(--gap) * 13);
+	text-align: right;
+	padding-right: var(--gap);
+}
 .day {
 	color: plum;
 }
@@ -36,13 +42,13 @@ $gap: 0.25em;
 	color: darkorange;
 }
 
-.paddingH {
-	padding: 0 $gap;
+.paddingR {
+	padding-right: var(--gap);
 }
 
 .label {
 	color: darkblue;
-	padding-right: $gap;
+	padding-right: var(--gap);
 }
 .errors {
 	color: red;

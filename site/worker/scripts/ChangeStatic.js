@@ -11,6 +11,8 @@ class ChangeStatic {
 		this.label = this.constructor.name
 		this.routeTable = Settings.staticRouteTable()
 		this.added = {}
+		
+		this.redis = new Redis(this.onError)
 	}
 	
 	async add(fileString) {
@@ -92,21 +94,15 @@ class ChangeStatic {
 	
 	async _addToRedis(fromString, object, gzip) {
 		try {
-			if (!this.redis) {
-				let redis = new Redis(this.onError)
-				this.redis = await redis.connect()
+			let comands = []
+			let sKey = 'StaticFiles:List'
+			comands.push(['sadd', sKey, fromString])
+			let hKey = 'StaticFiles:' + fromString
+			comands.push(['hmset', hKey, object])
+			if (gzip) {
+				comands.push(['set', hKey + ':gzip', gzip])
 			}
-			if (this.redis) {
-				let comands = []
-				let sKey = 'StaticFiles:List'
-				comands.push(['sadd', sKey, fromString])
-				let hKey = 'StaticFiles:' + fromString
-				comands.push(['hmset', hKey, object])
-				if (gzip) {
-					comands.push(['set', hKey + ':gzip', gzip])
-				}
-				await this.redis.pipe(comands)
-			}
+			await this.redis.pipe(comands)
 		} catch(error) {
 			this.onError(this.label, '_addToRedis', error)
 		}

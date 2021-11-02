@@ -29,7 +29,7 @@ class Syncer {
 	async _onSyncer(object) {
 		try {
 			if (object.pathToRsync) {
-				this.log('request to rsync has been catched, path: ' + object.pathToRsync)
+				this.log('request to rsync, path: ' + object.pathToRsync)
 				await this._rsync(object.pathToRsync)
 			} else if (object.syncToSlave) {
 				this.request(object.syncToSlave)

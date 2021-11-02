@@ -1,5 +1,4 @@
 const ArbiterTime = require('./ArbiterTime.js')
-const Redis = require('../../_common/Redis.js')
 const Settings = require('../../_common/Settings.js')
 const Syncer = require('./Syncer.js')
 
@@ -8,6 +7,7 @@ class Arbiter {
 		this.onError = setupObject.onError
 		this.log = setupObject.log
 		this.rabbitMQ = setupObject.rabbitMQ
+		this.redis = setupObject.redis
 		this.currentIp = setupObject.currentIp
 		this.anotherIp = setupObject.anotherIp
 		this.predispositionalMasterIp = setupObject.predispositionalMasterIp
@@ -18,15 +18,13 @@ class Arbiter {
 	async init() {
 		try {
 			this._sendToAnotherServer({ exec: '_connectToAnotherServer' })
-			let redis = new Redis(this.onError)
-			this.redis = await redis.connect()
-			this.arbiterTime = new ArbiterTime(this.onError)
+			this.arbiterTime = new ArbiterTime(this.onError, this.redis)
 			await this.arbiterTime.init()
 			await this.rabbitMQ.receive({
 				label: this.label,
 				callback: this._onArbiter.bind(this)
 			})
-			await this._connectToAnotherServer()
+			await this._connectToAnotherServer(true)
 			await this._choosing()
 			this._setChoosingInterval()
 		} catch(error) {
@@ -83,13 +81,28 @@ class Arbiter {
 		})
 	}
 	
-	async _connectToAnotherServer() {
+	async _connectToAnotherServer(atStart) {
 		try {
 			await this.rabbitMQ.receive({
+				getNewConnection: true,
 				rabbitHostName: this.anotherIp,
 				label: this.label,
 				callback: this._onAnotherServerArbiter.bind(this)
 			})
+			if (!atStart) {
+				this.rabbitMQ.send({
+					getNewConnection: true,
+					rabbitHostName: this.anotherIp,
+					label: this.label,
+					message: {}
+				})
+				this.rabbitMQ.send({
+					getNewConnection: true,
+					rabbitHostName: this.anotherIp,
+					label: 'Syncer',
+					message: {}
+				})
+			}
 		} catch(error) {
 			this.onError(this.label, '_connectToAnotherServer', error)
 		}

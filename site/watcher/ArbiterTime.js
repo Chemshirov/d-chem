@@ -1,17 +1,15 @@
 const child_process = require('child_process')
-const Redis = require('../../_common/Redis.js')
 const Settings = require('../../_common/Settings.js')
 
 class ArbiterTime { 
-	constructor(onError) {
+	constructor(onError, redis) {
 		this._onError = onError
+		this.redis = redis
 		this.label = this.constructor.name
 	}
 	
 	async init() {
 		try {
-			let redis = new Redis(this._onError)
-			this.redis = await redis.connect()
 			await this._startInternetUpTime()
 		} catch(error) {
 			this._onError(this.label, 'init', error)

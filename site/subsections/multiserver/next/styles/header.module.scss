@@ -1,8 +1,15 @@
 .title {
-	font-size: 1.5em;
+	font-size: var(--headerFontSize);
 }
 
 .header {
 	grid-row: 1;
 	align-self: center;
+	
+	& > div {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		padding: calc(var(--gap) * 4);
+	}
 }

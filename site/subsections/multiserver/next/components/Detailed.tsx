@@ -18,7 +18,8 @@ class Detailed extends Component<props> {
 			return (
 				<>
 					<Containers
-						containers={this.props.currentServerStaticProps.Containers}
+						serverStaticProps={this.props.currentServerStaticProps}
+						containers={this.props.containers}
 						statistics={this.props.currentStatistics}
 					/>
 					<div
@@ -75,30 +76,10 @@ class Containers extends Component<containersState> {
 	_getJSX() {
 		let jsx = []
 		if (this.props.containers) {
-			let containersArray = Object.keys(this.props.containers)
 			let shiftForOld = false
-			containersArray.sort((a, b) => {
-				let typeNumberA = +this.props.containers[a].type.substring(0, 1)
-				let typeNumberB = +this.props.containers[b].type.substring(0, 1)
-				let typeDiff = typeNumberA - typeNumberB
-				if (typeDiff > 0) {
-					return 1
-				} if (typeDiff < 0) {
-					return -1
-				} else {
-					let nameA = this.props.containers[a].name
-					let nameB = this.props.containers[b].name
-					if (nameA < nameB) {
-						return -1
-					} else if (nameB < nameA) {
-						return 1
-					} else {
-						return 0
-					}
-				}
-			}).forEach((hostname, i) => {
-				let name = this.props.containers[hostname].name
-				let type = this.props.containers[hostname].type
+			this.props.containers.forEach(hostname => {
+				let name = this.props.serverStaticProps.Containers[hostname].name
+				let type = this.props.serverStaticProps.Containers[hostname].type
 				let containerClass = styles.td
 				if (type.includes('subsections')) {
 					containerClass += ' ' + styles.pl

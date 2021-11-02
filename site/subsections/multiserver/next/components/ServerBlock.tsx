@@ -19,7 +19,7 @@ class ServerBlock extends Component<props> {
 	render() {
 		let gridColumnNumber = this.number * 2
 		let gridColumn = gridColumnNumber + ' / ' + gridColumnNumber
-		let mainClassName = styles.main + ' mbg hiddenLink'
+		let mainClassName = styles.main + ' ' + styles.mbg + ' hiddenLink'
 		if (!this.props.serverStaticProps.isCurrent) {
 			mainClassName += ' ' + styles.notCurrent
 		}
@@ -29,15 +29,25 @@ class ServerBlock extends Component<props> {
 				<ServerBlockInfo
 					number={this.number}
 					serverBlockNumber={this.props.serverBlockNumber}
+					chosenServerBlock={this.props.chosenServerBlock}
 					serverStaticProps={this.props.serverStaticProps}
+					containers={this.props.containers}
+					role={this.props.role}
 					currentStatistics={this.props.currentStatistics}
 					shortLog={this.props.shortLog}
 					onClick={this.props.onClick}
+					isAdmin={this.props.isAdmin}
+					loginMenuOpener={this.props.loginMenuOpener}
+					emit={this.props.emit}
+					buttonsState={this.props.buttonsState}
 				/>
 				<ServerBlockTitle
 					number={this.number}
 					serverBlockNumber={this.props.serverBlockNumber}
 					serverStaticProps={this.props.serverStaticProps}
+					containers={this.props.containers}
+					role={this.props.role}
+					uptimeDates={this.props.uptimeDates}
 					isAdmin={this.props.isAdmin}
 					loginMenuOpener={this.props.loginMenuOpener}
 					emit={this.props.emit}
@@ -69,7 +79,7 @@ class Clicker extends Component<clickerProps> {
 		if (!isCurrentBlock) {
 			let gridColumnNumber = this.props.number * 2
 			let gridColumn = gridColumnNumber + ' / ' + gridColumnNumber
-			let mainClassName = styles.main + ' mbg hiddenLink ' + styles.notCurrent
+			let mainClassName = styles.main + ' ' + styles.mbg + ' hiddenLink ' + styles.notCurrent
 			return (
 				<div
 					className={mainClassName}

@@ -27,8 +27,8 @@ class Html {
 	
 	_get() {
 		this._setHeader()
-		this._setMain()
 		this._setErrors()
+		this._setMain()
 		let html = `
 			<!DOCTYPE html>
 			<html lang="en">
@@ -42,8 +42,8 @@ class Html {
 				</head>
 				<body>
 					${this.header}
-					${this.mainHtml}
 					${this.errors}
+					${this.mainHtml}
 				</body>
 			</html>
 		`
@@ -70,7 +70,7 @@ class Html {
 		this.mainHtml += `
 			<div id="${Project.name}" class="container-fluid project">
 				<div class="d-flex align-items-baseline mt-4 mb-2 mr-2">
-					<h4 class="mr-1 mb-0">
+					<h4 class="mr-1 mb-0 text-nowrap">
 						${Project.name}
 					</h4>
 					${setBranch}
@@ -124,7 +124,11 @@ class Html {
 				// if (!Project.changedFiles || Project.changedFiles.length === 0) {
 					html += `
 						<div class="d-flex position-relative ml-2">
-							<button toProduction class="btn btn-sm btn-outline-warning text-danger" type="button">
+							<button
+								toProduction 
+								class="btn btn-sm btn-outline-warning text-danger text-nowrap"
+								type="button"
+							>
 								To production
 							</button>
 							<div class="position-absolute m-0 mt-1 p-0 dropdown dropdown-menu">
@@ -176,6 +180,9 @@ class Html {
 				</button>
 				<button cliShows="graph" class="${className}" type="button">
 					Graph
+				</button>
+				<button cliShows="usefull" class="${className}" type="button">
+					Usefull
 				</button>
 			</div>
 		`

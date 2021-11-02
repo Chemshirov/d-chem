@@ -138,9 +138,7 @@ class Dockerrun extends Starter {
 			let anotherDomain = siteSettings.stageIpDomain[process.env.STAGE][anotherIp]
 			let predispositionalMasterIp = siteSettings.predispositionalMasterIp
 			
-			await this.connectToRedis()
 			let label = 'commonInfo'
-			await this.connectToRedis()
 			await this.redis.hset(label, 'currentIp', currentIp)
 			await this.redis.hset(label, 'anotherIp', anotherIp)
 			await this.redis.hset(label, 'domain', domain)
@@ -159,11 +157,10 @@ class Dockerrun extends Starter {
 	
 	async _getPathByHostname(hostname) {
 		try {
-			await this.connectToRedis()
 			let key = 'Containers' + ':' + hostname
 			let path = await this.redis.hget(key, 'path')
 			if (!path) {
-				let { object } = Settings.unstaticsContainters(Settings.stage)
+				let { object } = Settings.otherContainters(Settings.stage)
 				if (object[hostname]) {
 					path = object[hostname].path
 				}

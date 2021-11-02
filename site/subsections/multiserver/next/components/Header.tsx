@@ -37,17 +37,16 @@ class Header extends Component<props> {
 	}
 	
 	render() {
-		let gridColumnStart = (this.props.serverBlockNumber || 1) * 2 - 1
-		let gridColumnEnd = gridColumnStart + 2
-		let gridColumn = gridColumnStart + ' / ' + gridColumnEnd
-		let className = styles.title + ' hiddenLink'
+		// let gridColumnStart = (this.props.serverBlockNumber || 1) * 2 - 1
+		// let gridColumnEnd = gridColumnStart + 2
+		// let gridColumn = gridColumnStart + ' / ' + gridColumnEnd
+		let className = styles.header + ' headerGridColumn-' + this.props.serverBlockNumber
 		return (
 			<div 
-				className={styles.header}
-				style={{ gridColumn }}
+				className={className}
 			>
-				<div className='p1 textBetweener'>
-					<div className={className}>
+				<div>
+					<div className={styles.title + ' hiddenLink'}>
 						Multiserver
 					</div>
 					{this._getLoginOrLogout()}
