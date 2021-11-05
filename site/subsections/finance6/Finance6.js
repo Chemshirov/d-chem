@@ -15,6 +15,7 @@ class Finance6 extends Starter {
 			await this.getDomainAndIps()
 			this.servers = new Servers({
 				onError: this.onError.bind(this),
+				log: this.log,
 				rabbitMQ: this.rabbitMQ,
 				anotherIp: this.anotherIp,
 				currentIp: this.currentIp

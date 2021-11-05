@@ -28,15 +28,15 @@ class StaticsWorker extends WorkerThreadSetter {
 			let fileProps = false
 			let { url, stage } = object
 			if (this.cache[stage][url]) {
-				if (this.cache[stage][url]['fileProps']) {
-					fileProps = this.cache[stage][url]['fileProps']
-					this._setCacheExpire(stage, url)
-				} else {
+				// if (this.cache[stage][url]['fileProps']) {
+					// fileProps = this.cache[stage][url]['fileProps']
+					// this._setCacheExpire(stage, url)
+				// } else {
 					fileProps = await this._getPropsFromRedis(url, stage)
-					if (fileProps && fileProps.fileString) {
-						this.post({ label: 'addToCache', url, stage, fileProps })
-					}
-				}
+					// if (fileProps && fileProps.fileString) {
+						// this.post({ label: 'addToCache', url, stage, fileProps })
+					// }
+				// }
 			}
 			return fileProps
 		} catch (error) {

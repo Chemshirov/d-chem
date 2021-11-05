@@ -42,7 +42,7 @@ class Proxy extends Starter {
 	_masterHandler() {
 		return new Promise(success => {
 			this._masterHandlerSuccess = success
-			this.workersAmount = (cpus / 2)
+			this.workersAmount = cpus
 			for (let i = 0; i < this.workersAmount; i++) {
 				this._fork()
 			}
@@ -63,7 +63,7 @@ class Proxy extends Starter {
 			if (message.started) {
 				this._onWorkerHasStarted(worker.id, message.started)
 			} else if (message.label === 'addToCache') {
-				this._sendToAllWorkers(message)
+				// this._sendToAllWorkers(message)
 			}
 		})
 		worker.on('error', error => {
@@ -78,16 +78,15 @@ class Proxy extends Starter {
 		if (!this._onWorkerHasStartedObject[port]) {
 			this._onWorkerHasStartedObject[port] = {}
 		}
-		if (!this._onWorkerHasStartedObject[port][id]) {
-			let count = Object.keys(this._onWorkerHasStartedObject[port]).length
-			if (count + 1 === this.workersAmount) {
-				this.log(`Server started with ${this.workersAmount} workers at port ${port}`)
-				if (typeof this._masterHandlerSuccess === 'function') {
-					this._masterHandlerSuccess()
-				}
+		this._onWorkerHasStartedObject[port][id] = true
+		
+		let amount = Object.keys(this._onWorkerHasStartedObject[port]).length
+		if (amount === this.workersAmount) {
+			this.log(`Server started with ${this.workersAmount} workers at port ${port}`)
+			if (typeof this._masterHandlerSuccess === 'function') {
+				this._masterHandlerSuccess()
 			}
 		}
-		this._onWorkerHasStartedObject[port][id] = true
 	}
 	
 	_sendToAllWorkers(message) {

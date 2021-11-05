@@ -169,12 +169,13 @@ class DataHandler {
 			let anotherIp = await this.redis.hget(this.commonLabel, 'anotherIp')
 			this._setIp(anotherDomain, anotherIp)
 			
-			let masterIp = await this.redis.hget('Arbiter', 'masterIp') //
-			this._staticObject[this.currentDomain]['isMaster'] = (masterIp === currentIp) //
-			let systemUptime = await this.redis.hget(this.commonLabel, 'systemUptime') //
-			this._staticObject[this.currentDomain]['systemUptime'] = systemUptime //
-			this._staticObject[this.currentDomain]['now'] = Date.now() //
-			
+			if (0) {
+				let masterIp = await this.redis.hget('Arbiter', 'masterIp') //
+				this._staticObject[this.currentDomain]['isMaster'] = (masterIp === currentIp) //
+				let systemUptime = await this.redis.hget(this.commonLabel, 'systemUptime') //
+				this._staticObject[this.currentDomain]['systemUptime'] = systemUptime //
+				this._staticObject[this.currentDomain]['now'] = Date.now() //
+			}
 			await this._getDomainContainers()
 		} catch (error) {
 			this._onError(this.label, '_getStaticObject', error)
@@ -208,9 +209,12 @@ class DataHandler {
 				let hKey = this.sKey + ':' + hostname
 				let name = await redis.hget(hKey, 'name')
 				let path = await redis.hget(hKey, 'path')
-				let type = '1_main'
-				if (path.includes('/subsections/')) {
-					type = '2_subsections'
+				let type = await redis.hget(hKey, 'type')
+				if (!type) {
+					type = '1_main'
+					if (path.includes('/subsections/')) {
+						type = '2_subsections'
+					}
 				}
 				containers[hostname] = { name, path, type }
 			}

@@ -119,13 +119,12 @@ class SetServer {
 						stage = Settings.developmentStageName
 					}
 					let fileString = '/usr/nodejs/sda/' + stage + '/letsEncrypt' + request.url
-					this.log('LetsEncrypt ' + eventualDomain, 'fileString: ' + fileString)
 					let fileProps = fs.statSync(fileString)
-					this.log('LetsEncrypt ' + eventualDomain, 'fileProps.size', fileProps.size)
 					response.statusCode = statusCode
 					response.setHeader('Content-Length', fileProps.size)
 					let readStream = fs.createReadStream(fileString)
 					readStream.pipe(response)
+					this.log('LetsEncrypt ' + eventualDomain, 'file: ' + fileString + ', size: ' + fileProps.size)
 				} catch (error) {
 					errorHasHappend = error
 				}

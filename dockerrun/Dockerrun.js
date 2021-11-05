@@ -24,6 +24,7 @@ class Dockerrun extends Starter {
 		try {
 			await this._setDomainAndIps()
 			await this.rabbitMQ.receive(this._onReceive.bind(this))
+			this._writeContainersInfoToRedis()
 			await this._startDockers()
 		} catch (error) {
 			this.onError(this.label, 'atStart', error)
@@ -157,7 +158,7 @@ class Dockerrun extends Starter {
 	
 	async _getPathByHostname(hostname) {
 		try {
-			let key = 'Containers' + ':' + hostname
+			let key = 'Containers:' + hostname
 			let path = await this.redis.hget(key, 'path')
 			if (!path) {
 				let { object } = Settings.otherContainters(Settings.stage)
@@ -169,6 +170,43 @@ class Dockerrun extends Starter {
 		} catch (error) {
 			this.onError(this.label, '_getPathByHostname', error)
 		}
+	}
+	
+	_writeContainersInfoToRedis() {
+		let path = process.env.TILDA + process.env.STAGE
+		let fileMarker = 'create-image.sh'
+		let cmd = `find "${path}" -type f -name "${fileMarker}"`
+		child_process.exec(cmd, async (error, stdout, stderr) => {
+			try {
+				if (error) {
+					this.onError(this.label, '_setContainersObject ' + cmd, error)
+				} else {
+					let prefix = process.env.STAGE.substring(0, 1) + '-'
+					let string = stdout.toString()
+					let array = string.split('\n')
+					for (let i = 0; i < array.length; i++) {
+						let fileString = array[i]
+						if (fileString.length > 2) {
+							let directory = fileString.replace(fileMarker, '')
+							let name = directory.replace(/^.+\/([^\/]+)\/$/, '$1')
+							let hasLabel = directory.includes(Settings.label)
+							let hostname = prefix + (hasLabel ? Settings.label + '_' : '') + name
+							let containerPath = directory.replace(path, process.env.STAGE)
+							let type = '1_main'
+							if (directory.includes('/subsections/')) {
+								type = '2_subsections'
+							}
+							let key = 'Containers:' + hostname
+							await this.redis.hset(key, 'name', name)
+							await this.redis.hset(key, 'path', containerPath)
+							await this.redis.hset(key, 'type', type)
+						}
+					}
+				}
+			} catch (error) {
+				this.onError(this.label, '_writeContainersInfoToRedis catch', error)
+			}
+		})
 	}
 }
 

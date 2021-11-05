@@ -3,6 +3,7 @@ const Mysql = require('./Mysql.js')
 class Init {
 	constructor(setupObject) {
 		this.onError = setupObject.onError
+		this.log = setupObject.log
 		this.rabbitMQ = setupObject.rabbitMQ
 		this.currentIp = setupObject.currentIp
 		this.anotherIp = setupObject.anotherIp
@@ -124,7 +125,8 @@ class Init {
 					sendToV5: finance6.sendToV5,
 					file: finance6.file,
 					errors: finance6.errors,
-					rabbitMQ: this.rabbitMQ
+					rabbitMQ: this.rabbitMQ,
+					log: this.log,
 				})
 				finance6.start.setSendNew(finance6.main.newDataHasAppeared.bind(finance6.main))
 			return finance6

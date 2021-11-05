@@ -52,6 +52,7 @@ class Multiserver extends Starter {
 		const Websocket = require('./assets/Websocket')
 		let object = {
 			onError: this.onError.bind(this),
+			log: this.log,
 			rabbitMQ: this.rabbitMQ,
 			label: this.label,
 			domain: this.domain,

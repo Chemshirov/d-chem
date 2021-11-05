@@ -39,7 +39,7 @@ class Statics extends WorkerSetter {
 			let sent = false
 			if (!request.upgrade) {
 				if (!this._falseSentUrlCache[url]) {
-					if (!this._isNeedsExpress(url)) {
+					if (!this._isNeedTheExpress(url)) {
 						if (this.worker) {
 							let stage = this._getStageByRequest(request)
 							let fileProps = await this.worker.getFileProps({ url, stage })
@@ -173,7 +173,7 @@ class Statics extends WorkerSetter {
 		this._express.use(compression())
 		this._express.all('*', this._setExpressRoutes.bind(this))
 	}
-	_isNeedsExpress(url) {
+	_isNeedTheExpress(url) {
 		let notValid = false
 		let reverseUrl = url.split('').reverse().join('')
 		let ext = reverseUrl.split('.')[0].split('').reverse().join('')

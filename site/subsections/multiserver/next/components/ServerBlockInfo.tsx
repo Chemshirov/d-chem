@@ -90,7 +90,7 @@ class ServerBlockInfo extends Component<props> {
 			mainClassName += styles.current
 		}
 		let showButtons = (isCurrentBlock && this.props.number === this.props.chosenServerBlock)
-		
+		 
 		return (
 			<div
 				className={mainClassName}

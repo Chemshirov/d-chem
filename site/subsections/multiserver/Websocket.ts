@@ -18,6 +18,7 @@ class Websocket extends WebsocketOnServer {
 	
 	constructor(object) {
 		super(object.onError, object.label.toLowerCase())
+		this.log = object.log
 		this.rabbitMQ = object.rabbitMQ
 		this.commonLabel = object.label
 		this.domain = object.domain
@@ -72,6 +73,9 @@ class Websocket extends WebsocketOnServer {
 				delete this.admins[uid]
 				await this.adminsFileHandler.objectToFile(this.admins)
 				socket.emit(this.socketLabel, { type: data.type })
+			} else if (data.type === 'askForPermission') {
+				let uid = this.getUid(socket)
+				this.log('Ask for permission from ' + uid)
 			} else if (data.type === 'restartContainer') {
 				let uid = this.getUid(socket)
 				if (this.domain === data.domain) {

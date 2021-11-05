@@ -13,3 +13,4 @@ docker exec -it d-site_git sh
 
 
 get all untracked files: ls-files --others --exclude-standard
+remove file from tracking: rm --cached ...file...

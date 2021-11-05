@@ -85,9 +85,11 @@ obj.onNew = (callback) => {
 	obj._onNewCallBack = callback
 }
 obj.newDataHasAppeared = () => {
+	let lastDate = obj.o.base.base.lastDate
+	let totalItems = obj.o.base.base.totalItems
+	let label = obj.label.substring(0, 1).toUpperCase() + obj.label.substring(1)
+	obj.o.log({label, data: { totalItems, lastDate }})
 	if (obj._onNewCallBack) {
-		let lastDate = obj.o.base.base.lastDate
-		let totalItems = obj.o.base.base.totalItems
 		obj._onNewCallBack(lastDate, totalItems)
 	}
 }
