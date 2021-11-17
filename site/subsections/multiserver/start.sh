@@ -26,9 +26,9 @@ else
 fi;
 
 TILDA="/usr/nodejs/tilda/"
-SDA="/usr/nodejs/sda"
-STAGE_PATH="/usr/nodejs/stagePath"
-CURRENT_PATH="/usr/nodejs/currentPath"
+SDA="/usr/nodejs/sda/"
+STAGE_PATH="/usr/nodejs/stagePath/"
+CURRENT_PATH="/usr/nodejs/currentPath/"
 
 docker run \
 	--name $DOCKER_NAME \
@@ -51,4 +51,5 @@ docker run \
 	-e SHOW="$SHOW" \
 	-e EXTRA="$EXTRA" \
 	-e TZ='Europe/Moscow' \
+	--cpus="2" \
 	$dockerImage;

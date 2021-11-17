@@ -1,13 +1,16 @@
+import * as t from '../types/types'
 import CloseButton from './CloseButton'
-import { Component, createRef } from 'react'
+import { Component, createRef, RefObject } from 'react'
 import styles from '../styles/serverBlockButtons.module.scss'
 
 interface buttonsState {
 	restartOptionsHidden: boolean,
 	clickless: boolean,
 }
-class ServerBlockButtons extends Component<props, buttonsState> {
-	constructor(props: props) {
+class ServerBlockButtons extends Component<t.serverBlockButtonsProps, buttonsState> {
+	ref: RefObject<HTMLInputElement>
+	
+	constructor(props: t.serverBlockButtonsProps) {
 		super(props)
 		this.state = {
 			restartOptionsHidden: true,
@@ -16,18 +19,18 @@ class ServerBlockButtons extends Component<props, buttonsState> {
 		this.ref = createRef()
 	}
 	
-	_copyToAnotherServerOnClick() {
+	private _copyToAnotherServerOnClick(): void {
 		this._emit('copyToAnotherServer')
 		this._preventClicksForAwhile()
 	}
 	
-	_restartOnClick() {
+	private _restartOnClick(): void {
 		this.setState({
 			restartOptionsHidden: !this.state.restartOptionsHidden
 		})
 	}
 	
-	_restartContainerOnClick(hostname) {
+	restartContainerOnClick(hostname: string): void {
 		this.setState({
 			restartOptionsHidden: true
 		})
@@ -41,7 +44,7 @@ class ServerBlockButtons extends Component<props, buttonsState> {
 		}
 	}
 	
-	_preventClicksForAwhile() {
+	private _preventClicksForAwhile(): void {
 		this.setState({
 			clickless: true
 		})
@@ -52,10 +55,10 @@ class ServerBlockButtons extends Component<props, buttonsState> {
 		}, 5000)
 	}
 	
-	_emit(type, value) {
+	private _emit(type: string, value?: string): void {
 		if (!this.state.clickless) {
 			let domain = this.props.serverStaticProps['domain']
-			let data = { type, domain }
+			let data: t.obj<string> = { type, domain }
 			if (value) {
 				data.value = value
 			}
@@ -63,7 +66,7 @@ class ServerBlockButtons extends Component<props, buttonsState> {
 		}
 	}
 	
-	_getCopyButton() {
+	private _getCopyButton(): JSX.Element | null {
 		if (this.props.role === 'master') {
 			let className = 'link'
 			if (this.props.buttonsState.copyToAnotherServer === 'hasReceived') {
@@ -87,7 +90,7 @@ class ServerBlockButtons extends Component<props, buttonsState> {
 		}
 	}
 	
-	_getMark() {
+	private _getMark(): JSX.Element | null {
 		if (!this.state.restartOptionsHidden) {
 			return (
 				<small>
@@ -99,11 +102,11 @@ class ServerBlockButtons extends Component<props, buttonsState> {
 		}
 	}
 	
-	_onCloseButton() {
+	private _onCloseButton(): void {
 		this.setState({ restartOptionsHidden: true })
 	}
 	
-	render() {
+	render(): JSX.Element {
 		let restartClass = 'noWrap link ' + styles.restart
 		return (
 			<div className={styles.left}>
@@ -118,7 +121,7 @@ class ServerBlockButtons extends Component<props, buttonsState> {
 						restartOptionsHidden={this.state.restartOptionsHidden}
 						serverStaticProps={this.props.serverStaticProps}
 						containers={this.props.containers}
-						onClick={this._restartContainerOnClick.bind(this)}
+						onClick={this.restartContainerOnClick.bind(this)}
 					/>
 					<CloseButton
 						hidden={true}
@@ -131,25 +134,26 @@ class ServerBlockButtons extends Component<props, buttonsState> {
 	}
 }
 
-interface RestartContainerListProps {
-	restartOptionsHidden: boolean,
-	containers: containers,
-	onClick: ((hostname: string) => void)
+interface restartContainerListProps {
+	restartOptionsHidden: buttonsState['restartOptionsHidden'],
+	serverStaticProps: t.serverBlockButtonsProps['serverStaticProps'],
+	containers: t.serverBlockButtonsProps['containers'],
+	onClick: ServerBlockButtons['restartContainerOnClick']
 }
-class RestartContainerList extends Component<RestartContainerListProps> {
-	constructor(props: RestartContainerListProps) {
+class RestartContainerList extends Component<restartContainerListProps> {
+	constructor(props: restartContainerListProps) {
 		super(props)
 	}
 	
-	_onClick(hostname) {
+	private _onClick(hostname): void {
 		this.props.onClick(hostname)
 	}
 	
-	_onCloseButton() {
-		console.log(1)
+	private _onCloseButton(): void {
+		
 	}
 	
-	_getRows() {
+	private _getRows(): Array<JSX.Element> {
 		let jsx = []
 		if (this.props.containers) {
 			this.props.containers.forEach(hostname => {
@@ -162,7 +166,7 @@ class RestartContainerList extends Component<RestartContainerListProps> {
 		return jsx
 	}
 	
-	_getRow(hostname, name) {
+	private _getRow(hostname: string, name: string): JSX.Element {
 		return (
 			<li 
 				key={hostname}
@@ -174,7 +178,7 @@ class RestartContainerList extends Component<RestartContainerListProps> {
 		)
 	}
 	
-	render() {
+	render(): JSX.Element {
 		if (!this.props.restartOptionsHidden) {
 			let className = 'restartMenu'
 			return (

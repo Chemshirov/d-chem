@@ -1,36 +1,37 @@
-const crypto = require('crypto')
-const FileHandler = require('../stagePath/_common/FileHandler')
-const Settings = require('../stagePath/_common/Settings')
-const { Server, Socket } = require('socket.io')
+import * as t from './types'
+import * as tc from '../../../_common/types'
+const cryptoFunction = require('crypto')
+const DataHandler = require('./DataHandler')
+const FileHandler: tc.FileHandler = require('../stagePath/_common/FileHandler')
+const Settings: tc.settings = require('../stagePath/_common/Settings')
 const WebsocketOnServer = require('./common/WebsocketOnServer')
 
-const sdaLabelPath = '/usr/nodejs/sda/' + process.env.STAGE + '/' + Settings.label + '/'
+const sdaLabelPath = '/usr/nodejs/sda/' + (process.env.STAGE as string) + '/' + Settings.label + '/'
 const siteLogins = require(sdaLabelPath + 'Logins.js')
 const siteSettings = require(sdaLabelPath + 'Settings.js')
 
-
-type onError = (className: string, method: string, error: unknown) => void
-
 class Websocket extends WebsocketOnServer {
-	onError: onError
-	label: string
-	server!: Server
+	private readonly label: string
+	private readonly syncerLabel: string
+	private clickless: boolean
+	private readonly adminsPath: string
+	private dataHandler?: typeof DataHandler
 	
-	constructor(object) {
+	constructor(object: t.share) {
 		super(object.onError, object.label.toLowerCase())
 		this.log = object.log
 		this.rabbitMQ = object.rabbitMQ
 		this.commonLabel = object.label
 		this.domain = object.domain
 		this.currentIp = object.currentIp
-		this.anotherIp = object.anotherIp
+		
 		this.label = this.constructor.name
 		this.syncerLabel = 'Syncer'
 		this.clickless = false
 		this.adminsPath = sdaLabelPath + 'subsections/multiserver/stageSensitive/admins.json'
 	}
 	
-	async start() {
+	public async start(): Promise<void> {
 		try {
 			this.adminsFileHandler = new FileHandler(this.onError, this.adminsPath)
 			await this.adminsFileHandler.ifNotExistsCreateEmpty()
@@ -38,17 +39,17 @@ class Websocket extends WebsocketOnServer {
 			this.setSocket()
 			await this.rabbitMQ.receive({ label: this.commonLabel, callback: this._onMultiServer.bind(this) })
 			await this.rabbitMQ.receive({ label: this.syncerLabel, callback: this._onSyncer.bind(this) })
-		} catch (error) {
+		} catch (error: unknown) {
 			this.onError(this.label, 'start', error)
 		}
 	}
 	
-	setDataHandler(dataHandler) {
+	public setDataHandler(dataHandler: typeof DataHandler): void {
 		this.dataHandler = dataHandler
 	}
 	
-	onConnection(socket) {
-		this._checkForAdmin(socket)
+	public onConnection(socket: tc.socket): void {
+		this._checkForAdmin(socket, false)
 		if (this.dataHandler) {
 			let dataHandlerDynamic = this.dataHandler.dataHandlerDynamic
 			if (dataHandlerDynamic) {
@@ -59,14 +60,14 @@ class Websocket extends WebsocketOnServer {
 		}
 	}
 	
-	async onData(socket, data) {
+	public async onData(socket: tc.socket, data: t.data<string>): Promise<void> {
 		try {
 			if (data.type === 'getDomainShortLog') {
 				this._onGetDomainShortLog(socket, data.domain)
 			} else if (data.type === 'copyToAnotherServer') {
 				this._copyToAnotherServer(socket, data.domain)
 			} else if (data.type === 'pass') {
-				let sha1 = crypto.createHash('sha1').update(data.value).digest('hex')
+				let sha1 = cryptoFunction.createHash('sha1').update(data.value).digest('hex')
 				this._checkForAdmin(socket, sha1 === siteLogins.dataAdminPasswordSha1)
 			} else if (data.type === 'logout') {
 				let uid = this.getUid(socket)
@@ -105,12 +106,12 @@ class Websocket extends WebsocketOnServer {
 			} else {
 				console.log(data)
 			}
-		} catch (error) {
+		} catch (error: unknown) {
 			this.onError(this.label, 'onData', error)
 		}
 	}
 	
-	_onMultiServer(object) {
+	private _onMultiServer(object: t.data<string>): void {
 		if (object.type === 'restartContainer') {
 			if (object.domain === this.domain) {
 				this._restartContainer(object.value, object.uid)
@@ -118,29 +119,29 @@ class Websocket extends WebsocketOnServer {
 		}
 	}
 	
-	_onSyncer(object) {
+	private _onSyncer(object: t.data<t.data<string>>): void {
 		if (object.allToSlaveDone) {
 			try {
 				this.server.to(object.allToSlaveDone.socketId).emit(this.socketLabel, {
 					type: 'copyToAnotherServerHasDone',
 					domain: object.allToSlaveDone.domain
 				})
-			} catch (error) {
+			} catch (error: unknown) {
 				this.onError(this.label, '_onSyncer allToSlaveDone', error)
 			}
 			this.clickless = false
 		}
 	}
 	
-	_onGetDomainShortLog(socket: Socket, domain: string) {
+	private _onGetDomainShortLog(socket: tc.socket, domain: string): void {
 		let domainShortLogData = this.dataHandler.getDomainShortLogData(domain)
 		socket.emit(this.socketLabel, {
 			domainShortLogData,
-			domain
+			domain,
 		})
 	}
 	
-	_copyToAnotherServer(socket: Socket, domain: string) {
+	private _copyToAnotherServer(socket: tc.socket, domain: string): void {
 		if (!this.clickless) {
 			this.clickless = true
 			let type = 'copyToAnotherServerHasReceived'
@@ -154,13 +155,13 @@ class Websocket extends WebsocketOnServer {
 				allToSlave: {
 					domain,
 					socketId: socket.id,
-					uid 
+					uid,
 				}
 			})
 		}
 	}
 	
-	_checkForAdmin(socket, force) {
+	private _checkForAdmin(socket: tc.socket, force: boolean): void {
 		let uid = this.getUid(socket)
 		if (this.admins[uid] || force) {
 			this.admins[uid] = Date.now()
@@ -171,12 +172,12 @@ class Websocket extends WebsocketOnServer {
 		}
 	}
 	
-	_restartContainer(hostname, uid) {
+	private _restartContainer(hostname: string, uid: string): void {
 		this.rabbitMQ.send({
 			label: 'Dockerrun',
 			type: 'start',
 			hostname,
-			uid
+			uid,
 		})
 	}
 }

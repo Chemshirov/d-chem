@@ -200,6 +200,11 @@ class Project {
 				cmdEnd = `log --oneline --graph --branches --decorate --all -20`
 			} else if (value === 'branches') {
 				cmdEnd = `branch -a`
+			} else if (value === 'usefull') {
+				this.cliResult = {
+					value: 'Usefull:',
+					result: this.o.Html.usefull(),
+				}
 			}
 			if (cmdEnd) {
 				let cmd = this.gitCmd + ` ` + cmdEnd

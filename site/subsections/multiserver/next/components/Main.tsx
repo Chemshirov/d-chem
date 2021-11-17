@@ -1,19 +1,14 @@
+import * as t from '../types/types'
 import { Component } from 'react'
 import Header from './Header'
 import ServerBlock from './ServerBlock'
 import Detailed from './Detailed'
 import styles from '../styles/Main.module.scss'
-import { props, staticObjectDomain } from '../../../../../../../currentPath/DataHandler'
 
-interface mainProps {
-	staticProps: props,
-}
-interface state {
-	serverBlockNumber: number,
-	currentServerStaticProps: staticObjectDomain
-}
-class Main extends Component<mainProps, state> {
-	constructor(props: mainProps) {
+class Main extends Component<t.mainProps, t.mainState> {
+	private _loginMenuOpener: t.func<void, void>
+	
+	constructor(props: t.mainProps) {
 		super(props)
 		let { serverBlockNumber, currentDomain } = this._getCurrent()
 		let allContainers = this._getContainers()
@@ -25,7 +20,7 @@ class Main extends Component<mainProps, state> {
 		}
 	}
 	
-	onServerBlockHasChosen(number) {
+	public onServerBlockHasChosen(number): void {
 		let chosenServerBlock = number
 		if (this.state.chosenServerBlock === number) {
 			chosenServerBlock = false
@@ -38,7 +33,7 @@ class Main extends Component<mainProps, state> {
 		})
 	}
 	
-	loginMenuOpener(initializeCallback) {
+	public loginMenuOpener(initializeCallback): void {
 		if (initializeCallback) {
 			this._loginMenuOpener = initializeCallback
 		} else {
@@ -48,59 +43,67 @@ class Main extends Component<mainProps, state> {
 		}
 	}
 	
-	render() {
-		let currentStatistics = false
+	render(): JSX.Element | null {
+		let currentStatistics: t.detailedProps['currentStatistics'] = false
 		if (this.props.statistics && this.props.statistics[this.state.currentDomain]) {
 			currentStatistics = this.props.statistics[this.state.currentDomain]
 		}
-		return (
-			<div className={styles.container}>
-				<Header
-					serverBlockNumber={this.state.serverBlockNumber}
-					passIsIncorrect={this.props.passIsIncorrect}
-					isAdmin={this.props.isAdmin}
-					loginMenuOpener={this.loginMenuOpener.bind(this)}
-					emit={this.props.emit}
-				/>
-				{this._getServerBlocks(this.state.serverBlockNumber, this.props)}
-				<Detailed
-					currentServerStaticProps={this.props.staticProps[this.state.currentDomain]}
-					containers={this.state.allContainers[this.state.currentDomain]}
-					currentStatistics={currentStatistics}
-				/>
-			</div>
-		)
+		if (this.props.staticProps) {
+			return (
+				<div className={styles.container}>
+					<Header
+						serverBlockNumber={this.state.serverBlockNumber}
+						passIsIncorrect={this.props.passIsIncorrect}
+						isAdmin={this.props.isAdmin}
+						loginMenuOpener={this.loginMenuOpener.bind(this)}
+						emit={this.props.emit}
+					/>
+					{this._getServerBlocks(this.state.serverBlockNumber, this.props)}
+					<Detailed
+						currentServerStaticProps={this.props.staticProps[this.state.currentDomain]}
+						containers={this.state.allContainers[this.state.currentDomain]}
+						currentStatistics={currentStatistics}
+					/>
+				</div>
+			)
+		} else {
+			return null
+		}
 	}
 	
-	_getCurrent(serverBlockNumber?: number) {
+	private _getCurrent(serverBlockNumber?: number): t.mainGetCurrentOutput {
 		let currentDomain
-		let domains = Object.keys(this.props.staticProps)
-		domains.some(domain => {
-			if (!serverBlockNumber) {
-				if (this.props.staticProps[domain].isCurrent) {
-					serverBlockNumber = this.props.staticProps[domain].id + 1
-					currentDomain = domain
-					return true
+		if (this.props.staticProps) {
+			let domains = Object.keys(this.props.staticProps)
+			domains.some(domain => {
+				if (!serverBlockNumber) {
+					if (this.props.staticProps[domain].isCurrent) {
+						serverBlockNumber = this.props.staticProps[domain].id + 1
+						currentDomain = domain
+						return true
+					}
+				} else {
+					if (serverBlockNumber === this.props.staticProps[domain].id + 1) {
+						currentDomain = domain
+						return true
+					}
 				}
-			} else {
-				if (serverBlockNumber === this.props.staticProps[domain].id + 1) {
-					currentDomain = domain
-					return true
-				}
-			}
-		})
+			})
+		}
 		return { serverBlockNumber, currentDomain }
 	}
 	
-	_getContainers() {
+	private _getContainers(): t.mainState['allContainers'] {
 		let allContainers = {}
-		Object.keys(this.props.staticProps).forEach(domain => {
-			allContainers[domain] = this._getContainersList(domain)
-		})
+		if (this.props.staticProps) {
+			Object.keys(this.props.staticProps).forEach(domain => {
+				allContainers[domain] = this._getContainersList(domain)
+			})
+		}
 		return allContainers
 	}
 	
-	_getContainersList(domain: string) {
+	private _getContainersList(domain: string): t.containersList {
 		let containersArray = []
 		let containers = this.props.staticProps[domain].Containers
 		Object.keys(containers).sort((a, b) => {
@@ -128,22 +131,24 @@ class Main extends Component<mainProps, state> {
 		return containersArray
 	}
 	
-	_getServerBlocks(serverBlockNumber, props) {
+	private _getServerBlocks(serverBlockNumber, props): Array<JSX.Element> {
 		let serverBlocks = []
 		let statistics = props.statistics
 		let shortLogs = props.shortLogs
-		let domains = Object.keys(this.props.staticProps)
-		domains.forEach(domain => {
-			let jsx = this._getServerBlock(domain, serverBlockNumber)
-			serverBlocks.push(jsx)
-		})
+		if (this.props.staticProps) {
+			let domains = Object.keys(this.props.staticProps)
+			domains.forEach(domain => {
+				let jsx = this._getServerBlock(domain, serverBlockNumber)
+				serverBlocks.push(jsx)
+			})
+		}
 		return serverBlocks
 	}
 	
-	_getServerBlock(domain, serverBlockNumber) {
+	private _getServerBlock(domain, serverBlockNumber): JSX.Element {
 		let serverStaticProps = this.props.staticProps[domain]
 		let serverBlockOnClick = this.onServerBlockHasChosen.bind(this)
-		let role = false
+		let role: t.serverBlockProps['role'] = false
 		if (this.props.roles) {
 			role = this.props.roles[domain]
 		}
@@ -162,7 +167,7 @@ class Main extends Component<mainProps, state> {
 				serverBlockNumber={serverBlockNumber}
 				serverStaticProps={serverStaticProps}
 				containers={this.state.allContainers[domain]}
-				uptimeDates={this.props.uptimeDates[domain]}
+				uptimeDate={this.props.uptimeDates[domain]}
 				role={role}
 				currentStatistics={currentStatistics}
 				shortLog={shortLog}

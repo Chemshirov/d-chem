@@ -1,3 +1,4 @@
+const fs = require('fs')
 const child_process = require('child_process')
 const FilesWatcher = require('./FilesWatcher.js')
 
@@ -19,6 +20,10 @@ class TsHandler {
 		this._jsDirectory = directory
 	}
 	
+	set jsRoot(directory) {
+		this._jsRoot = directory
+	}
+	
 	set excludeDirectories(directoryArray) {
 		this._excludeDirectories = directoryArray
 	}
@@ -35,9 +40,7 @@ class TsHandler {
 			this._setFilesWatcherIgnoreness()
 			let selectiveRegExp = /\.ts$/
 			let list = await this.filesWatcher.getList(this._tsDirectory, selectiveRegExp)
-			let include = list.join(' ')
-			let postfix = `--outDir ${this._jsDirectory} ${include}`
-			await this._executeTsc(postfix)
+			await this._executeTsc(this._jsDirectory, list)
 		} catch (error) {
 			this.onError(this.label, 'convertOnce', error)
 		}
@@ -72,14 +75,10 @@ class TsHandler {
 			if (fileName.endsWith('.ts')) {
 				directory = this._addSlash(directory)
 				let tsFileString = directory + fileName
-				let from = this._addSlash(this._tsDirectory)
-				let to = this._addSlash(this._jsDirectory)
-				let assetsDirectory = directory.replace(from, to)
-				let assetsFileName = fileName.replace(/\.ts$/, '.js')
+				let { assetsDirectory, assetsFileName} = this._getAssetsFileStringAndDirectory(tsFileString)
 				let assetsFileString = assetsDirectory + assetsFileName
 				if (assetsFileString !== tsFileString) {
-					let postfix = `--outDir ${assetsDirectory} ${tsFileString}`
-					this._executeTsc(postfix).then(() => {
+					this._executeTsc(assetsDirectory, [tsFileString]).then(() => {
 						success()
 					})
 				} else {
@@ -93,7 +92,19 @@ class TsHandler {
 		})
 	}
 	
-	_executeTsc(postfix) {
+	_getAssetsFileStringAndDirectory(fileString) {
+		let regexp = /^(.+\/)([^\/]+)$/
+		let directory = fileString.replace(regexp, '$1')
+		let fileName = fileString.replace(regexp, '$2')
+		let from = this._addSlash(this._tsDirectory)
+		let to = this._addSlash(this._jsDirectory)
+		let assetsDirectory = directory.replace(from, to)
+		let assetsFileName = fileName.replace(/\.ts$/, '.js')
+		let assetsFileString = assetsDirectory + assetsFileName
+		return { assetsDirectory, assetsFileName}
+	}
+	
+	_executeTsc(outDir, tsList) {
 		return new Promise(success => {
 			let argumentsLines = `
 				--target ES2020
@@ -103,6 +114,8 @@ class TsHandler {
 			`
 			argumentsLines += ' --excludeDirectories "' + this._excludeDirectories.join(', ') + '" '
 			argumentsLines = argumentsLines.replace(/[\t\n]+/g, ' ').replace(/[  ]+/g, ' ')
+			let include = tsList.join(' ')
+			let postfix = `--outDir "${this._jsDirectory}" ${include}`
 			let cmd = 'tsc ' + argumentsLines + ' ' + postfix
 			child_process.exec(cmd, (error, stdin, stdout) => {
 				let tsErrorString = stdin.toString().trim()
@@ -110,10 +123,35 @@ class TsHandler {
 					let errorCount = tsErrorString.split('\n').length
 					this.onError(this.label, 'Tsc error(s): ' + errorCount, tsErrorString.substring(0, 512))
 				}
-				success()
+				this._copyFilesToRightDirectory(outDir, tsList).then(() => {
+					success()
+				})
 			})
 		}).catch(error => {
 			this.onError(this.label, '_executeTsc ' + postfix, error)
+		})
+	}
+	
+	_copyFilesToRightDirectory(outDir, tsList) {
+		let reason = 'tsc puts .js files not in "outDir" in case of the files include not-CommonJs module systems.'
+		return new Promise(async success => {
+			try {
+				let stagePath = process.env.TILDA + process.env.STAGE
+				tsList.forEach(tsFileString => {
+					let jsRoot = this._jsRoot || this._jsDirectory
+					let badFileString = tsFileString.replace(stagePath, jsRoot).replace(/\.ts$/, '.js')
+					let { assetsDirectory, assetsFileName} = this._getAssetsFileStringAndDirectory(tsFileString)
+					let rightFileString = assetsDirectory + assetsFileName
+					try {
+						fs.copyFileSync(badFileString, rightFileString)
+					} catch (e) {}
+				})
+				success()
+			} catch (error) {
+				this.onError(this.label, '_copyFilesToRightDirectory catch', error)
+			}
+		}).catch(error => {
+			this.onError(this.label, '_copyFilesToRightDirectory ', error)
 		})
 	}
 	

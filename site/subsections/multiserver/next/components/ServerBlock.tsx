@@ -1,22 +1,18 @@
+import * as t from '../types/types'
 import { Component } from 'react'
 import ServerBlockInfo from './ServerBlockInfo'
 import ServerBlockTitle from './ServerBlockTitle'
 import styles from '../styles/serverBlock.module.scss'
-import { staticObjectDomain } from '../../../../../../../currentPath/DataHandler'
 
-interface props {
-	key: string,
-	serverBlockNumber: number,
-	serverStaticProps: staticObjectDomain,
-	onClick: ((number: number) => void)
-}
-class ServerBlock extends Component<props> {
-	constructor(props: props) {
+class ServerBlock extends Component<t.serverBlockProps> {
+	private number: number
+	
+	constructor(props: t.serverBlockProps) {
 		super(props)
 		this.number = (this.props.serverStaticProps.id + 1)
 	}
 	
-	render() {
+	render(): JSX.Element {
 		let gridColumnNumber = this.number * 2
 		let gridColumn = gridColumnNumber + ' / ' + gridColumnNumber
 		let mainClassName = styles.main + ' ' + styles.mbg + ' hiddenLink'
@@ -47,7 +43,7 @@ class ServerBlock extends Component<props> {
 					serverStaticProps={this.props.serverStaticProps}
 					containers={this.props.containers}
 					role={this.props.role}
-					uptimeDates={this.props.uptimeDates}
+					uptimeDate={this.props.uptimeDate}
 					isAdmin={this.props.isAdmin}
 					loginMenuOpener={this.props.loginMenuOpener}
 					emit={this.props.emit}
@@ -62,47 +58,16 @@ class ServerBlock extends Component<props> {
 	}
 }
 
-interface clickerProps {
-	onClick: any
-}
-class Clicker extends Component<clickerProps> {
-	constructor(props: clickerProps) {
-		super(props)
-	}
-	
-	onClick() {
-		this.props.onClick(this.props.number)
-	}
-	
-	render() {
-		let isCurrentBlock = (this.props.number === this.props.serverBlockNumber)
-		if (!isCurrentBlock) {
-			let gridColumnNumber = this.props.number * 2
-			let gridColumn = gridColumnNumber + ' / ' + gridColumnNumber
-			let mainClassName = styles.main + ' ' + styles.mbg + ' hiddenLink ' + styles.notCurrent
-			return (
-				<div
-					className={mainClassName}
-					style={{ gridColumn }}
-					onClick={this.onClick.bind(this)}
-				/>
-			)
-		} else {
-			return null
-		}
-	}
-}
-
 interface props {
-	number: number,
-	serverBlockNumber: number,
+	number: ServerBlock['number'],
+	serverBlockNumber: t.serverBlockProps['serverBlockNumber'],
 }
 class BottomBorder extends Component<props> {
 	constructor(props: props) {
 		super(props)
 	}
 	
-	render() {
+	render(): JSX.Element {
 		let gridColumnNumber = this.props.number * 2
 		let gridColumnStart = (gridColumnNumber - 1)
 		let gridColumnEnd = (gridColumnNumber + 2)

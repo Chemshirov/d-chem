@@ -1,103 +1,35 @@
+import * as t from './types'
+import * as tc from '../../../_common/types'
+
 const DataHandlerDynamic = require('./DataHandlerDynamic')
 const FileHandler = require('../stagePath/_common/FileHandler')
 const Redis = require('../stagePath/_common/Redis')
-const Settings = require('../stagePath/_common/Settings')
-const { Server: WebsocketServer } = require('socket.io')
+const Settings: tc.settings = require('../stagePath/_common/Settings')
 
-type onError = (className: string, method: string, error: unknown) => void
-
-interface settings {
-	productionDomains: Array<string>,
-	developmentDomains: Array<string>,
-	stage: string,
-	productionStageName: string,
-	developmentStageName: string,
-	stageByContainerName: ((hostname: string) => string),
-	otherContainters: ((hostname: string) => {
-		[type: string]: {
-			[name: string]: string
-		}
-	}),
-	redisPortByStage: ((stage: string) => number),
-}
-interface redis {
-	hget: ((label: string, key: string) => string),
-	smembers: ((key: string) => Array<string>),
-}
-
-interface container {
-	name: string,
-	path: string,
-	type: string,
-}
-export interface containers {
-	[hostname: string]: container,
-}
-export interface staticObjectDomain {
-	id: number,
-	stage: string,
-	domain: string,
-	siblingDomain: string,
-	ip?: string,
-	isCurrent?: boolean,
-	Containers?: containers
-}
-export interface staticObject {
-	[domain: string]: staticObjectDomain,
-}
-
-type ArrayLengthMutationKeys = 'splice' | 'push' | 'pop' | 'shift' | 'unshift' | number
-type ArrayItems<T extends Array<any>> = T extends Array<infer TItems> ? TItems : never
-type FixedLengthArray<T extends any[]> =
-	Pick<T, Exclude<keyof T, ArrayLengthMutationKeys>>
-	& { [Symbol.iterator]: () => IterableIterator< ArrayItems<T> > }
-export interface domainStatistics {
-	[hostname: string]: FixedLengthArray<[number, number]>,
-}
-
-interface shortLogLine {
-	date: string,
-	type: string,
-	value: string
-}
-export type shortLog = Array<shortLogLine>
-export interface domainShortLogData {
-	lastDate: string,
-	shortLog: shortLog,
-}
-
-export interface props {
-	staticObject: staticObject,
-	error?: unknown
-}
-
-class DataHandler {
-	onError: onError | void
-	readonly label: string
-	readonly commonLabel: string
-	readonly sKey: string
-	staticFileString: string
-	error: unknown
-	_staticObject: staticObject
-	settings!: settings
-	redis!: redis | void
-	currentDomain!: string
-	domainRedises!: {
-		[id: string]: redis | void,
-	}
+class DataHandler { 
+	private onError: t.share['onError'] | void
+	private redis: t.share['redis'] | void
+	private readonly label: string
+	private readonly commonLabel: string
+	private readonly sKey: 'Containers'
+	private readonly staticFileString: string
+	private error: false | unknown
+	private _staticObject: t.staticObject
+	private currentDomain!: string
+	private domainRedises!: t.domains<tc.redis>
+	private dataHandlerDynamic!: typeof DataHandlerDynamic
 	
-	constructor(onError?: onError, redis) {
-		this.onError = onError
-		this.redis = redis
-		
+	constructor(object?: t.share) {
+		if (object) {
+			this.onError = object.onError
+			this.redis = object.redis
+		}
 		this.label = this.constructor.name
 		this.commonLabel = 'commonInfo'
 		this.sKey = 'Containers'
-		
 		const afterTildaPath = (process.env.AFTER_TILDA ?? '') as string
 		const sda = (process.env.SDA ?? '') as string
 		this.staticFileString = sda + '/' + afterTildaPath + 'stageSensitive/staticObject.json'
-		
 		this.error = false
 		this._staticObject = {}
 		this.domainRedises = {}
@@ -114,28 +46,28 @@ class DataHandler {
 		}
 	}
 	
-	public setDynamic(websocket: any, label: string): void {
+	public setDynamic(websocket: tc.websockets, label: string): void {
 		if (!this.dataHandlerDynamic) {
 			this.dataHandlerDynamic = new DataHandlerDynamic(this.onError, this.commonLabel)
 			this.dataHandlerDynamic.start(websocket, label, this.domainRedises)
 		}
 	}
 	
-	public async getProps(): Promise<props> {
+	public async getProps(): Promise<t.props> {
 		try {
 			let fileHandler = new FileHandler(this._onError.bind(this), this.staticFileString)
-			this._staticObject = (await fileHandler.objectFromFile() as staticObject)
+			this._staticObject = (await fileHandler.objectFromFile() as t.staticObject)
 		} catch (error) {
 			this._onError(this.label, 'getProps', error)
 		}
-		let props: props = {
+		let props: t.props = {
 			staticObject: this._staticObject,
 			error: this.error
 		}
 		return props
 	}
 	
-	public getDomainShortLogData(domain: string): domainShortLogData {
+	public getDomainShortLogData(domain: string): t.domainShortLogsCache {
 		return this.dataHandlerDynamic.shortLogsCache[domain]
 	}
 	
@@ -159,24 +91,19 @@ class DataHandler {
 				}
 			})
 			
-			this.currentDomain = await this.redis.hget(this.commonLabel, 'domain')
-			this._staticObject[this.currentDomain]['isCurrent'] = true
-			
-			let currentIp = await this.redis.hget(this.commonLabel, 'currentIp')
-			this._setIp(this.currentDomain, currentIp)
-			
-			let anotherDomain = await this.redis.hget(this.commonLabel, 'anotherDomain')
-			let anotherIp = await this.redis.hget(this.commonLabel, 'anotherIp')
-			this._setIp(anotherDomain, anotherIp)
-			
-			if (0) {
-				let masterIp = await this.redis.hget('Arbiter', 'masterIp') //
-				this._staticObject[this.currentDomain]['isMaster'] = (masterIp === currentIp) //
-				let systemUptime = await this.redis.hget(this.commonLabel, 'systemUptime') //
-				this._staticObject[this.currentDomain]['systemUptime'] = systemUptime //
-				this._staticObject[this.currentDomain]['now'] = Date.now() //
+			if (this.redis) {
+				this.currentDomain = await this.redis.hget(this.commonLabel, 'domain')
+				this._staticObject[this.currentDomain]['isCurrent'] = true
+				
+				let currentIp = await this.redis.hget(this.commonLabel, 'currentIp')
+				this._setIp(this.currentDomain, currentIp)
+				
+				let anotherDomain = await this.redis.hget(this.commonLabel, 'anotherDomain')
+				let anotherIp = await this.redis.hget(this.commonLabel, 'anotherIp')
+				this._setIp(anotherDomain, anotherIp)
+				
+				await this._getDomainContainers()
 			}
-			await this._getDomainContainers()
 		} catch (error) {
 			this._onError(this.label, '_getStaticObject', error)
 		}
@@ -187,36 +114,40 @@ class DataHandler {
 			for (let i = 0; i < Object.keys(this._staticObject).length; i++) {
 				let domain = Object.keys(this._staticObject)[i]
 				let stage = this._staticObject[domain].stage
-				let redis = this.redis
-				if (domain !== this.currentDomain) {
-					redis = await this._getDomainRedis(domain, stage)
-				} else {
-					this.domainRedises[domain] = this.redis
+				if (this.redis) {
+					let redis: tc.redis | void = this.redis
+					if (domain !== this.currentDomain) {
+						redis = await this._getDomainRedis(domain, stage)
+					} else {
+						this.domainRedises[domain] = this.redis
+					}
+					await this._getContainers(domain, stage, redis)
 				}
-				await this._getContainers(domain, stage, redis)
 			}
 		} catch (error) {
 			this._onError(this.label, '_getDomainContainers', error)
 		}
 	}
 	
-	private async _getContainers(domain: string, stage: string, redis: redis | void): Promise<void> {
+	private async _getContainers(domain: string, stage: string, redis: tc.redis | void): Promise<void> {
 		try {
-			let containers: containers = {}
-			let staticsContainers = await redis.smembers(this.sKey)
-			for (let i = 0; i < staticsContainers.length; i++) {
-				let hostname = staticsContainers[i]
-				let hKey = this.sKey + ':' + hostname
-				let name = await redis.hget(hKey, 'name')
-				let path = await redis.hget(hKey, 'path')
-				let type = await redis.hget(hKey, 'type')
-				if (!type) {
-					type = '1_main'
-					if (path.includes('/subsections/')) {
-						type = '2_subsections'
+			let containers: t.containers = {} 
+			if (redis) {
+				let staticsContainers = await redis.smembers(this.sKey)
+				for (let i = 0; i < staticsContainers.length; i++) {
+					let hostname = staticsContainers[i]
+					let hKey = this.sKey + ':' + hostname
+					let name = await redis.hget(hKey, 'name')
+					let path = await redis.hget(hKey, 'path')
+					let type = await redis.hget(hKey, 'type')
+					if (!type) {
+						type = '1_main'
+						if (path.includes('/subsections/')) {
+							type = '2_subsections'
+						}
 					}
+					containers[hostname] = { name, path, type }
 				}
-				containers[hostname] = { name, path, type }
 			}
 			
 			let { object } = Settings.otherContainters(stage)
@@ -227,8 +158,8 @@ class DataHandler {
 					type: object[hostname].type
 				}
 			})
-			// this._staticObject[domain][this.sKey] = containers ////////////////// TS is stupid
-			this._staticObject[domain]['Containers'] = containers
+			
+			this._staticObject[domain][this.sKey] = containers
 		} catch (error) {
 			this._onError(this.label, '_getContainers', error)
 		}
@@ -240,8 +171,8 @@ class DataHandler {
 		this._staticObject[siblingDomain]['ip'] = ip
 	}
 	
-	private _getDomainRedis(domain: string, stage: string): Promise<redis | void> {
-		return new Promise<redis | void>(async success => {
+	private _getDomainRedis(domain: string, stage: string): Promise<tc.redis | void> {
+		return new Promise<tc.redis | void>(async success => {
 			try {
 				setTimeout(() => {
 					success()
@@ -263,7 +194,7 @@ class DataHandler {
 		})
 	}
 	
-	_onError(className: string, method: string, error: unknown) {
+	private _onError(className: string, method: string, error: unknown): void {
 		console.log(className, method, error)
 	}
 }

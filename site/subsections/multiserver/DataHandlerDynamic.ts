@@ -1,28 +1,27 @@
-const cpus = require('os').cpus().length
-const Settings = require('../stagePath/_common/Settings')
+import * as t from './types' 
+import * as tc from '../../../_common/types'
+const cpus: number = require('os').cpus().length
+const Settings: tc.settings = require('../stagePath/_common/Settings')
 
 class DataHandlerDynamic {
-	shortLogsCache: {
-		[domain: string]: string
-	}
-	uptimeDates: {
-		[domain: string]: string
-	}
-	roles: {
-		[domain: string]: string
-	}
+	public onError: t.share['onError']
+	private readonly commonLabel: string
+	private readonly label: string
+	public shortLogsCache: t.shortLogsCache
+	private uptimeDates: t.domains<tc.keyValue<string | number>>
+	private roles: t.domains<string>
+	private _domainRedises!: t.domains<tc.redis>
 	
-	constructor(onError: onError, commonLabel: string) {
+	constructor(onError: t.share['onError'], commonLabel: string) {
 		this.onError = onError
 		this.commonLabel = commonLabel
 		this.label = this.constructor.name
-		
 		this.shortLogsCache = {}
 		this.uptimeDates = {}
 		this.roles = {}
 	}
 	
-	async start(websockets: typeof WebsocketServer, label: string, domainRedises) {
+	public async start(websockets: tc.websockets, label: string, domainRedises: t.domains<tc.redis>): Promise<void> {
 		try {
 			this._domainRedises = domainRedises
 			setInterval(async () => {
@@ -40,9 +39,9 @@ class DataHandlerDynamic {
 		}
 	}
 	
-	async _getDynamic() {
-		let statistics = {}
-		let shortLogDates = {}
+	private async _getDynamic(): Promise<t.dynamic> {
+		let statistics: t.domains<t.statistics> = {}
+		let shortLogDates: t.domains<t.stringOrFalse> = {}
 		let haveUptimeDatesChanged = false
 		let haveRolesChanged = false
 		try {
@@ -50,22 +49,28 @@ class DataHandlerDynamic {
 				let domain = Object.keys(this._domainRedises)[i]
 				let redis = this._domainRedises[domain]
 				let domainStatistics = await this._getDynamicStatistics(domain, redis)
-				statistics[domain] = domainStatistics
-				let domainShortLogDate = await this._setDomainShortLogs(domain, redis)
-				shortLogDates[domain] = domainShortLogDate
-				let haveDomainUptimeDatesChanged = await this._tryToUpdateDomainUptimeDates(domain, redis)
-				if (haveDomainUptimeDatesChanged) {
-					haveUptimeDatesChanged = true
-				}
-				let hasDomainRoleChanged = await this._hasDomainRoleChanged(domain, redis)
-				if (hasDomainRoleChanged) {
+				if (Object.keys(domainStatistics).length) {
+					statistics[domain] = domainStatistics
+					let domainShortLogDate = await this._setDomainShortLogs(domain, redis)
+					shortLogDates[domain] = domainShortLogDate
+					let haveDomainUptimeDatesChanged = await this._tryToUpdateDomainUptimeDates(domain, redis)
+					if (haveDomainUptimeDatesChanged) {
+						haveUptimeDatesChanged = true
+					}
+					let hasDomainRoleChanged = await this._hasDomainRoleChanged(domain, redis)
+					if (hasDomainRoleChanged) {
+						haveRolesChanged = true
+					}
+				} else {
+					this.roles[domain] = ''
 					haveRolesChanged = true
 				}
 			}
 		} catch (error) {
 			this.onError(this.label, '_getDynamic', error)
 		}
-		let dynamic = { statistics, shortLogDates }
+		
+		let dynamic: t.dynamic = { statistics, shortLogDates }
 		if (haveUptimeDatesChanged) {
 			dynamic.uptimeDates = this.uptimeDates
 		}
@@ -75,18 +80,18 @@ class DataHandlerDynamic {
 		return dynamic
 	}
 	
-	async _getDynamicStatistics(domain: string, redis: redis | void) {
-		let statistics = {}
+	private async _getDynamicStatistics(domain: string, redis: tc.redis): Promise<t.statistics> {
+		let statistics: t.statistics = {}
 		try {
 			let allString = await redis.hgetall('Containers:metrics')
 			if (allString) {
 				Object.keys(allString).forEach(hostname => {
 					let metricsString = allString[hostname]
-					let metricsArray = metricsString.split(':')
+					let metricsArray: string[] = metricsString.split(':')
 					let now = +metricsArray[2]
 					if ((Date.now() - now) < Settings.standardTimeout) {
-						let cpu = Math.ceil(metricsArray[0] * 100 / cpus) / 100
-						let mem = Math.ceil(metricsArray[1])
+						let cpu = Math.ceil(+metricsArray[0] * 100 / cpus) / 100
+						let mem = Math.ceil(+metricsArray[1])
 						statistics[hostname] = [cpu, mem]
 					}
 				})
@@ -97,9 +102,9 @@ class DataHandlerDynamic {
 		return statistics
 	}
 	
-	async _setDomainShortLogs(domain: string, redis: redis | void) {
-		let shortLog = []
-		let lastDate = false
+	private async _setDomainShortLogs(domain: string, redis: tc.redis): Promise<t.stringOrFalse> {
+		let shortLog: t.shortLog = []
+		let lastDate: t.stringOrFalse = false
 		try {
 			let label = 'Logger'
 			let dates = await redis.lrange(label + ':dates', 0, 30)
@@ -111,7 +116,7 @@ class DataHandlerDynamic {
 				} else {
 					for (let i =0; i < dates.length; i++) {
 						let date = dates[i]
-						let type = 'logs'
+						let type = 'logs' 
 						let value = await redis.hget(label + ':' + type, date)
 						if (!value) {
 							type = 'errors'
@@ -128,7 +133,7 @@ class DataHandlerDynamic {
 		return lastDate
 	}
 	
-	async _tryToUpdateDomainUptimeDates(domain, redis) {
+	private async _tryToUpdateDomainUptimeDates(domain: string, redis: tc.redis): Promise<boolean> {
 		let changed = false
 		try {
 			let systemUptime = await redis.hget(this.commonLabel, 'systemUptime')
@@ -148,7 +153,7 @@ class DataHandlerDynamic {
 		return changed
 	}
 	
-	async _hasDomainRoleChanged(domain, redis) {
+	private async _hasDomainRoleChanged(domain: string, redis: tc.redis): Promise<boolean> {
 		let hasChanged = false
 		try {
 			let masterIp = await redis.hget('Arbiter', 'masterIp')

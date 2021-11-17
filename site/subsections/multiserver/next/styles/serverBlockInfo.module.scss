@@ -6,6 +6,10 @@
 	border-radius: var(--gap);
 	overflow: hidden;
 	user-select: none;
+	
+	& > div {
+		min-height: 50%;
+	}
 }
 
 

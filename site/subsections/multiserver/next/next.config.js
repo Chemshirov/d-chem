@@ -5,7 +5,7 @@ module.exports = {
 		defaultLocale: "en"
 	},
 	typescript: {
-		ignoreBuildErrors: true,
+		ignoreBuildErrors: false,
 	},
 	swcMinify: false,
 }

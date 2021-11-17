@@ -130,6 +130,9 @@ class Redis {
 							success(false)
 						}
 					}
+					setTimeout(() => {
+						success(false)
+					}, Settings.redisTimeout)
 					Reflect.apply(target, thisArg, argumentsList)
 				}).catch(error => {
 					this.onError(this.label, '_asyncRedis apply ' + target.name, error)

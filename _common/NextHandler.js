@@ -3,30 +3,35 @@ const childProcess = require('child_process')
 const Settings = require('./Settings.js')
 
 class NextHandler {
-	constructor(onError, log, projectPath) {
-		this.onError = onError
-		this.log = log
+	constructor(object, projectPath) {
+		this.onError = object.onError
+		this.log = object.log
+		this.rabbitMQ = object.rabbitMQ
 		this.projectPath = projectPath
 		this.label = this.constructor.name
+		this.isTscWorking = false
 	}
 	
 	async start(currentDomain) {
 		try {
-			if (!process.env.SHOW || process.env.STAGE === Settings.productionStageName) {
-				await this._spawn('next build')
-				await this._spawn('next start -p ' + Settings.port)
-				let url = currentDomain + '/' + process.env.NAME.toLowerCase()
-				let pageLength = await this._wget(url)
-				this.log('Page length: ' + pageLength)
-			} else {
-				await this._spawn('next build')
-				await this._spawn('next dev -p ' + Settings.port)
+			if (currentDomain) {
+				if (!process.env.SHOW || process.env.STAGE === Settings.productionStageName) {
+					await this._spawn('next build')
+					await this._spawn('next start -p ' + Settings.port)
+					let url = currentDomain + '/' + process.env.NAME.toLowerCase()
+					let pageLength = await this._wget(url)
+					this.log('Page length: ' + pageLength)
+				} else {
+					await this._spawn('next build')
+					await this._spawn('next dev -p ' + Settings.port)
+					await this._tsc()
+					this.rabbitMQ.receive({ label: 'Watcher', callback: this._onWatcher.bind(this) })
+				}
 			}
 		} catch (error) {
 			this.onError(this.label, 'start', error)
 		}
 	}
-	
 	
 	_spawn(cmd) {
 		return new Promise(success => {
@@ -36,6 +41,8 @@ class NextHandler {
 				if (infoString.length > 1) {
 					if (infoString.startsWith('error - ')) {
 						this.onError(this.label, '_spawn next', error)
+					} else if (infoString.includes('error TS')) {
+						this._showTsErrors(infoString)
 					} else {
 						this.log(infoString)
 					}
@@ -62,6 +69,36 @@ class NextHandler {
 		})
 	}
 	
+	async _onWatcher(object) {
+		if (object && object.type === 'FileHasChanged') {
+			if (object.directory.startsWith(this.projectPath)) {
+				if (object.fileName.endsWith('ts') || object.fileName.endsWith('tsx')) {
+					let tsFileString = object.directory + '/' + object.fileName
+					await this._tsc(tsFileString)
+				}
+			}
+		}
+	}
+	
+	async _tsc(tsFileString) {
+		try {
+			if (!this.isTscWorking) {
+				this.isTscWorking = true
+				let cmd = 'tsc --noEmit'
+				if (tsFileString) {
+					if (tsFileString.endsWith('tsx')) {
+						cmd += ' --jsx react-jsx --target es2020 --moduleResolution node'
+					}
+					cmd += ' ' + tsFileString
+				}
+				await this._spawn(cmd)
+				this.isTscWorking = false
+			}
+		} catch (error) {
+			this.onError(this.label, 'start', error)
+		}
+	}
+	
 	_wget(url) {
 		return new Promise(async success => {
 			try {
@@ -85,6 +122,41 @@ class NextHandler {
 		}).catch(error => {
 			this.onError(this.label, '_wget', error)
 		})
+	}
+	
+	_showTsErrors(infoString) {
+		if (!this._hasToSkipTsError(infoString)) {
+			if (!this._showTsErrorsFirstString) {
+				this._showTsErrorsFirstString = infoString
+			}
+			if (!this._showTsErrorsCount) {
+				this._showTsErrorsCount = 0
+			}
+			this._showTsErrorsCount++
+		}
+		if (this._showTsErrorsST) {
+			clearTimeout(this._showTsErrorsST)
+		}
+		this._showTsErrorsST = setTimeout(() => {
+			if (this._showTsErrorsCount) {
+				this.log('Ts error count: ' + this._showTsErrorsCount)
+				this.log(this._showTsErrorsFirstString)
+			}
+			this._showTsErrorsFirstString = ''
+			this._showTsErrorsCount = 0
+		}, Settings.filesWatcherDelay)
+	}
+	
+	_hasToSkipTsError(infoString) {
+		let skip = false
+		if (infoString.includes('TS2307') && infoString.includes('.module.scss')) {
+			skip = true
+		} else if (infoString.includes('.d.ts')) {
+			if (infoString.includes('TS1259') || infoString.includes('TS2688') || infoString.includes('TS2717')) {
+				skip = true
+			}
+		}
+		return skip
 	}
 }
 

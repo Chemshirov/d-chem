@@ -1,17 +1,20 @@
-const Settings = require('../../stagePath/_common/Settings')
+import * as tc from './types'
+const Settings: tc.settings = require('../../stagePath/_common/Settings')
 
 export default class Uid {
-	_uid: string
+	private _uid: string
+	
 	constructor() {
+		this._uid = ''
 		this._set()
 	}
 	
-	public get uid() {
+	public get uid(): Uid['_uid'] {
 		return this._uid
 	}
 	
-	protected _set() {
-		if (process.browser) {
+	private _set(): void {
+		if (typeof navigator !== 'undefined') {
 			if (this._isUidWrong()) {
 				this._uid = this._getCookie()
 			}
@@ -26,11 +29,11 @@ export default class Uid {
 		}
 	}
 	
-	protected _isUidWrong() {
+	private _isUidWrong(): boolean {
 		return (!this._uid || (this._uid + '').length != 32)
 	}
 	
-	protected _getCookie() {
+	private _getCookie(): string {
 		let cookie = ''
 		let name = Settings.mainLabel + '='
 		let cookies = document.cookie.split(';')

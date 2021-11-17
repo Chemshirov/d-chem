@@ -75,7 +75,7 @@ class FilesWatcher {
 					}
 					success(suitableFiles)
 				} else {
-					this._onError(this.label, 'this.o.child_process.exec', err)
+					this._onError(this.label, 'this.o.child_process.exec', error)
 				}
 				success()
 			})

@@ -1,19 +1,15 @@
+import * as t from '../types/types'
 import CloseButton from './CloseButton'
 import { Component, createRef } from 'react'
 import ServerBlockButtons from './ServerBlockButtons'
 import styles from '../styles/serverBlockTitle.module.scss'
-import { staticObjectDomain, containers } from '../../../../../../../currentPath/DataHandler'
 
-interface props {
-	serverBlockNumber: number,
-	serverStaticProps: staticObjectDomain
-}
-class ServerBlockTitle extends Component<props> {
-	constructor(props: props) {
+class ServerBlockTitle extends Component<t.serverBlockTitleProps> {
+	constructor(props: t.serverBlockTitleProps) {
 		super(props)
 	}
 	
-	_getTableRow(name, value, className) {
+	private _getTableRow(name: string, value?: number | string | false, className?: string): JSX.Element {
 		if (!value) {
 			value = this.props.serverStaticProps[name.toLowerCase()]
 		}
@@ -33,16 +29,16 @@ class ServerBlockTitle extends Component<props> {
 		)
 	}
 	
-	_getUptime() {
-		let uptime = 0
-		if (this.props.uptimeDates) {
-			let time = (Date.now() - this.props.uptimeDates)
+	private _getUptime(): number | string {
+		let uptime: number | string = 0
+		if (this.props.uptimeDate) {
+			let time = (Date.now() - this.props.uptimeDate)
 			uptime = this._getTimeString(time)
 		}
 		return uptime
 	}
 	
-	_getTimeString(time) {
+	private _getTimeString(time: number): string {
 		if (time) {
 			let dayMillis = 24 * 60 * 60 * 1000
 			let days = Math.floor(time / dayMillis)
@@ -68,7 +64,7 @@ class ServerBlockTitle extends Component<props> {
 		}
 	}
 	
-	_getZeroedDigit(digit) {
+	private _getZeroedDigit(digit: number): number | string {
 		if (!digit) {
 			return '00'
 		} else if (digit < 10) {
@@ -78,7 +74,7 @@ class ServerBlockTitle extends Component<props> {
 		}
 	}
 	
-	render() {
+	render(): JSX.Element | null {
 		let show = (this.props.serverBlockNumber === this.props.number)
 		if (show) {
 			let gridColumnNumber = this.props.serverBlockNumber * 2
@@ -88,7 +84,7 @@ class ServerBlockTitle extends Component<props> {
 			if (this.props.serverStaticProps.Containers) {
 				amount = Object.keys(this.props.serverStaticProps.Containers).length
 			}
-			let role = false
+			let role = ''
 			if (this.props.role) {
 				role = this.props.role.substring(0, 1).toUpperCase() + this.props.role.substring(1)
 			}

@@ -25,6 +25,7 @@ class Sockets {
 	}
 	
 	_func(socket, data) {
+		let types = ['push', 'pushAnyway', 'pull', 'cli', 'cliShows', 'copyToProduction']
 		if (data.type === 'commit') {
 			let ok = false
 			if (data.id && this.o.Projects.projects[data.id]) {
@@ -42,7 +43,7 @@ class Sockets {
 					this.emit({reload: true}, socket)
 				})
 			}
-		} else if (['push', 'pushAnyway', 'pull', 'cli', 'cliShows', 'copyToProduction'].includes(data.type)) {
+		} else if (types.includes(data.type)) {
 			let project = this.o.Projects.projects[data.id]
 			if (project) {
 				project.Project[data.type](data.value).then(async () => {

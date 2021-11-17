@@ -1,21 +1,16 @@
+import * as t from '../types/types'
 import { Component } from 'react'
 import styles from '../styles/coloredContainer.module.scss'
 
-interface props {
-	name: string,
-	hostname: string,
-	small: boolean,
-	current: boolean,
-}
-class ColoredContainer extends Component<props> {
-	constructor(props: props) {
+class ColoredContainer extends Component<t.coloredContainerProps> {
+	constructor(props: t.coloredContainerProps) {
 		super(props)
 	}
 	
-	_getCpuStyle() {
-		let styleValue = false
+	private _getCpuStyle(): t.obj<string> {
+		let styleValue = ''
 		let array = this.props.statisticsArray
-		if (array && array.length === 2) {
+		if (array && array[0]) {
 			let cpuValue = array[0]
 			let magnifiedValue = cpuValue * 5
 			if (cpuValue > 1) {
@@ -34,10 +29,10 @@ class ColoredContainer extends Component<props> {
 		return this._getStyleByString(styleValue)
 	}
 	
-	_getMemStyle() {
-		let styleValue = false
+	private _getMemStyle(): t.obj<string> {
+		let styleValue = ''
 		let array = this.props.statisticsArray
-		if (array && array.length === 2) {
+		if (array && array[1]) {
 			let memValue = array[1]
 			if (memValue > 1000) {
 				memValue = 1000
@@ -48,15 +43,15 @@ class ColoredContainer extends Component<props> {
 		return this._getStyleByString(styleValue)
 	}
 	
-	_getStyleByString(string) {
+	private _getStyleByString(styleValue: string): t.obj<string> {
 		let style = {}
-		if (string) {
-			style = { 'background': string }
+		if (styleValue) {
+			style = { 'background': styleValue }
 		}
 		return style
 	}
 	
-	_getMainJSX() {
+	private _getMainJSX(): JSX.Element {
 		let name = this.props.name
 		let className = styles.main
 		if (this.props.current) {
@@ -81,7 +76,7 @@ class ColoredContainer extends Component<props> {
 		}
 	}
 	
-	render() {
+	render(): JSX.Element {
 		let containerClass = styles.container
 		if (this.props.statisticsArray && +this.props.statisticsArray[0] > 1) {
 			containerClass += ' ' + styles.alarm

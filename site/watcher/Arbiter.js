@@ -89,7 +89,7 @@ class Arbiter {
 				label: this.label,
 				callback: this._onAnotherServerArbiter.bind(this)
 			})
-			if (!atStart) {
+			if (!atStart || atStart.exec) {
 				this.rabbitMQ.send({
 					getNewConnection: true,
 					rabbitHostName: this.anotherIp,

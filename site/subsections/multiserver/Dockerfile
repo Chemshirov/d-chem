@@ -11,6 +11,6 @@ COPY *.json /usr/nodejs/
 RUN npm install --no-optional
 RUN npm install -g typescript
 RUN npx next telemetry disable
-COPY Multiserver.ts /usr/nodejs/
-RUN tsc -out Multiserver.js --target ES2020 --moduleResolution Node Multiserver.ts
+COPY *.ts /usr/nodejs/
+RUN tsc --target ES2020 --moduleResolution Node --module CommonJS start.ts
 CMD [ "npm", "start" ]

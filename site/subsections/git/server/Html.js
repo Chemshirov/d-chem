@@ -121,24 +121,22 @@ class Html {
 		`
 		if (Project.currentBranch === 'master') {
 			if (Project.name === 'd-chem') {
-				// if (!Project.changedFiles || Project.changedFiles.length === 0) {
-					html += `
-						<div class="d-flex position-relative ml-2">
-							<button
-								toProduction 
-								class="btn btn-sm btn-outline-warning text-danger text-nowrap"
-								type="button"
-							>
-								To production
+				html += `
+					<div class="d-flex position-relative ml-2">
+						<button
+							toProduction 
+							class="btn btn-sm btn-outline-warning text-danger text-nowrap"
+							type="button"
+						>
+							To production
+						</button>
+						<div class="position-absolute m-0 mt-1 p-0 dropdown dropdown-menu">
+							<button copyToProduction class="btn btn-sm btn-danger w-100" type="button">
+								I'm sure!
 							</button>
-							<div class="position-absolute m-0 mt-1 p-0 dropdown dropdown-menu">
-								<button copyToProduction class="btn btn-sm btn-danger w-100" type="button">
-									I'm sure!
-								</button>
-							</div>
 						</div>
-					`
-				// }
+					</div>
+				`
 			}
 		}
 		return html
@@ -425,6 +423,31 @@ class Html {
 				`
 			}
 		}
+	}
+	
+	usefull() {
+		let lsFile = 'ls-files --others \':!:*_old*\' \':!:*/.next/*\''
+		let html = `
+			<div class="d-flex flex-column align-items-start pl-5 mx-2">
+				${this._usefullButton('Add file to tracking', 'add ', true)}
+				${this._usefullButton('Get all untracked files', lsFile)}
+				${this._usefullButton('Remove file from tracking', 'rm --cached ', true)}
+			</div>
+		`
+		return html.replace(/[\r\n\t]/g, ' ')
+	}
+	
+	_usefullButton(name, cliText, notExecute) {
+		return `
+			<button
+				type="button"
+				cliFiller="${cliText}"
+				notExecute="${notExecute ? true : ''}"
+				class="my-1 mx-2 btn btn-outline-info btn-sm"
+			>
+				${name}
+			</button>
+		`
 	}
 }
 

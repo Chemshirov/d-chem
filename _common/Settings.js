@@ -102,6 +102,46 @@ class Settings {
 		return port
 	}
 	
+	static otherContainters(stage) {
+		let tree = {}
+		let prefix = stage.substring(0, 1) + '-'
+		tree['3_services'] = {
+			[prefix + 'rabbitmq']: stage + '/rabbitmq/',
+			[prefix + 'redis']: stage + '/redis/',
+			[prefix + 'mysql']: stage + '/mysql/',
+		}
+		tree['4_secondary'] = {
+			['certbot']: false
+		}
+		if (stage === Settings.developmentStageName) {
+			tree['5_old'] = {
+				'chem-dev': 'chem-dev/',
+			}
+		} else {
+			tree['5_old'] = {
+				'chem-node': 'chem-node/',
+				'chem-bind': 'bind/',
+				'chem-mysql': 'mysql/',
+				browser: 'browser/',
+				git: 'git/',
+				redis: 'redis/',
+				'psql_postgres_1': 'psql/',
+			}
+		}
+		
+		let object = {}
+		Object.keys(tree).forEach(type => {
+			Object.keys(tree[type]).forEach(hostname => {
+				object[hostname] = {
+					type,
+					path: tree[type][hostname]
+				}
+			})
+		})
+		
+		return { tree, object }
+	}
+	
 	static get port() {
 		return 80
 	}
@@ -156,7 +196,7 @@ class Settings {
 		return port
 	}
 	static get redisTimeout() {
-		return 1000
+		return 200
 	}
 	
 	static get socketMaxBufferSize() {
@@ -214,6 +254,7 @@ class Settings {
 			[subsections +  '/git/www/']: ['/git/'],
 			[subsections +  '/logs/.next']: ['/logs/_next'],
 			[sdaLabelPath + 'subsections/logs/']: ['/logs/'],
+			[sdaLabelPath + 'subsections/multiserver/']: ['/multiserver/'],
 			[sdaLabelPath + 'subsections/data/files/']: ['/data/files/'],
 			[sda + 'audiobooks/']: ['/audiobooks/'],
 			[sda + 'films/']: ['/films/'],
@@ -257,46 +298,6 @@ class Settings {
 	
 	static get timeZone() {
 		return 3
-	}
-	
-	static otherContainters(stage) {
-		let tree = {}
-		let prefix = stage.substring(0, 1) + '-'
-		tree['3_services'] = {
-			[prefix + 'rabbitmq']: stage + '/rabbitmq/',
-			[prefix + 'redis']: stage + '/redis/',
-			[prefix + 'mysql']: stage + '/mysql/',
-		}
-		tree['4_secondary'] = {
-			['certbot']: false
-		}
-		if (stage === Settings.developmentStageName) {
-			tree['5_old'] = {
-				'chem-dev': 'chem-dev/',
-			}
-		} else {
-			tree['5_old'] = {
-				'chem-node': 'chem-node/',
-				'chem-bind': 'bind/',
-				'chem-mysql': 'mysql/',
-				browser: 'browser/',
-				git: 'git/',
-				redis: 'redis/',
-				'psql_postgres_1': 'psql/',
-			}
-		}
-		
-		let object = {}
-		Object.keys(tree).forEach(type => {
-			Object.keys(tree[type]).forEach(hostname => {
-				object[hostname] = {
-					type,
-					path: tree[type][hostname]
-				}
-			})
-		})
-		
-		return { tree, object }
 	}
 	
 	static watcherMemoryLimitForContainerName(containerName) {

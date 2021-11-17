@@ -66,11 +66,13 @@ class SetServer {
 		try {
 			let { request, response, socket, head } = object
 			let url = this.parentContext.getUrl(request)
+			let sent = false
+			let proxy = false
 			if (this.port !== Settings.port || socket) {
 				if (response) {
-					let sent = await this.parentContext.statics.tryTo(url, request, response)
+					sent = await this.parentContext.statics.tryTo(url, request, response)
 					if (!sent) {
-						let proxy = this.parentContext.sections.getProxy(request)
+						proxy = this.parentContext.sections.getProxy(request)
 						if (proxy) {
 							if (proxy.forWebsockets && url.includes('socket.io')) {
 								proxy.forWebsockets.web(request, response)
@@ -83,7 +85,7 @@ class SetServer {
 						}
 					}
 				} else if (socket) {
-					let proxy = this.parentContext.sections.getProxy(request, true)
+					proxy = this.parentContext.sections.getProxy(request, true)
 					if (proxy) {
 						if (proxy.forWebsockets && url.includes('socket.io')) {
 							proxy.forWebsockets.ws(request, socket, head)

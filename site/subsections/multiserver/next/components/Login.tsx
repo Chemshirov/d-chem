@@ -1,12 +1,13 @@
+import * as t from '../types/types'
 import CloseButton from './CloseButton'
-import { Component, createRef } from 'react'
+import { Component, createRef, RefObject } from 'react'
 import ReactDOM from 'react-dom'
 import styles from '../styles/login.module.scss'
 
-interface props {
-}
-class Login extends Component<props> {
-	constructor(props: props) {
+class Login extends Component<t.loginProps, t.obj<boolean>> {
+	private inputRef: RefObject<HTMLInputElement>
+	
+	constructor(props: t.loginProps) {
 		super(props)
 		this.state = {
 			menu: false,
@@ -18,26 +19,23 @@ class Login extends Component<props> {
 		if (this.props.loginMenuOpener) {
 			this.props.loginMenuOpener(this._showMenu.bind(this))
 		}
-		if (this.props.waitingAdminForLogin) {
-			this.state.askForPermission = true
-		}
 		this.inputRef = createRef()
 	}
 	
-	_showMenu() {
+	private _showMenu(): void {
 		this.setState({ menu: true })
 	}
 	
-	_onCloseButton() {
+	private _onCloseButton(): void {
 		this.setState({ menu: false })
 	}
 	
-	_askForPermission() {
+	private _askForPermission(): void {
 		this.props.emit({ type: 'askForPermission' })
 		this.setState({ askForPermission: true })
 	}
 	
-	_onPasswordKeyDown(event) {
+	private _onPasswordKeyDown(event: t.event): void {
 		this.setState({ passIsIncorrect: false })
 		if (event.keyCode === 13) {
 			this.setState({ 
@@ -51,7 +49,7 @@ class Login extends Component<props> {
 		}
 	}
 	
-	_getAskForPermissionLine() {
+	private _getAskForPermissionLine(): JSX.Element {
 		if (!this.state.askForPermission) {
 			return (
 				<div
@@ -72,7 +70,7 @@ class Login extends Component<props> {
 		}
 	}
 	
-	_getMenu() {
+	private _getMenu(): JSX.Element | null {
 		if (this.state.menu) {
 			let menuClass = 'loginMenu'
 			if (this.props.serverBlockNumber >= 4) {
@@ -95,7 +93,7 @@ class Login extends Component<props> {
 								autoFocus
 								className={styles.input}
 								onKeyDown={this._onPasswordKeyDown.bind(this)}
-								disabled={this.state.passwordHasSet ? 'disabled' : null}
+								disabled={this.state.passwordHasSet}
 							/>
 						</div>
 					</div>
@@ -116,7 +114,7 @@ class Login extends Component<props> {
 		}
 	}
 	
-	render() {
+	render(): JSX.Element {
 		let className = styles.floatRight + ' link'
 		return (
 			<div className={className}>
@@ -130,7 +128,7 @@ class Login extends Component<props> {
 		)
 	}
 	
-	componentDidUpdate(prevProps, prevState) {
+	componentDidUpdate(prevProps: t.loginProps, prevState: t.obj<boolean>) {
 		if (this.props.passIsIncorrect && prevProps.passIsIncorrect !== this.props.passIsIncorrect) {
 			this.setState({ passIsIncorrect: true })
 			setTimeout(() => {

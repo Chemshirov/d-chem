@@ -1,16 +1,14 @@
+import * as t from '../types/types'
 import { Component } from 'react'
 import Login from '../components/Login'
 import styles from '../styles/header.module.scss'
 
-interface props {
-	serverBlockNumber: number
-}
-class Header extends Component<props> {
-	constructor(props: props) {
+class Header extends Component<t.headerProps> {
+	constructor(props: t.headerProps) {
 		super(props)
 	}
 	
-	_getLoginOrLogout() {
+	private _getLoginOrLogout(): JSX.Element {
 		if (!this.props.isAdmin) {
 			return (
 				<Login
@@ -32,14 +30,11 @@ class Header extends Component<props> {
 		}
 	}
 	
-	_onLogout() {
+	private _onLogout(): void {
 		this.props.emit({ type: 'logout' })
 	}
 	
-	render() {
-		// let gridColumnStart = (this.props.serverBlockNumber || 1) * 2 - 1
-		// let gridColumnEnd = gridColumnStart + 2
-		// let gridColumn = gridColumnStart + ' / ' + gridColumnEnd
+	render(): JSX.Element {
 		let className = styles.header + ' headerGridColumn-' + this.props.serverBlockNumber
 		return (
 			<div 

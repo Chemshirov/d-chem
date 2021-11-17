@@ -30,19 +30,19 @@ class Finance6 extends Starter {
 	async _onReceive(object) {
 		try {
 			if (object.type === 'syncSql') {
-					let masterIp = this.currentIp
-					let slaveIp = this.anotherIp
-					let isCurrentMaster = await this.isMaster()
-					if (!isCurrentMaster) {
-						masterIp = this.anotherIp
-						slaveIp = this.currentIp
-					}
-					if (masterIp && slaveIp) {
-						let mysql = new Mysql({ onError: this.onError, masterIp, slaveIp })
-						await mysql.sync()
-						object.type = 'sqlSynced'
-						this.rabbitMQ.send(object)
-					}
+				let masterIp = this.currentIp
+				let slaveIp = this.anotherIp
+				let isCurrentMaster = await this.isMaster()
+				if (!isCurrentMaster) {
+					masterIp = this.anotherIp
+					slaveIp = this.currentIp
+				}
+				if (masterIp && slaveIp) {
+					let mysql = new Mysql({ onError: this.onError.bind(this), masterIp, slaveIp })
+					await mysql.sync()
+					object.type = 'sqlSynced'
+					this.rabbitMQ.send(object)
+				}
 			}
 		} catch(error) {
 			this.onError(this.label, '_onReceive', error)

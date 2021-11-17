@@ -1,8 +1,8 @@
 {
 	"name": "multiserver",
-	"version": "0.0.12",
+	"version": "0.0.13",
 	"scripts": {
-		"start": "node Multiserver.js"
+		"start": "node start.js"
 	},
 	"dependencies": {
 		"next": "^11.1.2",

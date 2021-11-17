@@ -1,26 +1,20 @@
+import * as t from '../types/types'
 import { Component } from 'react'
 import ServerBlockTitle from './ServerBlockTitle'
 import ServerBlockButtons from './ServerBlockButtons'
 import ColoredContainer from './ColoredContainer'
 import styles from '../styles/serverBlockInfo.module.scss'
-import { staticObjectDomain, containers } from '../../../../../../../currentPath/DataHandler'
 
-interface props {
-	number: number,
-	serverBlockNumber: number,
-	serverStaticProps: staticObjectDomain,
-	onClick: ((number: number) => void)
-}
-class ServerBlockInfo extends Component<props> {
-	constructor(props: props) {
+class ServerBlockInfo extends Component<t.serverBlockInfoProps> {
+	constructor(props: t.serverBlockInfoProps) {
 		super(props)
 	}
 	
-	onClick() {
+	private onClick(): void {
 		this.props.onClick(this.props.number)
 	}
 	
-	_getItem(key, bold, value, isFinal) {
+	private _getItem(key: string, bold?: boolean, value?: string | false, isFinal?: boolean): JSX.Element {
 		let className = null
 		if (bold) {
 			className = styles.bold
@@ -39,7 +33,7 @@ class ServerBlockInfo extends Component<props> {
 		)
 	}
 	
-	_getComma(isFinal) {
+	private _getComma(isFinal: boolean): JSX.Element | null {
 		if (!isFinal) {
 			return (
 				<small>
@@ -51,7 +45,7 @@ class ServerBlockInfo extends Component<props> {
 		}
 	}
 	
-	_getButtons(showButtons) {
+	private _getButtons(showButtons: boolean): JSX.Element | null {
 		if (showButtons) {
 			return (
 				<ServerBlockButtons
@@ -69,7 +63,7 @@ class ServerBlockInfo extends Component<props> {
 		}
 	}
 	
-	render() {
+	render(): JSX.Element {
 		let mainClassName = styles.main + ' hiddenLink '
 			mainClassName += 'serverInfoH-' + this.props.number + ' '
 		if (!this.props.chosenServerBlock) {
@@ -90,7 +84,11 @@ class ServerBlockInfo extends Component<props> {
 			mainClassName += styles.current
 		}
 		let showButtons = (isCurrentBlock && this.props.number === this.props.chosenServerBlock)
-		 
+		let role: JSX.Element | null = null
+		if (this.props.role) {
+			role = this._getItem('isMaster', true, this.props.role, true)
+		}
+		
 		return (
 			<div
 				className={mainClassName}
@@ -102,8 +100,8 @@ class ServerBlockInfo extends Component<props> {
 					<div>
 						{this._getItem('domain', true)}
 						{this._getItem('ip')}
-						{this._getItem('stage')}
-						{this._getItem('isMaster', true, this.props.role, true)}
+						{this._getItem('stage', false, false, !role)}
+						{role}
 					</div>
 					<Containers
 						containers={this.props.containers}
@@ -119,15 +117,17 @@ class ServerBlockInfo extends Component<props> {
 	}
 }
 
-interface containersState {
-	containers: containers,
+interface containersProps {
+	containers: t.serverBlockInfoProps['containers'],
+	serverStaticProps: t.serverBlockInfoProps['serverStaticProps'],
+	currentStatistics: t.serverBlockInfoProps['currentStatistics'],
 }
-class Containers extends Component<containersState> {
-	constructor(props: containersState) {
+class Containers extends Component<containersProps> {
+	constructor(props: containersProps) {
 		super(props)
 	}
 	
-	_getJSX() {
+	private _getJSX(): Array<JSX.Element> {
 		let jsx = []
 		if (this.props.containers) {
 			this.props.containers.forEach((hostname, i) => {
@@ -150,7 +150,7 @@ class Containers extends Component<containersState> {
 		return jsx
 	}
 	
-	_getComma(show: boolean) {
+	private _getComma(show: boolean): JSX.Element | null {
 		if (show) {
 			return (
 				<small>
@@ -162,7 +162,7 @@ class Containers extends Component<containersState> {
 		}
 	}
 	
-	render() {
+	render(): JSX.Element {
 		return (
 			<div className={styles.containers}>
 				{this._getJSX()}
@@ -171,12 +171,15 @@ class Containers extends Component<containersState> {
 	}
 }
 
-class ShortLog extends Component {
-	constructor(props) {
+interface shortLogProps {
+	log: t.serverBlockInfoProps['shortLog'],
+}
+class ShortLog extends Component<shortLogProps> {
+	constructor(props: shortLogProps) {
 		super(props)
 	}
 	
-	_getDateJSX(date, nextMinuteDate) {
+	private _getDateJSX(date: string, nextMinuteDate: string): JSX.Element {
 		let currentMinuteDate = date.substring(0, 16)
 		if (currentMinuteDate !== nextMinuteDate) {
 			return (
@@ -203,9 +206,9 @@ class ShortLog extends Component {
 		}
 	}
 	
-	_getJSX(log) {
+	private _getJSX(log: shortLogProps['log']): Array<JSX.Element> {
 		let jsx = []
-		let nextMinuteDate = false
+		let nextMinuteDate = ''
 		log.forEach((line, i) => {
 			if (log[i + 1]) {
 				nextMinuteDate = log[i + 1].date.substring(0, 16)
@@ -243,7 +246,7 @@ class ShortLog extends Component {
 	}
 	
 	
-	render() {
+	render(): JSX.Element {
 		return (
 			<div className={styles.log}>
 				{this._getJSX(this.props.log)}

@@ -1,36 +1,39 @@
+import * as t from '../types/types'
 import { Component } from 'react'
 import ColoredContainer from './ColoredContainer'
-import { containers, staticObjectDomain } from '../../../../../../../currentPath/DataHandler'
 import styles from '../styles/detailed.module.scss'
 
-interface props {
-	currentServerStaticProps: staticObjectDomain,
-}
-class Detailed extends Component<props> {
-	constructor(props: props) {
+class Detailed extends Component<t.detailedProps> {
+	constructor(props: t.detailedProps) {
 		super(props)
 	}
 	
-	render() {
+	_getLogs(): JSX.Element {
+		let iFrameUrl = 'https://' + this.props.currentServerStaticProps.domain + '/logs'
+		let iFrameTitle = `Logs @ ${this.props.currentServerStaticProps.domain}`
+		return (
+			<iframe
+				src={iFrameUrl}
+				title={iFrameTitle}
+				className={styles.iframe}
+			>
+			</iframe>
+		)
+	}
+	
+	render(): JSX.Element | null {
 		if (this.props.currentServerStaticProps) {
-			let iFrameUrl = 'https://' + this.props.currentServerStaticProps.domain + '/logs'
-			let iFrameTitle = `Logs @ ${this.props.currentServerStaticProps.domain}`
 			return (
 				<>
 					<Containers
-						serverStaticProps={this.props.currentServerStaticProps}
+						currentServerStaticProps={this.props.currentServerStaticProps}
 						containers={this.props.containers}
-						statistics={this.props.currentStatistics}
+						currentStatistics={this.props.currentStatistics}
 					/>
 					<div
 						className={styles.logs}
 					>
-						<iframe
-							src={iFrameUrl}
-							title={iFrameTitle}
-							className={styles.iframe}
-						>
-						</iframe>
+						{this._getLogs()}
 					</div>
 				</>
 			)
@@ -40,15 +43,12 @@ class Detailed extends Component<props> {
 	}
 }
 
-interface containersState {
-	containers: containers,
-}
-class Containers extends Component<containersState> {
-	constructor(props: containersState) {
+class Containers extends Component<t.detailedProps> {
+	constructor(props: t.detailedProps) {
 		super(props)
 	}
 	
-	_getValueTdJSX(type, value, shift) {
+	private _getValueTdJSX(type, value, shift): JSX.Element {
 		let className = styles.td + ' ' + styles.right
 		if (shift) {
 			className += ' ' + styles.pt
@@ -60,7 +60,7 @@ class Containers extends Component<containersState> {
 		)
 	}
 	
-	_getValueJSX(type, value) {
+	private _getValueJSX(type, value): JSX.Element | null {
 		let className = styles[type]
 		if (value) {
 			return (
@@ -73,13 +73,14 @@ class Containers extends Component<containersState> {
 		}
 	}
 	
-	_getJSX() {
+	private _getJSX(): Array<JSX.Element> {
 		let jsx = []
 		if (this.props.containers) {
 			let shiftForOld = false
 			this.props.containers.forEach(hostname => {
-				let name = this.props.serverStaticProps.Containers[hostname].name
-				let type = this.props.serverStaticProps.Containers[hostname].type
+				let container = this.props.currentServerStaticProps.Containers[hostname]
+				let name = container.name
+				let type = container.type
 				let containerClass = styles.td
 				if (type.includes('subsections')) {
 					containerClass += ' ' + styles.pl
@@ -89,12 +90,12 @@ class Containers extends Component<containersState> {
 					containerClass += ' ' + styles.pt
 				}
 				
-				let statisticsArray = []
-				let cpuString = false
-				let memoryString = false
-				if (this.props.statistics) {
-					if (this.props.statistics[hostname]) {
-						statisticsArray = this.props.statistics[hostname]
+				let statisticsArray: t.coloredContainerProps['statisticsArray'] = false
+				let cpuString: false | string = false
+				let memoryString: false | string = false
+				if (this.props.currentStatistics) {
+					if (this.props.currentStatistics[hostname]) {
+						statisticsArray = this.props.currentStatistics[hostname]
 						cpuString = this._formatCpu(statisticsArray[0])
 						memoryString = statisticsArray[1] + ''
 					}
@@ -119,9 +120,9 @@ class Containers extends Component<containersState> {
 		return jsx
 	}
 	
-	_formatCpu(value) {
+	private _formatCpu(value: number | false): string {
 		let string = '0.00'
-		if (value !== 0) {
+		if (value && value !== 0) {
 			if (value >= 10) {
 				value = Math.ceil(value * 10) / 10
 			}
@@ -143,7 +144,7 @@ class Containers extends Component<containersState> {
 		return string
 	}
 	
-	render() {
+	render(): JSX.Element {
 		return (
 			<div 
 				className={styles.containers}

@@ -30,6 +30,8 @@ class Main {
 					this._toProduction(element, true)
 				} else if (typeof element.getAttribute('copyToProduction') === 'string') {
 					this._toProduction(element)
+				} else if (typeof element.getAttribute('cliFiller') === 'string') {
+					this._cliFiller(element)
 				}
 			}
 		})
@@ -159,6 +161,18 @@ class Main {
 				id,
 				type: 'copyToProduction'
 			})
+		}
+	}
+	
+	_cliFiller(element) {
+		let filler = element.getAttribute('cliFiller')
+		let notExecute = element.getAttribute('notExecute')
+		let cliTextarea = element.closest('[id].project').querySelector('#cliTextarea')
+		cliTextarea.value = filler
+		if (!notExecute) {
+			cliTextarea.parentElement.querySelector('button[cli]').click()
+		} else {
+			cliTextarea.focus()
 		}
 	}
 	

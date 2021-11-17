@@ -1,39 +1,45 @@
+import * as t from '../types/types'
 import { Component } from 'react'
 import Head from 'next/head'
 import Main from '../components/Main'
-import { props } from '../../../../../../../currentPath/DataHandler'
 import Uid from '../../../../../../../assets/common/Uid'
 import WebsocketOnClient from '../../../../../../../assets/common/WebsocketOnClient'
 
-interface IndexState {
+class Multiserver extends Component<t.indexProps, t.IndexState> {
+	private readonly label: string
+	private websocket: WebsocketOnClient & t.obj<t.func<any, void>>
+	private domain: string
+	private _getDomainShortLogUniqueDateObject: t.obj<boolean>
+	private _zeroingStatisticsST: NodeJS.Timeout
 	
-}
-class Multiserver extends Component<props, IndexState> {
-	label: string
-	websocket: WebsocketOnClient
-	constructor(props: props) {
+	constructor(props: t.indexProps) {
 		super(props)
 		this.label = 'Multiserver'
 		this.state = {
 			uptimeDates: {},
+			roles: {},
+			statistics: {},
 			shortLogDates: {},
 			shortLogs: {},
 			buttonsState: {},
 			passIsIncorrect: false,
 			isAdmin: false,
+			statisticsTree: {},
 		}
+		this.domain = this._getDomain(this.props.staticObject)
 		this._setSocket()
 		new Uid()
 	}
 	
-	emit(data) {
+	emit(data): void {
 		this.websocket.emit(data)
 	}
 	
-	render() {
+	render(): JSX.Element {
 		let title = this.label
-		let url = 'https://' + this.props.domain + '/' + this.label.toLowerCase()
 		let description = "Bunch of containers and servers."
+		let url = 'https://' + this.domain + '/' + this.label.toLowerCase()
+		let imageUrl = url + '/' + '20211117_071900.jpg'
 		return (
 			<>
 				<Head>
@@ -42,9 +48,16 @@ class Multiserver extends Component<props, IndexState> {
 					</title>
 					<meta name="viewport" content="initial-scale=1.0, width=device-width, user-scalable=no" />
 					<meta name="description" content={description} />
-					<meta property="og:site_name" content={this.props.domain} key="siteName" />
+					<meta property="og:type" content="website" />
+					<meta property="og:site_name" content={this.domain} key="siteName" />
 					<meta property="og:title" content={title} key="title" />
 					<meta property="og:description" content={description} key="description" />
+					<meta property="og:type" content="article" key="type" />
+					<meta property="og:article:modified_time" content="2021-11-17T04:19:00Z" key="articleMt" />
+					<meta property="og:url" content={url} key="url" />
+					<meta property="og:image" content={imageUrl} key="image" />
+					<meta property="og:image:width" content="920" key="imageWidth" />
+					<meta property="og:image:height" content="920" key="imageHeight" />
 					<link rel="icon" href="/favicon.ico" />
 				</Head>
 				<Main 
@@ -62,19 +75,19 @@ class Multiserver extends Component<props, IndexState> {
 		)
 	}
 	
-	componentDidMount() {
+	componentDidUpdate(): void {
 		document.documentElement.style.setProperty('--vh', `${window.innerHeight/100}px`);
 	}
 	
-	private _setSocket() {
+	private _setSocket(): void {
 		if (!this.websocket) {
 			let label = this.label.toLowerCase()
-			this.websocket = new WebsocketOnClient(label)
+			this.websocket = (new WebsocketOnClient(label) as Multiserver['websocket'])
 			this.websocket.onData = this._onWebsocket.bind(this)
 		}
 	}
 	
-	private _onWebsocket(data) {
+	private _onWebsocket(data: any): void {
 		if (data) {
 			if (data.statistics) {
 				this._zeroingStatistics(data.statistics)
@@ -145,7 +158,7 @@ class Multiserver extends Component<props, IndexState> {
 		}
 	}
 	
-	private _getDomainShortLog(domain, dataDomainDate) {
+	private _getDomainShortLog(domain, dataDomainDate): void {
 		if (!this._getDomainShortLogUniqueDateObject) {
 			this._getDomainShortLogUniqueDateObject = {}
 		}
@@ -155,22 +168,24 @@ class Multiserver extends Component<props, IndexState> {
 		}
 	}
 	
-	private _zeroingStatistics(statistics) {
-		if (!this.state.statisticsTree) {
-			let tree = {}
-			Object.keys(this.props.staticObject).forEach(domain => {
-				tree[domain] = {}
-				Object.keys(this.props.staticObject[domain].Containers).forEach(hostname => {
-					tree[domain][hostname] = false
-				})
-			})
+	private _zeroingStatistics(statistics: t.IndexState['statistics']): void {
+		if (!Object.keys(this.state.statisticsTree).length) {
+			let tree: t.IndexState['statisticsTree'] = {}
 			if (this.props.staticObject) {
-				this.setState({
-					statisticsTree: tree
+				Object.keys(this.props.staticObject).forEach(domain => {
+					tree[domain] = {}
+					Object.keys(this.props.staticObject[domain].Containers).forEach(hostname => {
+						tree[domain][hostname] = false
+					})
 				})
+				if (this.props.staticObject) {
+					this.setState({
+						statisticsTree: tree
+					})
+				}
 			}
 		} else {
-			let newStatistics = {}
+			let newStatistics: t.IndexState['statistics'] = {}
 			Object.keys(this.state.statisticsTree).forEach(domain => {
 				newStatistics[domain] = {}
 				Object.keys(this.state.statisticsTree[domain]).forEach(hostname => {
@@ -196,6 +211,19 @@ class Multiserver extends Component<props, IndexState> {
 			}, 1000)
 		}
 	}
+	
+	private _getDomain(statics: t.indexProps['staticObject']): string {
+		let currentDomain = ''
+		if (statics) {
+			Object.keys(statics).some(domain => {
+				if (statics[domain].isCurrent) {
+					currentDomain = domain
+					return true
+				}
+			})
+		}
+		return currentDomain
+	}
 }
 
 export default Multiserver
@@ -204,7 +232,7 @@ export default Multiserver
 import DataHandler from '../../../../../../../assets/DataHandler'
 import { GetStaticProps } from 'next'
 export const getStaticProps: GetStaticProps = async () => {
-	let props: props = {}
+	let props: t.indexProps = {}
 	try {
 		let dataHandler = new DataHandler()
 		props = await dataHandler.getProps()
@@ -213,3 +241,19 @@ export const getStaticProps: GetStaticProps = async () => {
 	}
 	return { props }
 }
+
+// import fs from 'fs'
+// import { GetStaticProps } from 'next'
+// export const getStaticProps: GetStaticProps = () => {
+	// let props: t.indexProps = {}
+	// try {
+		// const sda = (process.env.SDA ?? '') as string
+		// const afterTildaPath = (process.env.AFTER_TILDA ?? '') as string
+		// let staticFileString = sda + '/' + afterTildaPath + 'stageSensitive/staticObject.json'
+		// let data = fs.readFileSync(staticFileString)
+		// props.staticObject = JSON.parse(data.toString())
+	// } catch (error) {
+		// props.error = error.toString()
+	// }
+	// return { props }
+// }

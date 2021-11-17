@@ -25,20 +25,18 @@ class Starter {
 			
 			this._setUnhandledErrorsHandler()
 			this.rabbitMQ = new RabbitMQ(this.boundOnError, this.boundLog)
-			this.rabbitMQ.setDefaultQueueName(this.label)
-			if (cluster.isPrimary) {
-				this.statistics = new Statistics(this.boundOnError, this.boundLog, this.redis)
-				await this.statistics.connect()
-			}
 			
 			if (typeof this.atStart === 'function') {
+				this.rabbitMQ.setDefaultQueueName(this.label)
+				if (cluster.isPrimary) {
+					this.statistics = new Statistics(this.boundOnError, this.boundLog, this.redis)
+					await this.statistics.connect()
+				}
 				await this.atStart()
-			}
-			this._afterStart = true
-			
-			if (cluster.isPrimary) {
-				this._sendStartedMessage()
-				await this.statistics.started()
+				if (cluster.isPrimary) {
+					this._sendStartedMessage()
+					await this.statistics.started()
+				}
 			}
 		} catch(err) {
 			this.onError(this.label, 'start', err)
@@ -139,9 +137,7 @@ class Starter {
 		let notAnError = false
 		if (error && typeof error === 'object') {
 			let errorChunks = ['ECONNREFUSED', 'EAI_AGAIN', 'ECONNRESET', 'EHOSTUNREACH']
-				// errorChunks = errorChunks.concat(['Connection closed', 'Connection lost'])
-				// errorChunks = errorChunks.concat(['The connection is not yet established'])
-				// errorChunks = errorChunks.concat(['Operation failed', 'wrong number'])
+				errorChunks = errorChunks.concat(['UNCERTAIN_STATE', 'ETIMEDOUT', 'ENETUNREACH'])
 			if (typeof error.code === 'string') {
 				errorChunks.some(key => {
 					if (error.code.includes(key)) {
