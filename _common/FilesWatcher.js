@@ -55,7 +55,7 @@ class FilesWatcher {
 					let suitableFiles = []
 					let fileList = stdin.toString().trim().split('\n')
 					for (let i = 0; i < fileList.length; i++) {
-						let fileString = fileList[i]
+						let fileString = (fileList[i] + '').replace(/[\/]+/g, '/')
 						let isFiltered = true
 						if (selectiveRegExp) {
 							if (!(new RegExp(selectiveRegExp)).test(fileString)) {
@@ -68,6 +68,9 @@ class FilesWatcher {
 							let fileName = fileString.replace(regExp, '$2')
 							let directoryIgnore = this._checkForIgnoreness(directory, true)
 							let fileIgnore = this._checkForIgnoreness(fileName)
+							if (!fileIgnore) {
+								fileIgnore = this._checkForIgnoreness(fileString)
+							}
 							if (!directoryIgnore && !fileIgnore) {
 								suitableFiles.push(fileString)
 							}
@@ -91,18 +94,21 @@ class FilesWatcher {
 		if (!this._watchingPool[directory]) {
 			this._watchingPool[directory] = true
 			fs.watch(directory, (eventType, fileName) => {
+				let fileString = (directory + '/' + fileName).replace(/[\/]+/g, '/')
 				let ignore = this._checkForIgnoreness(fileName)
+				if (!ignore) {
+					ignore = this._checkForIgnoreness(fileString)
+				}
 				if (!ignore) {
 					let hasDot = (fileName.split('.').length > 1)
 					let isRsyncTemp = (fileName.startsWith('.') && fileName.split('.').length > 2)
 					if (hasDot && !isRsyncTemp) {
 						this._whenFileHasBeenChanged(directory, fileName, eventType)
 					} else {
-						let maybeDirectory = directory + '/' + fileName
 						try {
-							let isDirectory = fs.lstatSync(maybeDirectory).isDirectory()
+							let isDirectory = fs.lstatSync(fileString).isDirectory()
 							if (isDirectory) {
-								this.watchPath(maybeDirectory)
+								this.watchPath(fileString)
 							}
 						} catch(e) {
 							let tempFiles = 'areVeryQuickToVanish'

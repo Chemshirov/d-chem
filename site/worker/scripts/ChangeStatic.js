@@ -68,7 +68,6 @@ class ChangeStatic {
 			return clientsPath
 		} catch(error) {
 			if (!(error && error.code === 'ENOENT')) {
-				console.log('error', error)
 				this.onError(this.label, 'work catch ' + clientsPath, error)
 			}
 		}

@@ -12,9 +12,10 @@ class CopyToProduction {
 		return new Promise(async success => {
 			try {
 				this.o.Main.log('Coping files to production')
-				let tildaDevelopmentPath = process.env.TILDA + Settings.developmentStageName + '/*'
-				let tildaProductionPath = process.env.TILDA + Settings.productionStageName + '/'
-				let cmd = this._copyFilesCmd(tildaDevelopmentPath, tildaProductionPath)
+				let tildaDevelopmentPath = process.env.TILDA + Settings.developmentStageName + '/'
+				let tildaProductionPathTo = process.env.TILDA + Settings.productionStageName
+				let cmd = this._rsyncFilesCmd(tildaDevelopmentPath, tildaProductionPathTo)
+				let tildaProductionPath = tildaProductionPathTo + '/'
 				let sdaDevelopmentPath = sda + Settings.developmentStageName + '/' +  process.env.LABEL + '/'
 				let sdaProductionPath = sda + Settings.productionStageName + '/' +  process.env.LABEL + '/'
 				cmd += this._copyFilesCmd(sdaDevelopmentPath + 'Logins.js', sdaProductionPath)
@@ -50,6 +51,11 @@ class CopyToProduction {
 		}).catch(error => {
 			this.o.Main.setError(this.label, 'merge', error)
 		})
+	}
+	
+	
+	_rsyncFilesCmd(from, to) {
+		return `rsync -a ${from} ${to} --exclude ".next";`
 	}
 	
 	_copyFilesCmd(from, to) {

@@ -16,6 +16,7 @@ class NextHandler {
 		try {
 			if (currentDomain) {
 				if (!process.env.SHOW || process.env.STAGE === Settings.productionStageName) {
+					await this._spawn('rm -rf ' + this.projectPath + '.next')
 					await this._spawn('next build')
 					await this._spawn('next start -p ' + Settings.port)
 					let url = currentDomain + '/' + process.env.NAME.toLowerCase()

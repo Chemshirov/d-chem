@@ -14,6 +14,8 @@ class Dockerrun extends Starter {
 		this._startArray = []
 		this._startObject = {}
 		this.prePath = process.env.STAGE + '/' + Settings.label + '/'
+		this.proxyPath = Settings.productionStageName + '/' + Settings.label + '/proxy/'
+		this.sKey = 'Containers'
 		this.defaultSettings = {
 			[this.prePath + 'watcher/']: [true],
 			[this.prePath + 'worker/']: [Math.ceil(cpuAmount / 2)]
@@ -24,7 +26,7 @@ class Dockerrun extends Starter {
 		try {
 			await this._setDomainAndIps()
 			await this.rabbitMQ.receive(this._onReceive.bind(this))
-			this._writeContainersInfoToRedis()
+			await this._writeContainersInfoToRedis()
 			await this._startDockers()
 		} catch (error) {
 			this.onError(this.label, 'atStart', error)
@@ -62,9 +64,7 @@ class Dockerrun extends Starter {
 					}
 				}
 			} else if (object.type === 'StaticsSetterHasDone') {
-				if (process.env.STAGE === Settings.developmentStageName) {
-					this._localStart(this.prePath + 'proxy/')
-				}
+				this._localStart(this.proxyPath)
 			}
 			this.log(object)
 		} catch (error) {
@@ -158,13 +158,10 @@ class Dockerrun extends Starter {
 	
 	async _getPathByHostname(hostname) {
 		try {
-			let key = 'Containers:' + hostname
-			let path = await this.redis.hget(key, 'path')
-			if (!path) {
-				let { object } = Settings.otherContainters(Settings.stage)
-				if (object[hostname]) {
-					path = object[hostname].path
-				}
+			let path = this.proxyPath
+			if (!hostname.endsWith('_proxy')) {
+				let key = this.sKey + ':' + hostname
+				path = await this.redis.hget(key, 'path')
 			}
 			return path
 		} catch (error) {
@@ -173,40 +170,62 @@ class Dockerrun extends Starter {
 	}
 	
 	_writeContainersInfoToRedis() {
-		let path = process.env.TILDA + process.env.STAGE
-		let fileMarker = 'create-image.sh'
-		let cmd = `find "${path}" -type f -name "${fileMarker}"`
-		child_process.exec(cmd, async (error, stdout, stderr) => {
-			try {
-				if (error) {
-					this.onError(this.label, '_setContainersObject ' + cmd, error)
-				} else {
-					let prefix = process.env.STAGE.substring(0, 1) + '-'
-					let string = stdout.toString()
-					let array = string.split('\n')
-					for (let i = 0; i < array.length; i++) {
-						let fileString = array[i]
-						if (fileString.length > 2) {
-							let directory = fileString.replace(fileMarker, '')
-							let name = directory.replace(/^.+\/([^\/]+)\/$/, '$1')
-							let hasLabel = directory.includes(Settings.label)
-							let hostname = prefix + (hasLabel ? Settings.label + '_' : '') + name
-							let containerPath = directory.replace(path, process.env.STAGE)
-							let type = '1_main'
-							if (directory.includes('/subsections/')) {
-								type = '2_subsections'
+		return new Promise(success => {
+			let path = process.env.TILDA + process.env.STAGE
+			let fileMarker = 'create-image.sh'
+			let cmd = `find "${path}" -type f -name "${fileMarker}"`
+			child_process.exec(cmd, async (error, stdout, stderr) => {
+				try {
+					if (error) {
+						this.onError(this.label, '_setContainersObject ' + cmd, error)
+					} else {
+						let prefix = process.env.STAGE.substring(0, 1) + '-'
+						let string = stdout.toString()
+						let array = string.split('\n')
+						let pipe = []
+						for (let i = 0; i < array.length; i++) {
+							let fileString = array[i]
+							if (fileString.length > 2) {
+								let directory = fileString.replace(fileMarker, '')
+								let name = directory.replace(/^.+\/([^\/]+)\/$/, '$1')
+								let hasLabel = directory.includes(Settings.label)
+								let hostname = prefix + (hasLabel ? Settings.label + '_' : '') + name
+								let containerPath = directory.replace(path, process.env.STAGE)
+								let type = '1_main'
+								if (directory.includes('/subsections/')) {
+									type = '2_subsections'
+								}
+								pipe = this._addInfoToRedisPipe(pipe, hostname, name, containerPath, type)
 							}
-							let key = 'Containers:' + hostname
-							await this.redis.hset(key, 'name', name)
-							await this.redis.hset(key, 'path', containerPath)
-							await this.redis.hset(key, 'type', type)
 						}
+						let { object } = Settings.otherContainters(Settings.stage)
+						Object.keys(object).forEach(hostname => {
+							let name = hostname.replace(/^[a-z]\-/, '')
+							let containerPath = object[hostname].path
+							let type = object[hostname].type
+							pipe = this._addInfoToRedisPipe(pipe, hostname, name, containerPath, type)
+						})
+						await this.redis.pipe(pipe)
+						let staticsContainers = await this.redis.smembers(this.sKey)
+						this.log(staticsContainers)
+						success()
 					}
+				} catch (error) {
+					this.onError(this.label, '_writeContainersInfoToRedis catch', error)
 				}
-			} catch (error) {
-				this.onError(this.label, '_writeContainersInfoToRedis catch', error)
-			}
+			})
+		}).catch(error => {
+			this.onError(this.label, '_writeContainersInfoToRedis', error)
 		})
+	}
+	
+	_addInfoToRedisPipe(pipe, hostname, name, containerPath, type) {
+		let hKey = this.sKey + ':' + hostname
+		pipe.push(['sadd', this.sKey, hostname])
+		pipe.push(['hset', hKey, 'name', name])
+		pipe.push(['hset', hKey, 'path', containerPath])
+		pipe.push(['hset', hKey, 'type', type])
+		return pipe
 	}
 }
 

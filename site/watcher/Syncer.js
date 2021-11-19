@@ -99,7 +99,7 @@ class Syncer {
 		try {
 			let user = logins.sshUser
 			let host = this.anotherIp
-			path = path.replace(/\/$/, '')
+			path = path.replace(/[\/+]/g, '/').replace(/\/$/, '')
 			let serverPath = siteSettings.dockerPathToServerPath(path)
 			let cmd = `rsync -a --protect-args --rsh=ssh ${user}@${host}:"${serverPath}/" "${path}"`
 				cmd += ` --exclude ".next"`

@@ -175,8 +175,10 @@ class Arbiter {
 	async _become(type, reason) {
 		try {
 			let ok = false
-			if (await this._wasInternetBreach()) {
+			let internetBreachDuration = await this._wasInternetBreach()
+			if (internetBreachDuration) {
 				await this.redis.hdel(ArbiterTime.name, 'internetBreach')
+				this.log({ label: this.label, internetBreachDuration })
 				ok = true
 			}
 			if (this._lastBecoming !== type) {
@@ -263,14 +265,20 @@ class Arbiter {
 	
 	async _wasInternetBreach() {
 		try {
-			let internetBreach = await this.redis.hget(ArbiterTime.name, 'internetBreach')
-			if (!internetBreach) {
-				internetBreach = 0
+			let wasInternetBreach = false
+			let label = ArbiterTime.name
+			let now = Date.now()
+			let internetBreachDate = await this.redis.hget(label, 'internetBreach')
+			if (internetBreachDate) {
+				let lastTimeInternetWorked = await this.redis.hget(label, 'lastTimeInternetWorked')
+				let internetBreachDuration = (now - lastTimeInternetWorked)
+				wasInternetBreach = internetBreachDuration
+				let tooOld = ((now - internetBreachDate) > Settings.arbiterTimeInterval * 3)
+				if (tooOld) {
+					wasInternetBreach = false
+				}
 			}
-			if (internetBreach && (Date.now() - internetBreach) > Settings.arbiterTimeInterval * 3) {
-				internetBreach = false
-			}
-			return !!internetBreach
+			return !!wasInternetBreach
 		} catch(error) {
 			this.onError(this.label, '_wasInternetBreach', error)
 		}

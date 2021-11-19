@@ -76,7 +76,7 @@ class Containers extends Component<t.detailedProps> {
 	private _getJSX(): Array<JSX.Element> {
 		let jsx = []
 		if (this.props.containers) {
-			let shiftForOld = false
+			let shiftForOldFirst = false
 			this.props.containers.forEach(hostname => {
 				let container = this.props.currentServerStaticProps.Containers[hostname]
 				let name = container.name
@@ -85,7 +85,9 @@ class Containers extends Component<t.detailedProps> {
 				if (type.includes('subsections')) {
 					containerClass += ' ' + styles.pl
 				}
-				if (type.includes('old') && !shiftForOld) {
+				let shiftForOld = false
+				if (type.includes('old') && !shiftForOldFirst) {
+					shiftForOldFirst = true
 					shiftForOld = true
 					containerClass += ' ' + styles.pt
 				}

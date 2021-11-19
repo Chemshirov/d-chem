@@ -11,6 +11,7 @@ class DataHandlerDynamic {
 	private uptimeDates: t.domains<tc.keyValue<string | number>>
 	private roles: t.domains<string>
 	private _domainRedises!: t.domains<tc.redis>
+	private _test!: Array<number>
 	
 	constructor(onError: t.share['onError'], commonLabel: string) {
 		this.onError = onError
@@ -19,6 +20,7 @@ class DataHandlerDynamic {
 		this.shortLogsCache = {}
 		this.uptimeDates = {}
 		this.roles = {}
+		this._test = []
 	}
 	
 	public async start(websockets: tc.websockets, label: string, domainRedises: t.domains<tc.redis>): Promise<void> {
@@ -89,7 +91,7 @@ class DataHandlerDynamic {
 					let metricsString = allString[hostname]
 					let metricsArray: string[] = metricsString.split(':')
 					let now = +metricsArray[2]
-					if ((Date.now() - now) < Settings.standardTimeout) {
+					if ((Date.now() - now) < Settings.standardTimeout * 2) {
 						let cpu = Math.ceil(+metricsArray[0] * 100 / cpus) / 100
 						let mem = Math.ceil(+metricsArray[1])
 						statistics[hostname] = [cpu, mem]

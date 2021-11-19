@@ -31,7 +31,6 @@ class Statistics {
 			await this.redis.pipe([
 				['sadd', this.sKey, this.hostname],
 				['hset', this.hKey, 'name', this.name],
-				['hset', this.hKey, 'hostname', this.hostname],
 				['hset', this.hKey, 'path', this.path],
 				['hset', this.hKey, 'init', Date.now()],
 			])

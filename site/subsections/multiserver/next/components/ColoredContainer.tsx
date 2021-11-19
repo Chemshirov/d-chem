@@ -10,7 +10,7 @@ class ColoredContainer extends Component<t.coloredContainerProps> {
 	private _getCpuStyle(): t.obj<string> {
 		let styleValue = ''
 		let array = this.props.statisticsArray
-		if (array && array[0]) {
+		if (array && typeof array[0] === 'number') {
 			let cpuValue = array[0]
 			let magnifiedValue = cpuValue * 5
 			if (cpuValue > 1) {

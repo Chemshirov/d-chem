@@ -123,8 +123,7 @@ class Html {
 			if (Project.name === 'd-chem') {
 				html += `
 					<div class="d-flex position-relative ml-2">
-						<button
-							toProduction 
+						<button toProduction 
 							class="btn btn-sm btn-outline-warning text-danger text-nowrap"
 							type="button"
 						>

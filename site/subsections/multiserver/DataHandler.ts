@@ -140,25 +140,9 @@ class DataHandler {
 					let name = await redis.hget(hKey, 'name')
 					let path = await redis.hget(hKey, 'path')
 					let type = await redis.hget(hKey, 'type')
-					if (!type) {
-						type = '1_main'
-						if (path.includes('/subsections/')) {
-							type = '2_subsections'
-						}
-					}
 					containers[hostname] = { name, path, type }
 				}
 			}
-			
-			let { object } = Settings.otherContainters(stage)
-			Object.keys(object).forEach(hostname => {
-				containers[hostname] = {
-					name: hostname.replace(/^[a-z]\-/, ''),
-					path: object[hostname].path,
-					type: object[hostname].type
-				}
-			})
-			
 			this._staticObject[domain][this.sKey] = containers
 		} catch (error) {
 			this._onError(this.label, '_getContainers', error)

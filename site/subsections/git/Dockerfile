@@ -1,5 +1,5 @@
 FROM node:16-alpine
-RUN apk update && apk add tzdata git openssh
+RUN apk update && apk add tzdata git openssh rsync
 RUN cp /usr/share/zoneinfo/Europe/Moscow /etc/localtime
 RUN echo "Europe/Moscow" > /etc/timezone
 ENV LC_ALL="eng_DK.utf8"

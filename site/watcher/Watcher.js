@@ -63,8 +63,12 @@ class Watcher extends Starter {
 			filesWatcher.addStringToIgnore('pack_')
 			filesWatcher.addStringToIgnore('.next', true)
 			filesWatcher.addStringToIgnore('next-env.d.ts')
+			filesWatcher.addStringToIgnore('stageSensitive/props.json')
+			filesWatcher.addStringToIgnore('stageSensitive/admins.json')
 			await filesWatcher.watchPath(process.env.TILDA + process.env.STAGE)
 			await filesWatcher.watchPath(sda + this.stageLabelPath + 'subsections/data/files/')
+			await filesWatcher.watchPath(sda + this.stageLabelPath + 'subsections/logs/')
+			await filesWatcher.watchPath(sda + this.stageLabelPath + 'subsections/multiserver/')
 			await filesWatcher.watchPath(sda + 'audiobooks')
 			await filesWatcher.watchPath(sda + 'films')
 			await filesWatcher.watchPath(sda + 'music')
@@ -80,11 +84,14 @@ class Watcher extends Starter {
 	
 	async _onFileChanged(directory, fileName) {
 		try {
-			await this.staticsSetter.addFile(directory + '/' + fileName)
-			this.syncer.request(directory)
+			let fileString = (directory + '/' + fileName).replace(/[\/]+/g, '/')
+			await this.staticsSetter.addFile(fileString)
+			if (!directory.includes('stageSensitive')) {
+				this.syncer.request(directory)
+			}
 			this.rabbitMQ.send({ type: 'FileHasChanged', directory, fileName })
 			this._updateServiceWorkerFile(directory, fileName)
-			this.log(fileName + ' has been changed')
+			this.log(fileName + ' has been changed (' + fileString + ')')
 		} catch (error) {
 			this.onError(this.label, '_onFileChanged', error)
 		}

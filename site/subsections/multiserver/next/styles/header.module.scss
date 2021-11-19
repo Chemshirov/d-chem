@@ -12,4 +12,8 @@
 		align-items: baseline;
 		padding: calc(var(--gap) * 4);
 	}
+	
+	& > div > div:not(:first-child) {
+		margin-left: calc(var(--gap) * 2);
+	}
 }

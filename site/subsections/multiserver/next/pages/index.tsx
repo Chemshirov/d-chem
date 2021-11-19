@@ -37,9 +37,12 @@ class Multiserver extends Component<t.indexProps, t.IndexState> {
 	
 	render(): JSX.Element {
 		let title = this.label
-		let description = "Bunch of containers and servers."
+		let description = 'Bunch of containers and servers, with statistics and restart tool.'
 		let url = 'https://' + this.domain + '/' + this.label.toLowerCase()
-		let imageUrl = url + '/' + '20211117_071900.jpg'
+		// let imageUrl = url + '/' + '20211117_071900.png'
+		// let imageUrl = 'https://i8u4.com/logs/20210704_111500.jpg'
+		// let imageUrl = 'https://i8u4.com/logs/20210704_111501.jpg'
+		let imageUrl = url + '/stageSensitive/ogImage.jpg'
 		return (
 			<>
 				<Head>
@@ -48,16 +51,14 @@ class Multiserver extends Component<t.indexProps, t.IndexState> {
 					</title>
 					<meta name="viewport" content="initial-scale=1.0, width=device-width, user-scalable=no" />
 					<meta name="description" content={description} />
-					<meta property="og:type" content="website" />
+					<meta property="og:type" content="website" key="type" />
 					<meta property="og:site_name" content={this.domain} key="siteName" />
 					<meta property="og:title" content={title} key="title" />
 					<meta property="og:description" content={description} key="description" />
-					<meta property="og:type" content="article" key="type" />
-					<meta property="og:article:modified_time" content="2021-11-17T04:19:00Z" key="articleMt" />
 					<meta property="og:url" content={url} key="url" />
 					<meta property="og:image" content={imageUrl} key="image" />
-					<meta property="og:image:width" content="920" key="imageWidth" />
-					<meta property="og:image:height" content="920" key="imageHeight" />
+					<meta name="twitter:card" content="summary_large_image" key="twitter:card" />
+					<meta name="twitter:image" content={imageUrl} key="twitter:image" />
 					<link rel="icon" href="/favicon.ico" />
 				</Head>
 				<Main 

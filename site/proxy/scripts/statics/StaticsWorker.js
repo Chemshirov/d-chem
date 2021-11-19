@@ -16,8 +16,8 @@ class StaticsWorker extends WorkerThreadSetter {
 	
 	async start(object) {
 		try {
-			this._getFromRedis(Settings.productionStageName)
-			this._getFromRedis(Settings.developmentStageName)
+			await this._getFromRedis(Settings.productionStageName)
+			await this._getFromRedis(Settings.developmentStageName)
 		} catch (error) {
 			this.onError(this.label, 'start', error)
 		}
