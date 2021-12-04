@@ -199,6 +199,14 @@ class Settings {
 		return 200
 	}
 	
+	static get screenshotInterval() {
+		return 1000 * 60 * 5
+	}
+	
+	static get sda() {
+		return '/usr/nodejs/sda/'
+	}
+	
 	static get socketMaxBufferSize() {
 		return 1e8
 	}
@@ -243,10 +251,9 @@ class Settings {
 		return 400
 	}
 	static staticRouteTable() {
-		let sda = '/usr/nodejs/sda/'
 		let labelPath = process.env.TILDA + Settings.stage + '/' + Settings.label + '/'
 		let subsections = labelPath + 'subsections'
-		let sdaLabelPath = sda + Settings.stage + '/' + Settings.label + '/'
+		let sdaLabelPath = Settings.sda + Settings.stage + '/' + Settings.label + '/'
 		let list = {
 			[process.env.TILDA + 'libraries/']: ['/libraries/', '/js/'],
 			[labelPath + 'clientFiles/']: ['/'],
@@ -255,10 +262,14 @@ class Settings {
 			[subsections +  '/logs/.next']: ['/logs/_next'],
 			[sdaLabelPath + 'subsections/logs/']: ['/logs/'],
 			[sdaLabelPath + 'subsections/multiserver/']: ['/multiserver/'],
+			[sdaLabelPath + 'subsections/git/stageSensitive/']: ['/git/'],
+			[sdaLabelPath + 'subsections/logs/stageSensitive/']: ['/logs/'],
+			[sdaLabelPath + 'subsections/multiserver/stageSensitive/']: ['/multiserver/'],
+			
 			[sdaLabelPath + 'subsections/data/files/']: ['/data/files/'],
-			[sda + 'audiobooks/']: ['/audiobooks/'],
-			[sda + 'films/']: ['/films/'],
-			[sda + 'music/']: ['/music/'],
+			[Settings.sda + 'audiobooks/']: ['/audiobooks/'],
+			[Settings.sda + 'films/']: ['/films/'],
+			[Settings.sda + 'music/']: ['/music/'],
 		}
 		if (Settings.stage === Settings.developmentStageName) {
 			list[process.env.TILDA + 'chem_develop/www/data/'] = ['/data/']
@@ -294,6 +305,10 @@ class Settings {
 	
 	static get statisticsInterval() {
 		return 1000
+	}
+	
+	static get subsectionsPath() {
+		return Settings.sda + Settings.stage + '/' + Settings.label + '/subsections/'
 	}
 	
 	static get timeZone() {

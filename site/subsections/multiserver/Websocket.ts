@@ -103,8 +103,6 @@ class Websocket extends WebsocketOnServer {
 						message: data
 					})
 				}
-			} else {
-				console.log(data)
 			}
 		} catch (error: unknown) {
 			this.onError(this.label, 'onData', error)

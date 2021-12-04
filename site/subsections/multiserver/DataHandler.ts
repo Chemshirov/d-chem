@@ -15,7 +15,7 @@ class DataHandler {
 	private readonly staticFileString: string
 	private error: false | unknown
 	private _staticObject: t.staticObject
-	private currentDomain!: string
+	private currentDomain?: string
 	private domainRedises!: t.domains<tc.redis>
 	private dataHandlerDynamic!: typeof DataHandlerDynamic
 	
@@ -23,6 +23,7 @@ class DataHandler {
 		if (object) {
 			this.onError = object.onError
 			this.redis = object.redis
+			this.currentDomain = object.domain
 		}
 		this.label = this.constructor.name
 		this.commonLabel = 'commonInfo'
@@ -38,7 +39,6 @@ class DataHandler {
 	public async setStatic(): Promise<void> {
 		try {
 			await this._getStaticObject()
-			
 			let fileHandler = new FileHandler(this.onError, this.staticFileString)
 			await fileHandler.objectToFile(this._staticObject)
 		} catch (error) {
@@ -92,15 +92,17 @@ class DataHandler {
 			})
 			
 			if (this.redis) {
-				this.currentDomain = await this.redis.hget(this.commonLabel, 'domain')
-				this._staticObject[this.currentDomain]['isCurrent'] = true
-				
-				let currentIp = await this.redis.hget(this.commonLabel, 'currentIp')
-				this._setIp(this.currentDomain, currentIp)
+				if (this.currentDomain) {
+					this._staticObject[this.currentDomain]['isCurrent'] = true
+					let currentIp = await this.redis.hget(this.commonLabel, 'currentIp')
+					this._setIp(this.currentDomain, currentIp)
+				}
 				
 				let anotherDomain = await this.redis.hget(this.commonLabel, 'anotherDomain')
 				let anotherIp = await this.redis.hget(this.commonLabel, 'anotherIp')
-				this._setIp(anotherDomain, anotherIp)
+				if (anotherDomain) {
+					this._setIp(anotherDomain, anotherIp)
+				}
 				
 				await this._getDomainContainers()
 			}
@@ -179,7 +181,9 @@ class DataHandler {
 	}
 	
 	private _onError(className: string, method: string, error: unknown): void {
-		console.log(className, method, error)
+		if (this.onError) {
+			this.onError(className, method, error)
+		}
 	}
 }
 

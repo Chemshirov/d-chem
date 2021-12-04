@@ -1,6 +1,6 @@
 {
 	"name": "multiserver",
-	"version": "0.0.13",
+	"version": "0.0.15",
 	"scripts": {
 		"start": "node start.js"
 	},
@@ -13,8 +13,9 @@
 			"@types/react": "latest",
 			"sass": "latest",
 		"amqplib": "latest",
-		"redis": "latest",
+		"redis": "^3.1.2",
 		"socket.io": "latest",
-		"socket.io-client": "latest"
+		"socket.io-client": "latest",
+		"@playwright/test": "latest"
 	}
 }

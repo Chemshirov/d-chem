@@ -107,8 +107,8 @@ class Main extends Component<t.mainProps, t.mainState> {
 		let containersArray = []
 		let containers = this.props.staticProps[domain].Containers
 		Object.keys(containers).sort((a, b) => {
-			let typeNumberA = +containers[a].type.substring(0, 1)
-			let typeNumberB = +containers[b].type.substring(0, 1)
+			let typeNumberA = +(containers[a].type + '').substring(0, 1)
+			let typeNumberB = +(containers[b].type + '').substring(0, 1)
 			let typeDiff = typeNumberA - typeNumberB
 			if (typeDiff > 0) {
 				return 1

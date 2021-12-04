@@ -71,6 +71,6 @@ export type share = {
 	rabbitMQ: tc.Starter['rabbitMQ'],
 	redis: tc.Starter['redis'],
 	label: string,
-	domain: tc.Starter['domain'],
+	domain?: tc.Starter['domain'],
 	currentIp: tc.Starter['currentIp'],
 }

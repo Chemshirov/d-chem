@@ -208,7 +208,6 @@ class Data extends Component<DataProps, DataState> {
 	
 	protected _onClick() {
 		let nextShowLong = !this.state.showLong
-		console.log(this._jsonToString(this.props.data, 4))
 		this.setState({ 
 			showLong: nextShowLong,
 			toRender: (nextShowLong ? this.state.longVersion : this.state.shortVersion)

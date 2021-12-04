@@ -1,6 +1,6 @@
 {
 	"name": "logs",
-	"version": "0.0.16",
+	"version": "0.0.18",
 	"scripts": {
 		"start": "node Start.js"
 	},
@@ -12,11 +12,11 @@
 			"eslint-config-next": "latest",
 			"typescript": "latest",
 		"amqplib": "latest",
-		"redis": "latest",
-		"chokidar": "latest",
+		"redis": "^3.1.2",
 		"react-bootstrap": "1.6.4",
 		"bootstrap": "4.6.0",
 		"socket.io": "latest",
-		"socket.io-client": "latest"
+		"socket.io-client": "latest",
+		"@playwright/test": "latest"
 	}
 }

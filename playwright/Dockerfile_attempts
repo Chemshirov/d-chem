@@ -1,0 +1,65 @@
+################## it works
+######## Use Ctrl+\ instead of Ctrl+C
+FROM mcr.microsoft.com/playwright:focal
+ENV TZ=Europe/Moscow
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+RUN npm install -g npm
+ARG NV=16.13.0
+RUN curl https://nodejs.org/dist/v$NV/node-v$NV-linux-x64.tar.gz | tar -xz -C /usr/local --strip-components 1
+WORKDIR /usr/nodejs
+COPY *.json /usr/nodejs/
+RUN npm install -g typescript
+RUN npm install --save-dev @types/node
+COPY *.ts /usr/nodejs/
+RUN tsc --target ES2020 --moduleResolution Node --module CommonJS start.ts
+CMD [ "npm", "start" ]
+
+############### it fails ############# cairo_image_surface_get_data: symbol not found .................
+FROM node:16-alpine
+RUN apk update
+RUN apk add --no-cache libc6-compat
+RUN apk add tzdata
+RUN cp /usr/share/zoneinfo/Europe/Moscow /etc/localtime
+RUN echo "Europe/Moscow" > /etc/timezone
+ENV LC_ALL="eng_DK.utf8"
+RUN npm install -g npm
+WORKDIR /usr/nodejs
+COPY *.json /usr/nodejs/
+RUN npm install --no-optional
+RUN npm install -g typescript
+COPY *.ts /usr/nodejs/
+RUN tsc --target ES2020 --moduleResolution Node --module CommonJS start.ts
+CMD [ "npm", "start" ]
+
+
+############### it fails ############# Missing libraries are: libatk-1.0.so.0 libatk-bridge-2.0.so.0 libcups.so.2 libdrm.so.2 libdbus-1.so.3 libxkbcommon.so.0 libXcomposite.so.1 libXdamage.so.1 libXfixes.so.3 libXrandr.so.2 libgbm.so.1 libasound.so.2 libatspi.so.0
+######## Use Ctrl+\ instead of Ctrl+C
+FROM node:16
+ENV TZ=Europe/Moscow
+ENV LC_ALL="eng_DK.utf8"
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+RUN apt update
+RUN apt-get -y install libnss3
+WORKDIR /usr/nodejs
+COPY *.json /usr/nodejs/
+RUN npm install --no-optional
+RUN npm install -g typescript
+COPY *.ts /usr/nodejs/
+RUN tsc --target ES2020 --moduleResolution Node --module CommonJS start.ts
+CMD [ "npm", "start" ]
+
+
+############### it fails ############# Missing libraries are: libnss3.so libnssutil3.so libsmime3.so libnspr4.so libatk-bridge-2.0.so.0 libdrm.so.2 libxkbcommon.so.0 libgbm.so.1 libasound.so.2 libatspi.so.0
+######## Use Ctrl+\ instead of Ctrl+C
+FROM node:16-stretch
+ENV TZ=Europe/Moscow
+ENV LC_ALL="eng_DK.utf8"
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+RUN apt update
+WORKDIR /usr/nodejs
+COPY *.json /usr/nodejs/
+RUN npm install --no-optional
+RUN npm install -g typescript
+COPY *.ts /usr/nodejs/
+RUN tsc --target ES2020 --moduleResolution Node --module CommonJS start.ts
+CMD [ "npm", "start" ]

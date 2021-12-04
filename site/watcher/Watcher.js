@@ -91,7 +91,9 @@ class Watcher extends Starter {
 			}
 			this.rabbitMQ.send({ type: 'FileHasChanged', directory, fileName })
 			this._updateServiceWorkerFile(directory, fileName)
-			this.log(fileName + ' has been changed (' + fileString + ')')
+			if (!fileString.endsWith('stageSensitive/ogImage.png')) {
+				this.log(fileName + ' has been changed (' + fileString + ')')
+			}
 		} catch (error) {
 			this.onError(this.label, '_onFileChanged', error)
 		}

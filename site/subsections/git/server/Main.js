@@ -10,10 +10,12 @@ const sda = '/usr/nodejs/sda/'
 const Logins = require(sda + process.env.STAGE + '/' + process.env.LABEL + '/Logins.js')
 
 class Main {
-	constructor(onError, log, rabbitMQ) {
+	constructor(onError, log, rabbitMQ, domain, label) {
 		this._onError = onError
 		this.log = log
 		this.rabbitMQ = rabbitMQ
+		this.domain = domain
+		this.mainLabel = label
 		this.label = this.constructor.name
 		this.sda = sda
 		this.startDate = Date.now()

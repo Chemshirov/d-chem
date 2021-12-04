@@ -138,6 +138,7 @@
 		right: 0;
 		margin: calc(var(--gap) * 8) var(--gap) var(--gap) calc(var(--gap) * 28);
 		min-width: unset;
+		overflow-y: scroll;
 	}
 }
 

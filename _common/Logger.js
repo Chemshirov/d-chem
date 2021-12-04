@@ -125,17 +125,24 @@ class Logger {
 		let notEmptyError = 'Error is empty and has type of ' + typeof error
 		if (typeof error === 'object') {
 			notEmptyError += ', and properties: ' + Object.getOwnPropertyNames(error).join(', ')
-			if (error.message) {
+			if (error.message && error.stack) {
 				notEmptyError = {
 					message: error.message.toString(),
 					stack: error.stack.toString()
 				}
-			} else 
-			if (error.error) {
+			} else if (error.error) {
 				error.errorString = JSON.stringify(error.error)
-				notEmptyError = error
+				notEmptyError = {
+					errorString: JSON.stringify(error.error),
+				}
+			} else if (error.errorString) {
+				notEmptyError = {
+					errorString: error.errorString,
+				}
 			} else {
-				error.errorString = error.toString()
+				try {
+					notEmptyError = JSON.stringify(error)
+				} catch (e) {}
 			}
 		} else {
 			notEmptyError = error.toString()

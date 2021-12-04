@@ -39,10 +39,8 @@ class Multiserver extends Component<t.indexProps, t.IndexState> {
 		let title = this.label
 		let description = 'Bunch of containers and servers, with statistics and restart tool.'
 		let url = 'https://' + this.domain + '/' + this.label.toLowerCase()
-		// let imageUrl = url + '/' + '20211117_071900.png'
-		// let imageUrl = 'https://i8u4.com/logs/20210704_111500.jpg'
-		// let imageUrl = 'https://i8u4.com/logs/20210704_111501.jpg'
-		let imageUrl = url + '/stageSensitive/ogImage.jpg'
+		let roundedDate = (Date.now() + '').substring(0, 8)
+		let imageUrl = url + '/ogImage.png?' + roundedDate
 		return (
 			<>
 				<Head>
@@ -102,8 +100,7 @@ class Multiserver extends Component<t.indexProps, t.IndexState> {
 					}
 				})
 			}
-			if (data.domainShortLogData) {
-				let domain = data.domain
+			if (data.domainShortLogData && data.domain) {
 				let lastDate = data.domainShortLogData.lastDate
 				let shortLog = data.domainShortLogData.shortLog
 				let shortLogDates = this.state.shortLogDates
@@ -126,35 +123,37 @@ class Multiserver extends Component<t.indexProps, t.IndexState> {
 			if (data.roles) {
 				this.setState({ roles: data.roles })
 			}
-			if (data.type === 'copyToAnotherServerHasReceived') {
-				let buttonsState = this.state.buttonsState
-					buttonsState.copyToAnotherServer = 'hasReceived'
-				this.setState({ buttonsState })
-			}
-			if (data.type === 'copyToAnotherServerHasDone') {
-				let buttonsState = this.state.buttonsState
-					buttonsState.copyToAnotherServer = false
-				this.setState({ buttonsState })
-			}
-			if (data.type === 'passIsIncorrect') {
-				this.setState({ 
-					passIsIncorrect: true,
-					isAdmin: false
-				})
-				setTimeout(() => {
-					this.setState({ passIsIncorrect: false })
-				}, 1000)
-			}
-			if (data.type === 'passIsCorrect') {
-				this.setState({
-					passIsIncorrect: false,
-					isAdmin: true
-				})
-			}
-			if (data.type === 'logout') {
-				this.setState({
-					isAdmin: false
-				})
+			if (data.type) {
+				if (data.type === 'copyToAnotherServerHasReceived') {
+					let buttonsState = this.state.buttonsState
+						buttonsState.copyToAnotherServer = 'hasReceived'
+					this.setState({ buttonsState })
+				}
+				if (data.type === 'copyToAnotherServerHasDone') {
+					let buttonsState = this.state.buttonsState
+						buttonsState.copyToAnotherServer = false
+					this.setState({ buttonsState })
+				}
+				if (data.type === 'passIsIncorrect') {
+					this.setState({ 
+						passIsIncorrect: true,
+						isAdmin: false
+					})
+					setTimeout(() => {
+						this.setState({ passIsIncorrect: false })
+					}, 1000)
+				}
+				if (data.type === 'passIsCorrect') {
+					this.setState({
+						passIsIncorrect: false,
+						isAdmin: true
+					})
+				}
+				if (data.type === 'logout') {
+					this.setState({
+						isAdmin: false
+					})
+				}
 			}
 		}
 	}
@@ -230,31 +229,31 @@ class Multiserver extends Component<t.indexProps, t.IndexState> {
 export default Multiserver
 
 
-import DataHandler from '../../../../../../../assets/DataHandler'
-import { GetStaticProps } from 'next'
-export const getStaticProps: GetStaticProps = async () => {
-	let props: t.indexProps = {}
-	try {
-		let dataHandler = new DataHandler()
-		props = await dataHandler.getProps()
-	} catch (error) {
-		props.error = error.toString()
-	}
-	return { props }
-}
-
-// import fs from 'fs'
+// import DataHandler from '../../../../../../../assets/DataHandler'
 // import { GetStaticProps } from 'next'
-// export const getStaticProps: GetStaticProps = () => {
+// export const getStaticProps: GetStaticProps = async () => {
 	// let props: t.indexProps = {}
 	// try {
-		// const sda = (process.env.SDA ?? '') as string
-		// const afterTildaPath = (process.env.AFTER_TILDA ?? '') as string
-		// let staticFileString = sda + '/' + afterTildaPath + 'stageSensitive/staticObject.json'
-		// let data = fs.readFileSync(staticFileString)
-		// props.staticObject = JSON.parse(data.toString())
+		// let dataHandler = new DataHandler()
+		// props = await dataHandler.getProps()
 	// } catch (error) {
 		// props.error = error.toString()
 	// }
 	// return { props }
 // }
+
+import fs from 'fs'
+import { GetStaticProps } from 'next'
+export const getStaticProps: GetStaticProps = () => {
+	let props: t.indexProps = {}
+	try {
+		const sda = (process.env.SDA ?? '') as string
+		const afterTildaPath = (process.env.AFTER_TILDA ?? '') as string
+		let staticFileString = sda + '/' + afterTildaPath + 'stageSensitive/staticObject.json'
+		let data = fs.readFileSync(staticFileString)
+		props.staticObject = JSON.parse(data.toString())
+	} catch (error) {
+		props.error = error.toString()
+	}
+	return { props }
+}

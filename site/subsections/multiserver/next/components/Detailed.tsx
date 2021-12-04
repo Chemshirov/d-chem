@@ -77,47 +77,49 @@ class Containers extends Component<t.detailedProps> {
 		let jsx = []
 		if (this.props.containers) {
 			let shiftForOldFirst = false
-			this.props.containers.forEach(hostname => {
-				let container = this.props.currentServerStaticProps.Containers[hostname]
-				let name = container.name
-				let type = container.type
-				let containerClass = styles.td
-				if (type.includes('subsections')) {
-					containerClass += ' ' + styles.pl
-				}
-				let shiftForOld = false
-				if (type.includes('old') && !shiftForOldFirst) {
-					shiftForOldFirst = true
-					shiftForOld = true
-					containerClass += ' ' + styles.pt
-				}
-				
-				let statisticsArray: t.coloredContainerProps['statisticsArray'] = false
-				let cpuString: false | string = false
-				let memoryString: false | string = false
-				if (this.props.currentStatistics) {
-					if (this.props.currentStatistics[hostname]) {
-						statisticsArray = this.props.currentStatistics[hostname]
-						cpuString = this._formatCpu(statisticsArray[0])
-						memoryString = statisticsArray[1] + ''
+			if (this.props.containers) {
+				this.props.containers.forEach(hostname => {
+					let container = this.props.currentServerStaticProps.Containers[hostname]
+					let name = container.name
+					let type = container.type
+					let containerClass = styles.td
+					if (type.includes('subsections')) {
+						containerClass += ' ' + styles.pl
 					}
-				}
-				jsx.push(
-					<tr key={hostname} >
-						<td className={containerClass}>
-							<ColoredContainer
-								name={name}
-								hostname={hostname}
-								statisticsArray={statisticsArray}
-								current={true}
-								small={false}
-							/>
-						</td>
-						{this._getValueTdJSX('cpu', cpuString, shiftForOld)}
-						{this._getValueTdJSX('memory', memoryString, shiftForOld)}
-					</tr>
-				)
-			})
+					let shiftForOld = false
+					if (type.includes('old') && !shiftForOldFirst) {
+						shiftForOldFirst = true
+						shiftForOld = true
+						containerClass += ' ' + styles.pt
+					}
+					
+					let statisticsArray: t.coloredContainerProps['statisticsArray'] = false
+					let cpuString: false | string = false
+					let memoryString: false | string = false
+					if (this.props.currentStatistics) {
+						if (this.props.currentStatistics[hostname]) {
+							statisticsArray = this.props.currentStatistics[hostname]
+							cpuString = this._formatCpu(statisticsArray[0])
+							memoryString = statisticsArray[1] + ''
+						}
+					}
+					jsx.push(
+						<tr key={hostname} >
+							<td className={containerClass}>
+								<ColoredContainer
+									name={name}
+									hostname={hostname}
+									statisticsArray={statisticsArray}
+									current={true}
+									small={false}
+								/>
+							</td>
+							{this._getValueTdJSX('cpu', cpuString, shiftForOld)}
+							{this._getValueTdJSX('memory', memoryString, shiftForOld)}
+						</tr>
+					)
+				})
+			}
 		}
 		return jsx
 	}

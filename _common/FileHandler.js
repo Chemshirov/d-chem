@@ -14,7 +14,7 @@ class FileHandler {
 				if (error && error.code === 'ENOENT') {
 					fs.writeFile(this.fileString, '', (error) => {
 						if (!error) {
-							this._setChown(success)
+							this.setChown(success)
 						} else {
 							this.onError(this.label, 'ifNotExistsCreateEmpty writeFile', error)
 						}
@@ -84,7 +84,7 @@ class FileHandler {
 					if (!error) {
 						fs.rename(tempFileString, this.fileString, error => {
 							if (!error) {
-								this._setChown(success, true)
+								this.setChown(success, true)
 							} else {
 								this.onError(this.label, 'stringToFile rename', error)
 							}
@@ -101,7 +101,7 @@ class FileHandler {
 		})
 	}
 	
-	_setChown(callback, callbackValue) {
+	setChown(callback, callbackValue) {
 		return new Promise(success => {
 			fs.chown(this.fileString, 1000, 1000, error => {
 				if (!error) {
@@ -110,11 +110,41 @@ class FileHandler {
 					}
 					success(callbackValue)
 				} else {
-					this.onError(this.label, '_setChown chown', error)
+					this.onError(this.label, 'setChown chown', error)
 				}
 			})
 		}).catch(error => {
-			this.onError(this.label, '_setChown catch', error)
+			this.onError(this.label, 'setChown catch', error)
+		})
+	}
+	
+	isExists() {
+		return new Promise(success => {
+			setTimeout(() => {
+				success(false)
+			}, Settings.standardTimeout)
+			fs.stat(this.fileString, (error, stat) => {
+				if (!error) {
+					success(true)
+				}
+			})
+		}).catch(error => {
+			this.onError(this.label, 'isExists', error)
+		})
+	}
+	
+	copyTo(fileString) {
+		return new Promise(success => {
+			setTimeout(() => {
+				success(false)
+			}, Settings.standardTimeout)
+			fs.copyFile(this.fileString, fileString, (error) => {
+				if (!error) {
+					this.setChown(success, true)
+				}
+			})
+		}).catch(error => {
+			this.onError(this.label, 'copyTo', error)
 		})
 	}
 }

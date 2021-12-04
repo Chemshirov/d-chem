@@ -29,12 +29,25 @@ class Html {
 		this._setHeader()
 		this._setErrors()
 		this._setMain()
+		let title = this.o.Main.mainLabel
+		let url = 'https://' + this.o.Main.domain + '/' + this.o.Main.mainLabel.toLowerCase()
+		let imageUrl = url + '/ogImage.png'
+		let description = 'Useful wrapper for git CLI'
 		let html = `
 			<!DOCTYPE html>
 			<html lang="en">
 				<head>
 					<meta charset="utf-8">
-					<title>Git</title>
+					<meta name="viewport" content="initial-scale=1.0, width=device-width, user-scalable=no">
+					<meta property="og:type" content="article" />
+					<meta property="og:title" content="${title}" />
+					<meta property="og:description" content="${description}" />
+					<meta property="og:image" content="${imageUrl}" />
+					<meta property="og:site_name" content="${this.o.Main.domain}" />
+					<meta property="og:url" content="${url}" />
+					<meta name="twitter:card" content="summary_large_image" />
+					<meta name="twitter:image" content="${imageUrl}" />
+					<title>${title}</title>
 					<link rel="stylesheet" type="text/css" href="/js/bootstrap431/css/bootstrap.min.css">
 					<link rel="stylesheet" type="text/css" href="/git/main.css">
 					<script async type="module" src="/git/Main.js"></script>
@@ -69,10 +82,10 @@ class Html {
 		let ableToBePushed = this._setPushable(Project)
 		this.mainHtml += `
 			<div id="${Project.name}" class="container-fluid project">
-				<div class="d-flex align-items-baseline mt-4 mb-2 mr-2">
-					<h4 class="mr-1 mb-0 text-nowrap">
+				<div class="d-flex flex-wrap align-items-baseline mt-4 mb-2 mr-2">
+					<h3 class="mr-1 mb-0 text-nowrap">
 						${Project.name}
-					</h4>
+					</h3>
 					${setBranch}
 					${this._showCliButtons()}
 					${ableToBePulled}
@@ -168,7 +181,7 @@ class Html {
 	_showCliButtons() {
 		let className = `btn btn-sm btn-outline-success mr-1`
 		return `
-			<div class="d-flex align-items-center pl-5 mx-2">
+			<div class="d-flex flex-wrap align-items-center pl-5 m-2">
 				<span class="font-weight-light mr-1">
 					Show:
 				</span>
@@ -313,7 +326,7 @@ class Html {
 						<div class="form-group w-50 pt-2">
 							<textarea id="changedFilesTextarea" class="form-control w-100" rows="2"></textarea>
 						</div>
-						<button type="submit" changed class="btn btn-primary mx-5">Commit</button>
+						<button type="submit" changed class="btn btn-primary ml-5">Commit</button>
 					</div>
 				</div>
 			`

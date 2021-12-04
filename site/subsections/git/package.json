@@ -1,13 +1,13 @@
 {
 	"name": "chem_git",
-	"version": "0.0.17",
+	"version": "0.0.18",
 	"main": "Git.js",
 	"scripts": {
 		"start": "node Start.js"
 	},
 	"dependencies": {
 		"amqplib": "latest",
-		"redis": "latest",
+		"redis": "^3.1.2",
 		"express": "latest",
 		"compression": "latest",
 		"socket.io": "latest"

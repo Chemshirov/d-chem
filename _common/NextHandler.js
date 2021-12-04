@@ -7,27 +7,31 @@ class NextHandler {
 		this.onError = object.onError
 		this.log = object.log
 		this.rabbitMQ = object.rabbitMQ
+		this.domain = object.domain
+		this.mainLabel = object.label
 		this.projectPath = projectPath
 		this.label = this.constructor.name
 		this.isTscWorking = false
+		this.rabbitHostName = Settings.developmentStageName.substring(0, 1) + '-rabbitmq'
 	}
 	
-	async start(currentDomain) {
+	async start() {
 		try {
-			if (currentDomain) {
-				if (!process.env.SHOW || process.env.STAGE === Settings.productionStageName) {
-					await this._spawn('rm -rf ' + this.projectPath + '.next')
-					await this._spawn('next build')
-					await this._spawn('next start -p ' + Settings.port)
-					let url = currentDomain + '/' + process.env.NAME.toLowerCase()
-					let pageLength = await this._wget(url)
-					this.log('Page length: ' + pageLength)
-				} else {
-					await this._spawn('next build')
-					await this._spawn('next dev -p ' + Settings.port)
-					await this._tsc()
-					this.rabbitMQ.receive({ label: 'Watcher', callback: this._onWatcher.bind(this) })
-				}
+			if (!process.env.SHOW || process.env.STAGE === Settings.productionStageName) {
+				await this._spawn('rm -rf ' + this.projectPath + '.next')
+				await this._spawn('next build')
+				await this._spawn('next start -p ' + Settings.port)
+				this._takeScreenshots()
+			} else {
+				await this._spawn('next build')
+				await this._spawn('next dev -p ' + Settings.port)
+				await this._tsc()
+				this.rabbitMQ.receive({ label: 'Watcher', callback: this._onWatcher.bind(this) })
+				this.rabbitMQ.send({
+					rabbitHostName: this.rabbitHostName,
+					label: 'Playwright',
+					pathToTests: this.projectPath + 'tests'
+				})
 			}
 		} catch (error) {
 			this.onError(this.label, 'start', error)
@@ -100,6 +104,23 @@ class NextHandler {
 		}
 	}
 	
+	_takeScreenshots() {
+		this._takeScreenshot()
+		setInterval(() => {
+			this._takeScreenshot()
+		}, Settings.screenshotInterval)
+	}
+	
+	_takeScreenshot() {
+		this.rabbitMQ.send({
+			rabbitHostName: this.rabbitHostName,
+			label: 'Playwright',
+			takeScreenshot: true,
+			url: 'https://' + this.domain + '/' + this.mainLabel.toLowerCase(),
+			path: Settings.subsectionsPath + this.mainLabel.toLowerCase() + '/stageSensitive/ogImage.png',
+		})
+	}
+	
 	_wget(url) {
 		return new Promise(async success => {
 			try {
@@ -150,7 +171,10 @@ class NextHandler {
 	
 	_hasToSkipTsError(infoString) {
 		let skip = false
-		if (infoString.includes('TS2307') && infoString.includes('.module.scss')) {
+		let noModule = infoString.includes('TS2307')
+		if (noModule && infoString.includes('.module.scss')) {
+			skip = true
+		} else if (noModule && infoString.includes('@playwright/test')) {
 			skip = true
 		} else if (infoString.includes('.d.ts')) {
 			if (infoString.includes('TS1259') || infoString.includes('TS2688') || infoString.includes('TS2717')) {

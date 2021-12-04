@@ -209,39 +209,50 @@ class ShortLog extends Component<shortLogProps> {
 	private _getJSX(log: shortLogProps['log']): Array<JSX.Element> {
 		let jsx = []
 		let nextMinuteDate = ''
-		log.forEach((line, i) => {
-			if (log[i + 1]) {
-				nextMinuteDate = log[i + 1].date.substring(0, 16)
-			}
-			let { date, type, value } = line
-			let className = styles.data
-			if (type === 'errors') {
-				className = styles.errors
-			}
-			let object = JSON.parse(value)
-			let data = ''
-			if (typeof object.data === 'string') {
-				data = object.data
-			} else if (typeof object.data === 'object') {
-				data = JSON.stringify(object.data)
-			} else {
-				data = JSON.stringify(object.error)
-			}
-			jsx.push(
-				<div
-					className={styles.line}
-					key={date}
-				>
-					{this._getDateJSX(date, nextMinuteDate)}
-					<small className={styles.label}>
-						{object.className}
-					</small>
-					<small className={className}>
-						{data}
-					</small>
-				</div>
-			)
-		})
+		if (log) {
+			log.forEach((line, i) => {
+				if (log[i + 1]) {
+					nextMinuteDate = log[i + 1].date.substring(0, 16)
+				}
+				let { date, type, value } = line
+				let className = styles.data
+				if (type === 'errors') {
+					className = styles.errors
+				}
+				let title, text = ''
+				try {
+					let object = JSON.parse(value)
+					if (object) {
+						title = object.className
+						if (typeof object.data === 'string') {
+							text = object.data
+						} else if (typeof object.data === 'number') {
+							text = object.data
+						} else if (typeof object.data === 'object') {
+							text = JSON.stringify(object.data)
+						} else {
+							if (typeof object.error === 'object') {
+								text = JSON.stringify(object.error)
+							}
+						}
+					}
+				} catch (e) {}
+				jsx.push(
+					<div
+						className={styles.line}
+						key={date}
+					>
+						{this._getDateJSX(date, nextMinuteDate)}
+						<small className={styles.label}>
+							{title}
+						</small>
+						<small className={className}>
+							{text}
+						</small>
+					</div>
+				)
+			})
+		}
 		return jsx
 	}
 	

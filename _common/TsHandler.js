@@ -112,7 +112,9 @@ class TsHandler {
 				--strict true
 				--moduleResolution Node
 			`
-			argumentsLines += ' --excludeDirectories "' + this._excludeDirectories.join(', ') + '" '
+			if (this._excludeDirectories.length) {
+				argumentsLines += ' --excludeDirectories "' + this._excludeDirectories.join(', ') + '" '
+			}
 			argumentsLines = argumentsLines.replace(/[\t\n]+/g, ' ').replace(/[  ]+/g, ' ')
 			let include = tsList.join(' ')
 			let postfix = `--outDir "${this._jsDirectory}" ${include}`

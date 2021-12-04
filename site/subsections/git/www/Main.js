@@ -184,13 +184,11 @@ class Main {
 	}
 	
 	emit(object) {
-		console.log('emit', object)
 		this.socket.emit(this.label, object)
 	}
 	
 	async _socketFunction(data) {
 		try {
-			console.log('_socketFunction', data)
 			this._saveToStorage()
 			if (data.reload) {
 				this._saveToStorage()

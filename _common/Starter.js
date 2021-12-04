@@ -2,7 +2,7 @@ const cluster = require('cluster')
 const fs = require('fs')
 const Logger = require('./Logger.js')
 const RabbitMQ = require('./RabbitMQ.js')
-const Redis = require('./Redis.js') 
+const Redis = require('./Redis.js')
 const Settings = require('./Settings.js')
 const Statistics = require('./Statistics.js')
 
@@ -13,7 +13,9 @@ class Starter {
 	
 	async start() {
 		try {
+			this._setUnhandledErrorsHandler()
 			this.redis = new Redis(this.boundOnError)
+			let currentIp = await this.redis.hget('commonInfo', 'currentIp')
 			this.logger = new Logger(this.redis)
 			await this.logger.initiate()
 			this._setLogFunction()
@@ -22,8 +24,6 @@ class Starter {
 			if (cluster.isPrimary) {
 				this.log(process.env.HOSTNAME + ' is starting')
 			}
-			
-			this._setUnhandledErrorsHandler()
 			this.rabbitMQ = new RabbitMQ(this.boundOnError, this.boundLog)
 			
 			if (typeof this.atStart === 'function') {
@@ -53,8 +53,10 @@ class Starter {
 		try {
 			let commonLabel = 'commonInfo'
 			this.currentIp = await this.redis.hget(commonLabel, 'currentIp')
+			process.env.CURRENT_IP = this.currentIp
 			this.anotherIp = await this.redis.hget(commonLabel, 'anotherIp')
 			this.domain = await this.redis.hget(commonLabel, 'domain')
+			process.env.DOMAIN = this.domain
 			this.anotherDomain = await this.redis.hget(commonLabel, 'anotherDomain')
 			this.predispositionalMasterIp = await this.redis.hget(commonLabel, 'predispositionalMasterIp')
 		} catch(err) {
@@ -138,6 +140,7 @@ class Starter {
 		if (error && typeof error === 'object') {
 			let errorChunks = ['ECONNREFUSED', 'EAI_AGAIN', 'ECONNRESET', 'EHOSTUNREACH']
 				errorChunks = errorChunks.concat(['UNCERTAIN_STATE', 'ETIMEDOUT', 'ENETUNREACH'])
+				errorChunks = errorChunks.concat(['TS2307'])
 			if (typeof error.code === 'string') {
 				errorChunks.some(key => {
 					if (error.code.includes(key)) {

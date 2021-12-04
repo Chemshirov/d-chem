@@ -19,7 +19,7 @@ class LogsHandler {
 	
 	async setProps() {
 		try {
-			await this._setProps()
+			return await this._setProps()
 		} catch(error) {
 			this._onError('setProps', error)
 		}
@@ -27,7 +27,7 @@ class LogsHandler {
 	
 	async recoveryProps() {
 		try {
-			let props = await this._propsFromFile()
+			let props = await this.getProps()
 			if (props) {
 				let logger = new Logger()
 				await logger.initiate()
@@ -150,7 +150,11 @@ class LogsHandler {
 		try {
 			if (typeof object === 'object') {
 				let dateArray = Object.keys(object)
-				for (let i = 0; i < dateArray.length; i++) {
+				let start = 0
+				if (dateArray.length > 1000) {
+					start = dateArray.length - 1000
+				}
+				for (let i = start; i < dateArray.length; i++) {
 					let date = dateArray[i]
 					let value = object[date]
 					let string = JSON.stringify(value)

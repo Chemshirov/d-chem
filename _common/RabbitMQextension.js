@@ -11,6 +11,9 @@ class RabbitMQextension {
 		this.log = log || emptyLogFunction
 		this._connections = {}
 		this._channels = {}
+		this._receives = {}
+		this.reReceive = false
+		this.getNewConnection = false
 	}
 	
 	setRabbitHostName(hostName) {
@@ -40,18 +43,26 @@ class RabbitMQextension {
 	
 	getChannel(options) {
 		return new Promise(async success => {
+			let getChannelSuccess = false
 			setTimeout(() => {
-				if (success) {
+				if (!getChannelSuccess) {
+					this.getNewConnection = true
 					success(false)
 				}
 			}, Settings.rabbitMqTimeout)
 			if (options.label || this.defaultQueueName) {
 				try {
 					let uniqueId = this._getQueueUniqueId(options)
-					if (!this._channels[uniqueId] || options.getNewConnection) {
+					if (!this._channels[uniqueId] || options.getNewConnection || this.getNewConnection) {
 						this._channels[uniqueId] = await this._getChannel(options)
 					}
-					success(this._channels[uniqueId])
+					if (this._channels[uniqueId] && !this._channels[uniqueId].isClosed) {
+						getChannelSuccess = true
+						this.getNewConnection = false
+						success(this._channels[uniqueId])
+					} else {
+						this.getNewConnection = true
+					}
 				} catch(error) {
 					this.onError(this.label, 'getChannel 2', error)
 				}
@@ -84,6 +95,13 @@ class RabbitMQextension {
 		return buffer
 	}
 	
+	addToReceives(options) {
+		if (options) {
+			let optionString = JSON.stringify(options)
+			this._receives[optionString] = options
+		}
+	}
+	
 	_getBuffer(object) {
 		if (typeof object.error === 'object') {
 			let newErrorObject = {}
@@ -107,9 +125,11 @@ class RabbitMQextension {
 				})
 				channel.on('error', error => {
 					channel.isClosed = error
+					this.getNewConnection = true
 					this.onError(this.label, '_getChannel channel.on error', error)
 				})
 				channel.on('close', () => {
+					this.getNewConnection = true
 					channel.isClosed = 'Channel close event has been chatched'
 				})
 			}
@@ -122,9 +142,24 @@ class RabbitMQextension {
 	async _getConnection(options) {
 		try {
 			let uniqueId = this._getQueueUniqueId(options)
-			if (!this._connections[uniqueId] || options.getNewConnection) {
+			if (!this._connections[uniqueId] || options.getNewConnection || this.getNewConnection) {
 				let connector = new RabbitMQconnector(this.onError, this.log, this.rabbitHostName)
+				if (this._connectionST) {
+					clearTimeout(this._connectionST)
+				}
+				this._connectionST = setTimeout(() => {
+					this.reReceive = true
+				}, Settings.standardTimeout)
 				this._connections[uniqueId] = await connector.establish(options)
+				clearTimeout(this._connectionST)
+				if (this.reReceive || this.getNewConnection) {
+					this.reReceive = false
+					this.getNewConnection = false
+					Object.keys(this._receives).forEach(key => {
+						let options = this._receives[key]
+						this.receive(options)
+					})
+				}
 			}
 			return this._connections[uniqueId]
 		} catch(error) {
@@ -155,7 +190,9 @@ class RabbitMQconnector {
 		try {
 			let { hostName, port } = this._getHostnameAndPort(options)
 			await this._connect(hostName, port)
-			return this._connection
+			if (this._connected) {
+				return this._connection
+			}
 		} catch(error) {
 			this.onError(this.label, 'establish', error)
 		}

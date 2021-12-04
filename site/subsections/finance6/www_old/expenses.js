@@ -10,7 +10,7 @@ expenses.draw = function(source){
 
 expenses.show = function(source){
 	expenses.show.dates();
-	let d = 'month';
+	let d = 'thisMonth';
 	let date = expenses.date.byName(d);
 	let ok = expenses.show.spends('expenses.show',date);
 	if (ok) {

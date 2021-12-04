@@ -14,6 +14,7 @@ class Statics extends WorkerSetter {
 		this.currentPath = this.parentContext.currentPath
 		this.label = this.constructor.name
 		this._falseSentUrlCache = {}
+		this.statusCodeOk = 200
 	}
 	
 	async start() {
@@ -64,18 +65,16 @@ class Statics extends WorkerSetter {
 		let sent = false
 		try {
 			if (fileProps) {
-				let statusCode = 200
 				let contentType = this._getMimeType(url)
 				let headers = {
 					'Connection': 'close',
 					'Content-Type': contentType,
-					'Content-Length': fileProps.size,
 					'Cache-Control': 'public',
 					'Last-Modified': fileProps.lastModified,
 					'X-Powered-By': this.label,
 					'Access-Control-Allow-Origin': '*',
 					'Access-Control-Allow-Credentials': 'true',
-					'Access-Control-Expose-Headers': 'Content-Length',
+					'Access-Control-Expose-Headers': 'Content-Length'
 				}
 				// this._addAllowOrigin(request, response)
 				
@@ -86,29 +85,11 @@ class Statics extends WorkerSetter {
 					headers['Cache-Control'] = 'public, max-age=' + fileProps.ttl + ', immutable'
 				}
 				if (request.method === 'HEAD') {
-					response.writeHead(statusCode, headers)
-					response.end()
 					sent = request.method
+					response.writeHead(this.statusCodeOk, headers)
+					response.end()
 				} else {
-					let encoder = this._getEncoder(request)
-					if (encoder === 'gzip' || encoder === 'deflate') {
-						response.setHeader('Content-Encoding', encoder)
-						response.writeHead(statusCode, headers)
-						if (fileProps.gzip && fileProps.eTag && encoder === 'gzip') {
-							let gzip = Buffer.from(fileProps.gzip)
-							let readableStream = new Readable()
-								readableStream._read = () => {}
-								readableStream.push(gzip)
-								readableStream.push(null)
-								readableStream.pipe(response)
-							sent = 'fileProps.gzip'
-						} else {
-							sent = this._sendByFileString(fileProps.fileString, response, encoder)
-						}
-					} else {
-						response.writeHead(statusCode, headers)
-						sent = this._sendByFileString(fileProps.fileString, response)
-					}
+					sent = this._tryToSend(request, response, fileProps, headers)
 				}
 			}
 		} catch (error) {
@@ -121,21 +102,71 @@ class Statics extends WorkerSetter {
 		return sent
 	}
 	
-	_sendByFileString(fileString, response, encoder) {
+	_tryToSend(request, response, fileProps, headers) {
+		let fileString = fileProps.fileString
+		let encoder = this._getEncoder(request)
 		let sent = false
-		let readStream = fs.createReadStream(fileString)
-		let mayBeSqueezedStream = readStream
-		let sentLabel = 'no encoded'
-		if (encoder === 'gzip') {
-			sentLabel = 'gzipped'
-			mayBeSqueezedStream = readStream.pipe(zlib.createGzip())
-		} else {
-			sentLabel = 'deflated'
-			mayBeSqueezedStream = readStream.pipe(zlib.createDeflate())
+		if (encoder) {
+			headers['Content-Encoding'] = encoder
+			if (encoder === 'gzip') {
+				if (fileProps.gzip) {
+					sent = this._tryToSendEncoded(response, headers, fileProps.gzip, 'fileProps.gzip')
+				} else {
+					let gzip = this._getUint8Array(fileString)
+					sent = this._tryToSendEncoded(response, headers, gzip, 'gzip')
+				}
+			} else {
+				let deflated = this._getUint8Array(fileString, true)
+				sent = this._tryToSendEncoded(response, headers, deflated, 'deflate')
+			}
 		}
-		mayBeSqueezedStream.pipe(response)
-		sent = sentLabel
+		if (!sent) {
+			headers['Content-Length'] = fileProps.size
+			response.writeHead(this.statusCodeOk, headers)
+			fs.createReadStream(fileString).pipe(response)
+			sent = 'no encoded'
+		}
 		return sent
+	}
+	
+	_tryToSendEncoded(response, headers, uint8Array, label) {
+		let sent = false
+		let chunkCount = this._tryToSendUint8Array(response, headers, uint8Array)
+		if (chunkCount) {
+			sent = label
+			if (chunkCount > 1) {
+				sent += ', ' + chunkCount + ' chunks'
+			}
+		}
+		return sent
+	}
+	
+	_tryToSendUint8Array(response, headers, uint8Array) {
+		if (uint8Array instanceof Uint8Array) {
+			headers['Content-Length'] = uint8Array.length
+			response.writeHead(this.statusCodeOk, headers)
+			let chunkLimit = 16 * 1024
+			let chunkCount = Math.ceil(uint8Array.length / chunkLimit)
+			for (let i = 0; i < chunkCount; i++) {
+				if (chunkCount > 1) {
+					let chunk = uint8Array.slice(i * chunkLimit, (i + 1) * chunkLimit)
+					response.write(chunk)
+				} else {
+					response.write(uint8Array)
+				}
+			}
+			response.end()
+			return chunkCount
+		}
+	}
+	
+	_getUint8Array(fileString, isDeflate) {
+		let file = fs.readFileSync(fileString)
+		if (!isDeflate) {
+			return zlib.gzipSync(file)
+		} else {
+			return zlib.deflateSync(file)
+		}
 	}
 	
 	_addAllowOrigin(request, response) {
@@ -199,6 +230,8 @@ class Statics extends WorkerSetter {
 				} else {
 					this._expressOnError(response)
 				}
+			} else if (url.includes('ogImage.')) {
+				response.sendFile('/usr/nodejs/sda/development/site/subsections/multiserver/stageSensitive/ogImage.jpg')
 			} else {
 				let sda = process.env.SDA.substring(0, process.env.SDA.length - 1)
 				let fileString = sda + '/' + stage + '/' + process.env.LABEL + '/subsections' + url

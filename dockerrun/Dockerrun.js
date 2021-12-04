@@ -14,7 +14,7 @@ class Dockerrun extends Starter {
 		this._startArray = []
 		this._startObject = {}
 		this.prePath = process.env.STAGE + '/' + Settings.label + '/'
-		this.proxyPath = Settings.productionStageName + '/' + Settings.label + '/proxy/'
+		this.proxyPath = Settings.developmentStageName + '/' + Settings.label + '/proxy/'
 		this.sKey = 'Containers'
 		this.defaultSettings = {
 			[this.prePath + 'watcher/']: [true],
@@ -66,7 +66,10 @@ class Dockerrun extends Starter {
 			} else if (object.type === 'StaticsSetterHasDone') {
 				this._localStart(this.proxyPath)
 			}
-			this.log(object)
+			let hide = (object.type === 'started' && object.host.substring(0, 1) !== Settings.stage.substring(0, 1))
+			if (!hide) {
+				this.log(object)
+			}
 		} catch (error) {
 			this.onError(this.label, '_onReceive', error)
 		}
@@ -75,6 +78,9 @@ class Dockerrun extends Starter {
 	async _startDockers() {
 		try {
 			if (process.env.START) {
+				if (process.env.STAGE === Settings.developmentStageName) {
+					await this._localStart(process.env.STAGE + '/playwright/')
+				}
 				await this._localStart(this.prePath + 'subsections/finance6/')
 				await this._localStart(this.prePath + 'subsections/git/')
 				await this._localStart(this.prePath + 'subsections/logs/')
@@ -123,6 +129,7 @@ class Dockerrun extends Starter {
 				if (error) {
 					this.onError(this.label, '_setMarker child_process ' + cmd, error)
 				} else {
+					this.log('Starting of ' + data.path + ' has been executed')
 					success()
 				}
 			})
@@ -195,7 +202,15 @@ class Dockerrun extends Starter {
 								if (directory.includes('/subsections/')) {
 									type = '2_subsections'
 								}
-								pipe = this._addInfoToRedisPipe(pipe, hostname, name, containerPath, type)
+								let ok = true
+								if (name === 'playwright' || name === 'proxy') {
+									if (process.env.STAGE !== Settings.developmentStageName) {
+										ok = false
+									}
+								}
+								if (ok) {
+									pipe = this._addInfoToRedisPipe(pipe, hostname, name, containerPath, type)
+								}
 							}
 						}
 						let { object } = Settings.otherContainters(Settings.stage)

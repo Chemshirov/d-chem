@@ -14,24 +14,18 @@ class RabbitMQ extends RabbitMQextension {
 			if (this.defaultQueueName && !options.message) {
 				message = options
 			}
-			if (queueName && message) { 
+			if (queueName && message) {
 				let channel = await this.getChannel(options)
 				if (channel) {
-					if (!channel.isClosed) {
-						try {
-							await channel.assertExchange(queueName, 'fanout', { durable: false })
-						} catch (error) {
-							if (typeof error === 'object' && error.message === 'Channel closed') {
-								this.log(error.message)
-								// await this.reconnect(options)
-								// await this.send(options)
-							} else {
-								this.onError(this.label, 'send assertExchange', error)
-							}
-						}
-						let buffer = this.getFramedBuffer(message)
-						channel.publish(queueName, '', buffer)
+					try {
+						await channel.assertExchange(queueName, 'fanout', { durable: false })
+					} catch (error) {
+						this.reReceive = true
+						this.getNewConnection = true
+						this.onError(this.label, 'send assertExchange ' + process.env.NAME, error)
 					}
+					let buffer = this.getFramedBuffer(message)
+					channel.publish(queueName, '', buffer)
 				}
 			}
 		} catch(error) {
@@ -47,6 +41,7 @@ class RabbitMQ extends RabbitMQextension {
 				callback = options
 			}
 			if (queueName && callback) {
+				this.addToReceives(options)
 				let channel = await this.getChannel(options)
 				if (channel) {
 					await channel.assertExchange(queueName, 'fanout', { durable: false })

@@ -63,7 +63,7 @@ class Multiserver extends Starter {
 			
 			let nextPath = this.currentPath + 'next/'
 			let nextHandler = new NextHandler(object, nextPath)
-			await nextHandler.start(this.domain)
+			await nextHandler.start()
 		} catch (error: unknown) {
 			this.onError(this.label, '_start', error)
 		}

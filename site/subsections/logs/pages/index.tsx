@@ -62,7 +62,7 @@ class Logs extends Component<IndexProps, IndexState> {
 	}
 	
 	protected _onNews(data) {
-		////// Error: if no errors at start then no new ones will be added
+		// Error: if no errors at start then no new ones will be added
 		let {logs, errors, tree} = new MakeTree(this.state.logs, this.state.errors, data).get()
 		let newList = this._getList(this.state.showLabel, tree)
 		this.setState({
@@ -113,7 +113,11 @@ class Logs extends Component<IndexProps, IndexState> {
 		let title = this.label + ' @ ' + this.props.prefix + this.state.ip
 		let url = 'https://' + this.props.domain + '/' + this.label.toLowerCase()
 		let description = "Quick list of logs and errors with no pagination."
-		let imageUrl = url + '/' + '20210704_111500.jpg'
+		let date = new Date(this.state.lastDate)
+		let dateIso = date.toISOString()
+		let dateNumber = date.getTime()
+		let imageUrl = url + '/ogImage.png?' + dateNumber
+		
 		return (
 			<div className="vh-100">
 				<Head>
@@ -126,11 +130,11 @@ class Logs extends Component<IndexProps, IndexState> {
 					<meta property="og:title" content={title} key="title" />
 					<meta property="og:description" content={description} key="description" />
 					<meta property="og:type" content="article" key="type" />
-					<meta property="og:article:modified_time" content="2021-07-04T09:05:00Z" key="articleMt" />
+					<meta property="og:article:modified_time" content={dateIso} key="articleMt" />
 					<meta property="og:url" content={url} key="url" />
 					<meta property="og:image" content={imageUrl} key="image" />
-					<meta property="og:image:width" content="707" key="imageWidth" />
-					<meta property="og:image:height" content="398" key="imageHeight" />
+					<meta name="twitter:card" content="summary_large_image" key="twitter:card" />
+					<meta name="twitter:image" content={imageUrl} key="twitter:image" />
 					<link rel="icon" href="/favicon.ico" />
 				</Head>
 				<div className="d-flex flex-column w-100 vh-100">

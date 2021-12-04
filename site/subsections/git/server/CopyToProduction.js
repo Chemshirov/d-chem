@@ -42,7 +42,7 @@ class CopyToProduction {
 			try {
 				await this.o.Main.exec(`${gitCmd} checkout production`, true)
 				await this.o.Main.exec(`${gitCmd} merge master`, true)
-				await this.o.Main.exec(`${gitCmd} push`, true)
+				// await this.o.Main.exec(`${gitCmd} push`, true)
 				await this.o.Main.exec(`${gitCmd} checkout master`, true)
 				success()
 			} catch(error) {

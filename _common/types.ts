@@ -4,12 +4,17 @@ export type keyValue<Type> = {
 
 type redisKeyToValue<Type> = (key: Type, anotherKey?: Type) => Promise<Type>
 type redisAll = (label: string) => Promise<keyValue<string>>
+type redisAdd<Type> = (label: string, data: string) => Promise<Type>
+type redisGet<Type> = (key: string) => Promise<Type>
 type redisKeyToArray<Type> = (key: Type, anotherKey?: Type) => Promise<Array<Type>>
 type redisRange = (label: string, from: number, to: number) => Promise<Array<string>>
 export type redis = {
 	hget: redisKeyToValue<string>,
 	hgetall: redisAll,
+	sadd: redisAdd<void>,
 	smembers: redisKeyToArray<string>,
+	srandmember: redisGet<string>,
+	srem: redisAdd<number>,
 	lrange: redisRange,
 }
 
@@ -44,9 +49,7 @@ export type settings = {
 	readonly timeZone: number,
 }
 
-type RabbitMQreceive = {
-	[key: string]: string | number | ((...args: any) => any),
-}
+type RabbitMQreceive = (object: keyValue<string>) => void
 
 export type RabbitMQ = {
 	new(onError: Starter['onError'], log: Starter['log']): RabbitMQ,
@@ -61,10 +64,11 @@ export type socket = typeof Socket
 export type Starter = {
 	new(): Starter,
 	onError: (className: string, method: string, error: unknown) => void,
+	boundOnError: Starter['onError'],
 	log: (...args: any) => void,
 	start: () => void,
 	redis: redis,
-	rabbitMQ: { new(onError: Starter['onError'], log: Starter['log']): RabbitMQ },
+	rabbitMQ: RabbitMQ,
 	isMaster: () => Promise<boolean>,
 	getDomainAndIps: () => Promise<void>,
 	domain?: string,
@@ -89,6 +93,13 @@ export type NextHandler = {
 export type FileHandler = {
 	new(onError: Starter['onError'], fileString: string): FileHandler,
 	ifNotExistsCreateEmpty: () => Promise<void>,
+	isExists: () => Promise<boolean>,
+	copyTo: (fileString: string) => Promise<boolean>,
 	objectToFile: (object: keyValue<any>) => Promise<boolean>,
 	objectFromFile: () => Promise<keyValue<any>>,
+}
+
+export type FilesWatcher = {
+	new(onError: Starter['onError']): FilesWatcher,
+	getList: (path: string, selectiveRegExp?: RegExp) => Promise<Array<string>>,
 }
