@@ -1,0 +1,21 @@
+.main {
+	display: flex;
+	flex-flow: column;
+	padding: 0.5em 1em;
+	height: calc(100 * var(--vh) - 1em);
+}
+
+.text{
+	padding-bottom: 1em;
+}
+
+.string{
+	padding: 0.25em;
+}
+
+.image {
+	background-repeat: no-repeat;
+	background-size: contain;
+	background-position: 0 0;
+	flex: 1;
+}

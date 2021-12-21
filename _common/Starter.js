@@ -28,14 +28,15 @@ class Starter {
 			
 			if (typeof this.atStart === 'function') {
 				this.rabbitMQ.setDefaultQueueName(this.label)
-				if (cluster.isPrimary) {
-					this.statistics = new Statistics(this.boundOnError, this.boundLog, this.redis)
-					await this.statistics.connect()
-				}
+				// if (cluster.isPrimary) {
+					// this.statistics = new Statistics(this.boundOnError, this.boundLog, this.redis)
+					// await this.statistics.connect()
+				// }
 				await this.atStart()
 				if (cluster.isPrimary) {
 					this._sendStartedMessage()
-					await this.statistics.started()
+					// await this.statistics.started()
+					this.log(process.env.HOSTNAME + ' has started')
 				}
 			}
 		} catch(err) {

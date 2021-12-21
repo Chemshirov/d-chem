@@ -49,7 +49,7 @@ class Arbiter {
 	
 	async _onArbiter(object) {
 		try {
-			if (object.exec) {
+			if (object && object.exec) {
 				if (typeof this[object.exec] === 'function') {
 					let isExpired = false
 					if (object.date) {

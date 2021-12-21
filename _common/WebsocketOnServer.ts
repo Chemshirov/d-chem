@@ -19,8 +19,22 @@ class WebsocketOnServer {
 	
 	public setSocket(): void {
 		try {
-			let port = Settings.nextJsWebsocketPortByStage(process.env.STAGE as string)
-			this.server = new Server(port)
+			let port = Settings.nextJsWebsocketPortByStage(Settings.stage)
+			type callback = (reason: string | null, allow?: boolean) => void
+			this.server = new Server(port, {
+				maxHttpBufferSize: Settings.socketMaxBufferSize,
+				cors: {
+					origin: (origin: string, callback: callback) => {
+						if (this.corsOrigin(origin)) {
+							callback(null, true)
+						} else {
+							callback(null)
+						}
+					},
+					methods: ['GET', 'POST', 'OPTIONS'],
+					credentials: true,
+				}
+			})
 			this.sockets = this.server.sockets
 			this.server.on('connection', (socket: typeof Socket) => {
 				if (this.onConnection) {
@@ -34,6 +48,17 @@ class WebsocketOnServer {
 			})
 		} catch (error) {
 			this.onError(this.label, '_setSocket', error)
+		}
+	}
+	
+	corsOrigin(origin: string): string | void {
+		if (origin) {
+			let shortOrigin = origin.substring(0, 25)
+			Settings.domains.some(siteName => {
+				if (shortOrigin.includes(siteName)) {
+					return origin
+				}
+			})
 		}
 	}
 	

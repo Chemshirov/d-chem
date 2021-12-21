@@ -1,0 +1,39 @@
+.mini {
+	width: var(--miniWidth);
+	min-width: var(--miniWidth);
+	max-width: var(--miniWidth);
+	margin: 0.5em 0.25em 0.25em 0;
+	background-color: #fff3cd20;
+	border-radius: 0.25em;
+	overflow: hidden;
+	cursor: pointer;
+}
+
+.image {
+	height: var(--miniHeight);
+	min-height: var(--miniHeight);
+	max-height: var(--miniHeight);
+	background-position: center;
+	background-repeat: no-repeat;
+}
+
+.info {
+	margin-top: -1.35em;
+	line-height: 1.25;
+}
+
+.date {
+	display: inline-flex;
+	color: #6c757d;
+	background-color: #fff3cd;
+	padding: 0 0.25em;
+	border-top-right-radius: 0.25em;
+	border-bottom-right-radius: 0.25em;
+}
+
+.title {
+	padding: 0 0.25em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}

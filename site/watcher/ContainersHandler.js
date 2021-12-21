@@ -93,11 +93,11 @@ class ContainersHandler {
 						let statsArray = Object.keys(stats)
 						for (let i = 0; i < statsArray.length; i++) {
 							let hostname = statsArray[i]
-							if (otherContainters[hostname]) {
+							// if (otherContainters[hostname]) {
 								let { cpu, mem } = stats[hostname]
 								let dataString = cpu + ':' + mem + ':' + date
 								pipe.push(['hset', this.sKey + ':metrics', hostname, dataString])
-							}
+							// }
 						}
 					}
 					if (pipe.length) {

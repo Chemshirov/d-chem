@@ -29,8 +29,9 @@ class Html {
 		this._setHeader()
 		this._setErrors()
 		this._setMain()
-		let title = this.o.Main.mainLabel
-		let url = 'https://' + this.o.Main.domain + '/' + this.o.Main.mainLabel.toLowerCase()
+		
+		let title = this.o.Main.label
+		let url = 'https://' + this.o.Main.domain + '/' + this.o.Main.label.toLowerCase()
 		let imageUrl = url + '/ogImage.png'
 		let description = 'Useful wrapper for git CLI'
 		let html = `

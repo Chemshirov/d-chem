@@ -81,9 +81,10 @@ class Dockerrun extends Starter {
 				if (process.env.STAGE === Settings.developmentStageName) {
 					await this._localStart(process.env.STAGE + '/playwright/')
 				}
+				await this._localStart(this.prePath + 'subsections/logs/')
 				await this._localStart(this.prePath + 'subsections/finance6/')
 				await this._localStart(this.prePath + 'subsections/git/')
-				await this._localStart(this.prePath + 'subsections/logs/')
+				await this._localStart(this.prePath + 'subsections/index/')
 				await this._localStart(this.prePath + 'subsections/multiserver/')
 				await this._localStart(this.prePath + 'worker/')
 				await this._localStart(this.prePath + 'watcher/')

@@ -75,13 +75,13 @@ class SetServer {
 						proxy = this.parentContext.sections.getProxy(request)
 						if (proxy) {
 							if (proxy.forWebsockets && url.includes('socket.io')) {
+								response = this._tryToSetCors(request, response)
 								proxy.forWebsockets.web(request, response)
 							} else {
 								proxy.web(request, response)
 							}
 						} else {
-							response.statusCode = 404
-							response.end()
+							this._sendToIndexOrNot(request, response)
 						}
 					}
 				} else if (socket) {
@@ -101,6 +101,40 @@ class SetServer {
 			}
 		} catch (error) {
 			this.parentContext.onProxyError({ method: '_router', error })
+		}
+	}
+	
+	_tryToSetCors(request, response) {
+		if (!(request.url + '').includes('label=chem')) {
+			if (typeof request === 'object' && request.rawHeaders) {
+				let { origin } = this.parentContext.getHeaders(request)
+				if (origin) {
+					response.setHeader('Access-Control-Allow-Origin', origin)
+					response.setHeader('Access-Control-Allow-Credentials', 'true')
+					response.setHeader('Access-Control-Expose-Headers', 'Content-Length')
+				}
+			}
+		}
+		return response
+	}
+	
+	_sendToIndexOrNot(request, response) {
+		let shortUrl = this.parentContext.getUrl(request)
+		if (Settings.nextJsIndexPagesList.includes(shortUrl)) {
+			let indexName = 'index'
+			let { hostDomain, originDomain } = this.parentContext.getHeaders(request)
+			let eventualDomain = originDomain || hostDomain
+			let prefix = Settings.developmentStageName.substring(0, 1)
+			if (Settings.productionDomains.includes(eventualDomain)) {
+				prefix = Settings.productionStageName.substring(0, 1)
+			}
+			let host = prefix + '-' + Settings.label + '_' + indexName
+			let proxy = this.parentContext.sections.hosts[host].proxy
+			request.url = '/' + indexName + (shortUrl === '/' ? '' : request.url)
+			proxy.web(request, response)
+		} else {
+			response.statusCode = 404
+			response.end()
 		}
 	}
 	

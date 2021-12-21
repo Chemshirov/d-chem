@@ -53,10 +53,10 @@ class Settings {
 	}
 	
 	static get filesWatcherDelay() {
-		return 200
+		return 300
 	}
 	static get filesWatcherLimit() {
-		return 20
+		return 100
 	}
 	
 	static get httpTestPhrase() {
@@ -92,7 +92,10 @@ class Settings {
 		return 60 * 5
 	}
 	static get nextJsList() {
-		return ['logs', 'multiserver']
+		return ['logs', 'multiserver', 'index']
+	}
+	static get nextJsIndexPagesList() {
+		return ['/', '/passport']
 	}
 	static nextJsWebsocketPortByStage(stage) {
 		let port = 43009
@@ -178,7 +181,7 @@ class Settings {
 		return port
 	}
 	static get rabbitMqTimeout() {
-		return 5000
+		return 8000
 	}
 	
 	static get redisDefaultPort() {
@@ -217,7 +220,7 @@ class Settings {
 		return 1000 * 60 * 60 * 16
 	}
 	static get socketReconnectTime() {
-		return Settings.standardTimeout * 10
+		return Settings.standardTimeout * 5
 	}
 	
 	static get stage() {
@@ -260,11 +263,16 @@ class Settings {
 			[subsections +  '/finance6/www_old/']: ['/finance6/'],
 			[subsections +  '/git/www/']: ['/git/'],
 			[subsections +  '/logs/.next']: ['/logs/_next'],
+			[subsections +  '/multiserver/next/.next']: ['/multiserver/_next'],
+			[subsections +  '/index/next/.next']: ['/index/_next'],
+			
 			[sdaLabelPath + 'subsections/logs/']: ['/logs/'],
 			[sdaLabelPath + 'subsections/multiserver/']: ['/multiserver/'],
 			[sdaLabelPath + 'subsections/git/stageSensitive/']: ['/git/'],
 			[sdaLabelPath + 'subsections/logs/stageSensitive/']: ['/logs/'],
 			[sdaLabelPath + 'subsections/multiserver/stageSensitive/']: ['/multiserver/'],
+			[sdaLabelPath + 'subsections/index/']: ['/index/', '/passport/'],
+			[sdaLabelPath + 'subsections/index/stageSensitive/']: ['/index/'],
 			
 			[sdaLabelPath + 'subsections/data/files/']: ['/data/files/'],
 			[Settings.sda + 'audiobooks/']: ['/audiobooks/'],
@@ -332,8 +340,9 @@ class Settings {
 		return {
 			'logs': 500,
 			'multiserver': 1500,
-			'proxy': 1500,
-			'worker': 2000
+			'playwright': 500,
+			'proxy': 750,
+			'worker': 2000,
 		}
 	}
 	static get watcherMemoryLimitStandard() {

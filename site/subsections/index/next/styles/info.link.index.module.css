@@ -1,0 +1,40 @@
+.block {
+	margin-left: 0.75em;
+	margin-right: 3em;
+	position: relative;
+}
+
+.lessText {
+	max-height: var(--lessTextMaxHeight);
+	line-height: 1.5em;
+	overflow: hidden;
+}
+
+.button {
+	color: #007bff;
+	background-color: white;
+	border: 1px solid transparent;
+	font-size: 1em;
+	font-weight: 700;
+	cursor: pointer;
+	padding-bottom: 1em;
+	padding-right: 1em;
+	padding-left: 1em;
+}
+
+.more {
+	position: absolute;
+	right: 0;
+	bottom: -1em;
+	margin-right: -1em;
+}
+.more::after {
+	content: '... more'
+}
+
+.less {
+	display: inline-block;
+}
+.less::after {
+	content: 'Less'
+}

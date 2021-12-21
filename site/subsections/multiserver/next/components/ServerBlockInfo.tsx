@@ -219,7 +219,8 @@ class ShortLog extends Component<shortLogProps> {
 				if (type === 'errors') {
 					className = styles.errors
 				}
-				let title, text = ''
+				let title = ''
+				let text = ''
 				try {
 					let object = JSON.parse(value)
 					if (object) {
@@ -233,24 +234,28 @@ class ShortLog extends Component<shortLogProps> {
 						} else {
 							if (typeof object.error === 'object') {
 								text = JSON.stringify(object.error)
+							} else if (typeof object.error === 'string') {
+								text = object.error
 							}
 						}
 					}
 				} catch (e) {}
-				jsx.push(
-					<div
-						className={styles.line}
-						key={date}
-					>
-						{this._getDateJSX(date, nextMinuteDate)}
-						<small className={styles.label}>
-							{title}
-						</small>
-						<small className={className}>
-							{text}
-						</small>
-					</div>
-				)
+				if (text) {
+					jsx.push(
+						<div
+							className={styles.line}
+							key={date}
+						>
+							{this._getDateJSX(date, nextMinuteDate)}
+							<small className={styles.label}>
+								{title}
+							</small>
+							<small className={className}>
+								{text}
+							</small>
+						</div>
+					)
+				}
 			})
 		}
 		return jsx

@@ -15,9 +15,9 @@ class Main {
 		this.log = log
 		this.rabbitMQ = rabbitMQ
 		this.domain = domain
-		this.mainLabel = label
-		this.label = this.constructor.name
+		this.label = label
 		this.sda = sda
+		this.errorObject = {}
 		this.startDate = Date.now()
 	}
 	
@@ -65,7 +65,11 @@ class Main {
 							}
 						}
 						if (!ok) {
-							this.setError(this.label, 'child_process.exec ' + cmd, err)
+							let notErrorString = 'ssh: connect to host github.com port 22: Operation timed out'
+							let notError = (typeof err === 'object' && (err.message + '').includes(notErrorString))
+							if (!notError) {
+								this.setError(this.label, 'child_process.exec ' + cmd, err)
+							}
 						}
 					}
 					let result = stdin
@@ -93,9 +97,6 @@ class Main {
 	}
 	
 	setError(className, func, error) {
-		if (!this.errorObject) {
-			this.errorObject = {}
-		}
 		this.errorObject[Date.now()] = {className, func, error}
 		this._onError(className, func, error)
 	}
@@ -103,11 +104,13 @@ class Main {
 	_onWatcher(object) {
 		if (object) {
 			if (object.type === 'FileHasChanged') {
-				let path = [process.env.STAGE, process.env.LABEL, 'subsections', process.env.NAME, 'www'].join('/')
-				if (object.directory.includes(path)) {
-					this.sendReload(false)
-				} else {
-					this.sendReload(true)
+				if (!(object.directory + '').includes('.next')) {
+					let path = [process.env.STAGE, process.env.LABEL, 'subsections', process.env.NAME, 'www'].join('/')
+					if (object.directory.includes(path)) {
+						this.sendReload(false)
+					} else {
+						this.sendReload(true)
+					}
 				}
 			}
 		}

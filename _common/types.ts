@@ -2,6 +2,8 @@ export type keyValue<Type> = {
 	[key: string]: Type
 }
 
+export type snb = string | number | boolean
+
 type redisKeyToValue<Type> = (key: Type, anotherKey?: Type) => Promise<Type>
 type redisAll = (label: string) => Promise<keyValue<string>>
 type redisAdd<Type> = (label: string, data: string) => Promise<Type>
@@ -16,12 +18,14 @@ export type redis = {
 	srandmember: redisGet<string>,
 	srem: redisAdd<number>,
 	lrange: redisRange,
+	del: string,
 }
 
 type settingPortByStage = (stage: string) => number
 export type settings = {
 	developmentDomains: Array<string>,
 	developmentStageName: string,
+	domains: Array<string>,
 	label: string,
 	readonly mainLabel: string,
 	nextJsWebsocketPortByStage: settingPortByStage,
@@ -43,17 +47,21 @@ export type settings = {
 	rabbitPortByStage: settingPortByStage,
 	redisPortByStage: settingPortByStage,
 	readonly socketReconnectTime: number,
+	sda: string,
+	socketMaxBufferSize: number,
 	stage: string,
 	stageByContainerName: (hostname: string) => string,
 	standardTimeout: number,
+	subsectionsPath: string,
 	readonly timeZone: number,
 }
 
-type RabbitMQreceive = (object: keyValue<string>) => void
+type RabbitMQreceive = keyValue<string | number | ((object: any) => void)>
+type RabbitMQsend = keyValue<string | number | keyValue<any>>
 
 export type RabbitMQ = {
 	new(onError: Starter['onError'], log: Starter['log']): RabbitMQ,
-	send: (options: keyValue<string | number>) => Promise<void>,
+	send: (options: RabbitMQsend) => Promise<void>,
 	receive: (options: RabbitMQreceive) => Promise<void>,
 }
 
@@ -72,7 +80,9 @@ export type Starter = {
 	isMaster: () => Promise<boolean>,
 	getDomainAndIps: () => Promise<void>,
 	domain?: string,
+	anotherDomain?: string,
 	currentIp?: string,
+	anotherIp?: string,
 }
 
 export type TsHandler = {

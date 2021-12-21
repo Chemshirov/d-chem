@@ -23,6 +23,7 @@ class Logs extends Starter {
 			await websockets.start()
 			await this.getDomainAndIps()
 			if (!process.env.SHOW || process.env.STAGE === Settings.productionStageName) {
+				await this._spawn('rm -rf ' + this.currentPath + '.next')
 				await this._spawn('next build')
 				await this._spawn('next start -p ' + Settings.port)
 				this._takeScreenshot()
@@ -140,7 +141,7 @@ class Logs extends Starter {
 			if (object.type === 'longTimeNoSee') {
 				this.log({
 					label: 'Data',
-					data: ['longTimeNoSee', object.userType, object.uid.substring(4,18), object.uid.substring(28)]
+					data: ['longTimeNoSee', object.userType, object.uid.substring(28), object.uid.substring(4,18)]
 				})
 			}
 		}

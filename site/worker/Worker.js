@@ -1,3 +1,5 @@
+const FilesWatcher = require('../../_common/FilesWatcher.js')
+
 const Settings = require('../../_common/Settings.js')
 const Starter = require('../../_common/Starter.js')
 const { Worker: WorkerClass } = require('worker_threads')
@@ -8,6 +10,7 @@ class Worker extends Starter {
 		this.currentPath = currentPath
 		this.label = this.constructor.name
 		this.sKey = this.label + 'Requests'
+		this._oneByOneBusy = {}
 	}
 	
 	async atStart() {
@@ -51,9 +54,6 @@ class Worker extends Starter {
 	
 	async _oneByOne(type) {
 		try {
-			if (!this._oneByOneBusy) {
-				this._oneByOneBusy = {}
-			}
 			if (!this._oneByOneBusy[type]) {
 				this._oneByOneBusy[type] = true
 				let string = await this.redis.srandmember(this.sKey + type)
@@ -129,14 +129,18 @@ class Worker extends Starter {
 		let addedFiles = []
 		return new Promise(success => {
 			Promise.all(awaits).then(values => {
-				values.forEach(object => {
-					if (typeof object.result === 'object') {
-						addedFiles = addedFiles.concat(object.result)
-					}
-				})
-				let result = values.pop()
-				result.result = addedFiles
-				success(result)
+				if (values) {
+					values.forEach(object => {
+						if (object && typeof object.result === 'object') {
+							addedFiles = addedFiles.concat(object.result)
+						}
+					})
+					let result = values.pop()
+					result.result = addedFiles
+					success(result)
+				} else {
+					success(false)
+				}
 			})
 		}).catch(error => {
 			this.onError(this.label, '_awaitForLatest', error)
@@ -149,16 +153,15 @@ class Worker extends Starter {
 			worker.on('message', message => {
 				if (message.type === 'error') {
 					worker.terminate()
-					this.onError(this.label, '_startThread worker', message)
+					let methodAddition = message.className + ' ' + message.method
+					this.onError(this.label, '_startThread worker ' + methodAddition, message.error)
 					setTimeout(() => {
 						success()
 					}, Settings.standardTimeout)
-				} else
-				if (message.type === 'log') {
+				} else if (message.type === 'log') {
 					let args = message.arguments
 					this.log(...args)
-				} else
-				if (message.type === 'done') {
+				} else if (message.type === 'done') {
 					worker.terminate()
 					object.result = message.data
 					success(object)

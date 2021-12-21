@@ -70,25 +70,12 @@ class StaticsWorker extends WorkerThreadSetter {
 	}
 	
 	async onNewFileList(object) {
-		if (object && typeof object.fileList === 'object') {
-			object.fileList.forEach(filePath => {
-				this.cache[object.stage][filePath] = {}
-			})
-		}
-	}
-	
-	addToCache(object) {
-		let { url, stage, fileProps } = object
-		if (fileProps.gzip && typeof fileProps.gzip.length !== 'number') {
-			let gzipArray = []
-			Object.keys(fileProps.gzip).forEach(i => {
-				gzipArray.push(fileProps.gzip[i])
-			})
-			fileProps.gzip = gzipArray
-		}
-		if (this.cache[stage] && this.cache[stage][url]) {
-			this.cache[stage][url]['fileProps'] = fileProps
-			this._setCacheExpire(stage, url)
+		if (object && object.stage) {
+			if (typeof object.fileList === 'object') {
+				object.fileList.forEach(filePath => {
+					this.cache[object.stage][filePath] = {}
+				})
+			}
 		}
 	}
 	
@@ -119,16 +106,31 @@ class StaticsWorker extends WorkerThreadSetter {
 		return this._redises[stage]
 	}
 	
-	_setCacheExpire(stage, url) {
-		if (this.timeouts[stage + url]) {
-			clearTimeout(this.timeouts[stage + url])
-		}
-		this.timeouts[stage + url] = setTimeout(() => {
-			if (this.cache[stage][url]['fileProps']) {
-				delete this.cache[stage][url]['fileProps']
-			}
-		}, Settings.proxyCacheTtl)
-	}
+	// addToCache(object) {
+		// let { url, stage, fileProps } = object
+		// if (fileProps.gzip && typeof fileProps.gzip.length !== 'number') {
+			// let gzipArray = []
+			// Object.keys(fileProps.gzip).forEach(i => {
+				// gzipArray.push(fileProps.gzip[i])
+			// })
+			// fileProps.gzip = gzipArray
+		// }
+		// if (this.cache[stage] && this.cache[stage][url]) {
+			// this.cache[stage][url]['fileProps'] = fileProps
+			// this._setCacheExpire(stage, url)
+		// }
+	// }
+	
+	// _setCacheExpire(stage, url) {
+		// if (this.timeouts[stage + url]) {
+			// clearTimeout(this.timeouts[stage + url])
+		// }
+		// this.timeouts[stage + url] = setTimeout(() => {
+			// if (this.cache[stage][url]['fileProps']) {
+				// delete this.cache[stage][url]['fileProps']
+			// }
+		// }, Settings.proxyCacheTtl)
+	// }
 }
 
 new StaticsWorker()

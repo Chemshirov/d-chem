@@ -83,11 +83,11 @@ class Containers extends Component<t.detailedProps> {
 					let name = container.name
 					let type = container.type
 					let containerClass = styles.td
-					if (type.includes('subsections')) {
+					if (type && type.includes('subsections')) {
 						containerClass += ' ' + styles.pl
 					}
 					let shiftForOld = false
-					if (type.includes('old') && !shiftForOldFirst) {
+					if (type && type.includes('old') && !shiftForOldFirst) {
 						shiftForOldFirst = true
 						shiftForOld = true
 						containerClass += ' ' + styles.pt

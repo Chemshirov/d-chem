@@ -39,13 +39,15 @@ class Playwright extends Starter {
 					await this.redis.sadd(this.sKey, object.toTest)
 					this._oneByOne()
 				} else if (object.pathToTests) {
-					let filesWatcher = new FilesWatcher(this.onError)
+					let filesWatcher = new FilesWatcher(this.onError.bind(this))
 					let files = await filesWatcher.getList(object.pathToTests)
-					for (let i = 0; i < files.length; i++) {
-						let fileString = files[i]
-						await this.redis.sadd(this.sKey, fileString)
+					if (files) {
+						for (let i = 0; i < files.length; i++) {
+							let fileString = files[i]
+							await this.redis.sadd(this.sKey, fileString)
+						}
+						this._oneByOne()
 					}
-					this._oneByOne()
 				} else if (object.takeScreenshot) {
 					this._takeScreenshot(object.url, object.path)
 				}
@@ -65,7 +67,8 @@ class Playwright extends Starter {
 					let cmd = 'xvfb-run playwright test --reporter=json ' + toTest
 					await this._spawn(cmd)
 					if (!this._testHasFailed) {
-						this.log('Tests have passed', toTest)
+						let shortPath = (toTest + '').replace(/^.+subsections/, '_')
+						this.log(shortPath + ' has passed')
 					}
 					await this.redis.srem(this.sKey, toTest)
 					this._oneByOneBusy = false
@@ -94,7 +97,7 @@ class Playwright extends Starter {
 			newProcess.stderr.on('data', (error: Buffer) => {
 				let errorString = this._bufferToString(error)
 				if (!errorString.includes('ERR_CONNECTION_REFUSED')) {
-					this.onError(this.label, '_spawn stderr', errorString.substring(0, 512))
+					this.onError(this.label, '_spawn stderr, cmd: ' + cmd, errorString.substring(0, 512))
 				}
 			})
 			newProcess.on('close', () => {
@@ -104,7 +107,6 @@ class Playwright extends Starter {
 			this.onError(this.label, '_spawn', error)
 		})
 	}
-	
 	
 	_bufferToString(buffer: Buffer): string {
 		return buffer.toString().replace(/[^\u0020-\u0256]/g,'').trim()

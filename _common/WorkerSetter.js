@@ -6,6 +6,7 @@ class WorkerSetter {
 		this.onError = onError
 		this.log = log
 		this._resetWorkerCount = 0
+		this._setMethodsUniques = {}
 	}
 	
 	setWorker(pathToWorkerClass, finite) {
@@ -68,9 +69,6 @@ class WorkerSetter {
 	}
 	
 	_setMethods(methods) {
-		if (!this._setMethodsUniques) {
-			this._setMethodsUniques = {}
-		}
 		methods.forEach(methodName => {
 			this.worker[methodName] = (object) => {
 				return new Promise(success => {

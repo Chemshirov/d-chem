@@ -1,0 +1,46 @@
+:root {
+	--miniWidth: 192px;
+	--miniHeight: 108px;
+	--headerPaddingV: 0.25em;
+	--lessTextMaxHeight: 3em;
+	--linkMarginBottom: 2em;
+}
+
+@media screen and (max-width: 1000px) {
+	:root {
+		--miniWidth: 144px;
+		--miniHeight: 81px;
+		--headerPaddingV: 0em;
+		--lessTextMaxHeight: 1.5em;
+		--linkMarginBottom: 1em;
+	}
+}
+
+.link {
+	color: #0d6efd;
+	cursor: pointer;
+	text-decoration: none;
+}
+.link:hover {
+	text-decoration: underline;
+}
+
+.button {
+	background-color: transparent;
+	border: none;
+	padding: 0.5em 1em;
+	border-radius: 0.25rem;
+	cursor: pointer;
+}
+
+.closeButton {
+	position: absolute;
+	top: 0;
+	right: 0;
+	padding: 0.5em;
+	opacity: 0.5;
+}
+.closeButton::after {
+	content: '\00274C';
+	text-shadow: 0 0 0.5em white;
+}

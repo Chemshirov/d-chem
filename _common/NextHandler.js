@@ -17,8 +17,10 @@ class NextHandler {
 	
 	async start() {
 		try {
+			let nextPath = this.projectPath + '.next'
+			let deleteJustFiles = `find ${nextPath} -type f -print0 | xargs -0 rm` // for sure fs.watching
+			// await this._spawn(deleteJustFiles)
 			if (!process.env.SHOW || process.env.STAGE === Settings.productionStageName) {
-				await this._spawn('rm -rf ' + this.projectPath + '.next')
 				await this._spawn('next build')
 				await this._spawn('next start -p ' + Settings.port)
 				this._takeScreenshots()
@@ -27,12 +29,12 @@ class NextHandler {
 				await this._spawn('next dev -p ' + Settings.port)
 				await this._tsc()
 				this.rabbitMQ.receive({ label: 'Watcher', callback: this._onWatcher.bind(this) })
-				this.rabbitMQ.send({
-					rabbitHostName: this.rabbitHostName,
-					label: 'Playwright',
-					pathToTests: this.projectPath + 'tests'
-				})
 			}
+			this.rabbitMQ.send({
+				rabbitHostName: this.rabbitHostName,
+				label: 'Playwright',
+				pathToTests: this.projectPath + 'tests'
+			})
 		} catch (error) {
 			this.onError(this.label, 'start', error)
 		}
@@ -40,7 +42,8 @@ class NextHandler {
 	
 	_spawn(cmd) {
 		return new Promise(success => {
-			let newProcess = childProcess.spawn(`cd ${this.projectPath} && ${cmd}`, {shell: true})
+			let longCmd = `NEXT_TELEMETRY_DISABLED=1 && cd ${this.projectPath} && ${cmd}`
+			let newProcess = childProcess.spawn(longCmd, {shell: true})
 			newProcess.stdout.on('data', data => {
 				let infoString = data.toString().trim()
 				if (infoString.length > 1) {
@@ -58,11 +61,15 @@ class NextHandler {
 			})
 			newProcess.stderr.on('data', error => {
 				let errorString = error.toString()
-				if (!errorString.startsWith('warn') || errorString.includes('Warning')) {
-					this.log(errorString)
+				if (errorString.includes('Warning')) {
+					this.log('Warning', errorString)
 				} else {
-					if (errorString.length > 2) {
-						this.onError(this.label, '_spawn ' + cmd, errorString)
+					let nextjsFailsToSent = errorString.includes('ERR_HTTP_HEADERS_SENT')
+					let nextjsFailsToSent2 = errorString.includes('ERR_STREAM_WRITE_AFTER_END')
+					if ( !(nextjsFailsToSent || nextjsFailsToSent2) ) {
+						if (errorString.length > 2) {
+							this.onError(this.label, '_spawn ' + cmd, errorString)
+						}
 					}
 				}
 			})
@@ -172,12 +179,14 @@ class NextHandler {
 	_hasToSkipTsError(infoString) {
 		let skip = false
 		let noModule = infoString.includes('TS2307')
-		if (noModule && infoString.includes('.module.scss')) {
+		if (noModule && (infoString.includes('.module.scss') || infoString.includes('.module.css'))) {
 			skip = true
 		} else if (noModule && infoString.includes('@playwright/test')) {
 			skip = true
 		} else if (infoString.includes('.d.ts')) {
-			if (infoString.includes('TS1259') || infoString.includes('TS2688') || infoString.includes('TS2717')) {
+			let nextJsBug = infoString.includes('TS2304')
+			let also = infoString.includes('TS1259') || infoString.includes('TS2688') || infoString.includes('TS2717')
+			if (nextJsBug || also) {
 				skip = true
 			}
 		}

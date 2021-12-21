@@ -58,7 +58,6 @@ export default class Playwright {
 		return {
 			browserName: 'webkit',
 			...playwright.devices['iPhone 13 Mini'],
-			screenshot: 'off',
 		}
 	}
 	
@@ -115,6 +114,33 @@ export default class Playwright {
 			return areVisible
 		}, selector)
 		return areVisible
+	}
+	
+	static async getVisibleSizes(page: playwright.Page, selector: string): Promise<tc.keyValue<tc.snb>> {
+		return await page.evaluate((selector: string) => {
+			let object: tc.keyValue<tc.snb> = {}
+			object.vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+			object.vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+			let rect = {} as DOMRect
+			let element = (document.querySelector(selector) as HTMLElement)
+			if (element) {
+				object.eText = element.innerText
+				rect = element.getBoundingClientRect()
+			}
+			if (rect && typeof rect === 'object') {
+				object.eRectString = JSON.stringify(rect)
+				object.er = rect.right
+				object.el = rect.left
+				object.et = rect.top
+				object.eb = rect.bottom
+				object.ew = rect.width
+				object.eh = rect.height
+				if (rect.right || rect.left || rect.top || rect.bottom) {
+					object.ok = true
+				}
+			}
+			return object
+		}, selector)
 	}
 	
 	static async takeScreenshot(label: string): Promise<void> {

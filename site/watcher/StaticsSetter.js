@@ -100,7 +100,7 @@ class StaticsSetter {
 						this._sendToBothStages('Dockerrun', message)
 					} else {
 						if (this._addFileDone && typeof this._addFileDone[object.filePath] === 'function') {
-							this._addFileDone[object.filePath]()
+							this._addFileDone[object.filePath](object.result)
 							delete this._addFileDone[object.filePath]
 						}
 					}

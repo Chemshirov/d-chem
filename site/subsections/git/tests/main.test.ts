@@ -14,4 +14,6 @@ Playwright.test('size check', async ({ page }) => {
 	})
 	await Playwright.test.expect(size.vw).toEqual(Playwright.hd.width)
 	await Playwright.test.expect(size.vh).toEqual(Playwright.hd.height)
+	const topText = page.locator('.container-fluid.text-right > small.text-muted')
+	await Playwright.expect(topText).toContainText('Git started at ')
 })

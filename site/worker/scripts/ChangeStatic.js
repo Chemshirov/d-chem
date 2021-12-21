@@ -37,7 +37,7 @@ class ChangeStatic {
 				}
 			}
 			return answer
-		} catch(error) {
+		} catch (error) {
 			this.onError(this.label, 'add', error)
 		}
 	}
@@ -45,28 +45,30 @@ class ChangeStatic {
 	async _work(clientsPath, fileString) {
 		try {
 			let result = false
-			let stat = fs.statSync(fileString)
-			let fileProperties = {
-				fileString,
-				size: stat.size,
-				lastModified: stat.mtime.toUTCString()
+			let stats = fs.statSync(fileString)
+			if (!stats.isDirectory()) {
+				let fileProperties = {
+					fileString,
+					size: stats.size,
+					lastModified: stats.mtime.toUTCString()
+				}
+				let gzip = false
+				let fileFits = this._isFit(fileString, stats.size)
+				if (fileFits) {
+					let file = fs.readFileSync(fileString)
+					let eTag = sha1(file.toString())
+					fileProperties.eTag = eTag
+					gzip = zlib.gzipSync(file)
+					fileProperties.gzip = !!gzip
+				}
+				let isInLibrary = (/libraries/).test(fileString)
+				if (isInLibrary || (!isInLibrary && !this._isCode(fileString))) {
+					fileProperties.ttl = Settings.staticTtl
+				}
+				await this._addToRedis(clientsPath, fileProperties, gzip)
+				return clientsPath
 			}
-			let gzip = false
-			let fileFits = this._isFit(fileString, stat.size)
-			if (fileFits) {
-				let file = fs.readFileSync(fileString)
-				let eTag = sha1(file.toString())
-				fileProperties.eTag = eTag
-				gzip = zlib.gzipSync(file)
-				fileProperties.gzip = !!gzip
-			}
-			let isInLibrary = (/libraries/).test(fileString)
-			if (isInLibrary || (!isInLibrary && !this._isCode(fileString))) {
-				fileProperties.ttl = Settings.staticTtl
-			}
-			await this._addToRedis(clientsPath, fileProperties, gzip)
-			return clientsPath
-		} catch(error) {
+		} catch (error) {
 			if (!(error && error.code === 'ENOENT')) {
 				this.onError(this.label, 'work catch ' + clientsPath, error)
 			}
@@ -100,6 +102,8 @@ class ChangeStatic {
 			comands.push(['hmset', hKey, object])
 			if (gzip) {
 				comands.push(['set', hKey + ':gzip', gzip])
+			} else {
+				comands.push(['del', hKey + ':gzip'])
 			}
 			await this.redis.pipe(comands)
 		} catch(error) {

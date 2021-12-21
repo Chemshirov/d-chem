@@ -182,7 +182,7 @@ class Redis {
 		let hashes = ['hdel', 'hget', 'hgetall', 'hincrby', 'hmset', 'hset']
 		let lists = ['lpush', 'lrange', 'ltrim']
 		let sets = ['sadd', 'scard', 'smembers', 'srandmember', 'srem']
-		let strings = ['get', 'set']
+		let strings = ['get', 'set', 'del']
 		let commons = ['expire']
 		let functionsList = [...hashes, ...lists, ...sets, ...strings, ...commons]
 		return functionsList

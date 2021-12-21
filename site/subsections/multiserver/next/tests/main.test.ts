@@ -1,4 +1,4 @@
-import Playwright from '../../../../_common/Playwright'
+import Playwright from '../../../../../_common/Playwright'
 
 const label = 'Multiserver'
 let page

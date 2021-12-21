@@ -24,23 +24,6 @@ class RabbitMQextension {
 		this.defaultQueueName = name
 	}
 	
-	reconnect(options) {
-		return new Promise(success => {
-			setTimeout(async () => {
-				try {
-					let uniqueId = this._getQueueUniqueId(options)
-					delete this._connections[uniqueId]
-					await this._getConnection(options)
-					success()
-				} catch (error) {
-					this.onError(this.label, 'reconnect catch', error)
-				}
-			}, Settings.standardTimeout)
-		}).catch(error => {
-			this.onError(this.label, 'reconnect', error)
-		})
-	}
-	
 	getChannel(options) {
 		return new Promise(async success => {
 			let getChannelSuccess = false

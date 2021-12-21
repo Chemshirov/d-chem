@@ -1,0 +1,14 @@
+.list {
+	display: flex;
+	margin-right: 3em;
+	margin-left: 0.5em;
+}
+
+.listMore {
+	flex-wrap: wrap;
+}
+
+.listLess {
+	flex-wrap: nowrap;
+	overflow: hidden;
+}

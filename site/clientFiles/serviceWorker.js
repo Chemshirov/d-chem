@@ -1,4 +1,4 @@
-let cacheName = 'newCacheDate 04/12/2021, 04.14.22'
+let cacheName = 'newCacheDate 21/12/2021, 05.19.18'
 
 try{
 	self.addEventListener('install', event => {
@@ -36,10 +36,11 @@ try{
 			let isQuery = (request.url.split('?').length > 1)
 			if (!isQuery) {
 				let isGitPage = (request.url.includes('/git'))
-				let isLogsPage = (request.url.includes('/logs'))
+				// let isIndexPage = (request.url === '/')
+				let isOldSocketIo = (request.url.endsWith('socket.io/socket.io.js'))
 				let ext = request.url.split('#')[0].split('.').pop()
 				let isBigFile = (ext === 'mp3' || ext === 'mp4')
-				if (!isGitPage && !isLogsPage && !isBigFile) {
+				if (!isGitPage && !isBigFile && !isOldSocketIo) {
 					event.respondWith(getResponse(request))
 				}
 			}

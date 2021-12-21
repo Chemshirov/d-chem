@@ -1,5 +1,4 @@
 import { Component } from 'react'
-import fs from 'fs'
 import Head from 'next/head'
 import MakeTree from '../scripts/MakeTree'
 import Navbar from '../components/Navbar'
@@ -28,7 +27,7 @@ interface IndexState {
 	showLabel: string,
 	list: object
 }
-class Logs extends Component<IndexProps, IndexState> {
+export default class Logs extends Component<IndexProps, IndexState> {
 	label: string
 	websocket: any
 	constructor(props: IndexProps) {
@@ -158,11 +157,11 @@ class Logs extends Component<IndexProps, IndexState> {
 	}
 }
 
-export default Logs
-
-import LogsHandler from '../LogsHandler.js'
+import fs from 'fs'
 import { GetStaticProps } from 'next'
-export const getStaticProps: GetStaticProps = async () => {
+const sda = (process.env.SDA ?? '') as string
+const afterTildaPath = (process.env.AFTER_TILDA ?? '') as string
+export const getStaticProps: GetStaticProps = () => {
 	let props: IndexProps = {
 		domain: '',
 		ip: 'ip',
@@ -174,8 +173,9 @@ export const getStaticProps: GetStaticProps = async () => {
 		error: false
 	}
 	try {
-		let logsHandler = new LogsHandler()
-		props = await logsHandler.getProps()
+		let staticFileString = sda + '/' + afterTildaPath + 'stageSensitive/props.json'
+		let data = fs.readFileSync(staticFileString)
+		props = JSON.parse(data.toString())
 	} catch (error) {
 		props.error = error.toString()
 	}

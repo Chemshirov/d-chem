@@ -13,7 +13,7 @@ class Statics extends WorkerSetter {
 		this.parentContext = parentContext
 		this.currentPath = this.parentContext.currentPath
 		this.label = this.constructor.name
-		this._falseSentUrlCache = {}
+		this._failToSentUrlCache = {}
 		this.statusCodeOk = 200
 	}
 	
@@ -39,19 +39,21 @@ class Statics extends WorkerSetter {
 		try {
 			let sent = false
 			if (!request.upgrade) {
-				if (!this._falseSentUrlCache[url]) {
-					if (!this._isNeedTheExpress(url)) {
-						if (this.worker) {
-							let stage = this._getStageByRequest(request)
-							let fileProps = await this.worker.getFileProps({ url, stage })
-							sent = await this._sendFile(url, fileProps, request, response)
+				if (!this._failToSentUrlCache[url]) {
+					if (!this._isNextJsDev(request)) {
+						if (!this._isNeedTheExpress(url)) {
+							if (this.worker) {
+								let stage = this._getStageByRequest(request)
+								let fileProps = await this.worker.getFileProps({ url, stage })
+								sent = await this._sendFile(url, fileProps, request, response)
+							}
+						} else {
+							this._express(request, response)
+							sent = 'express'
 						}
-					} else {
-						this._express(request, response)
-						sent = 'express'
 					}
 					if (!sent) {
-						this._falseSentUrlCache[url] = true
+						this._failToSentUrlCache[url] = true
 					}
 				}
 			}
@@ -81,8 +83,12 @@ class Statics extends WorkerSetter {
 				if (fileProps.eTag) {
 					headers['ETag'] = fileProps.eTag
 				}
-				if (fileProps.ttl) {
-					headers['Cache-Control'] = 'public, max-age=' + fileProps.ttl + ', immutable'
+				if (request.url && (request.url).split('?').length > 1) {
+					headers['Cache-Control'] = 'no-store, must-revalidate'
+				} else {
+					if (fileProps.ttl) {
+						headers['Cache-Control'] = 'public, max-age=' + fileProps.ttl + ', immutable'
+					}
 				}
 				if (request.method === 'HEAD') {
 					sent = request.method
@@ -209,9 +215,7 @@ class Statics extends WorkerSetter {
 		let reverseUrl = url.split('').reverse().join('')
 		let ext = reverseUrl.split('.')[0].split('').reverse().join('')
 		if (['map', 'mp3', 'mp4'].includes(ext)) {
-			if (!url.endsWith('socket.io.js.map')) {
-				notValid = true
-			}
+			notValid = true
 		}
 		return notValid
 	}
@@ -222,16 +226,18 @@ class Statics extends WorkerSetter {
 				url = url.replace(/__hash__/g, '#')
 			let mapDotExtention = '.map'
 			if (url.endsWith(mapDotExtention)) {
-				let filePathWithoutDotMap = url.substring(0, url.length - 4)
-				let fileProps = await this.worker.getFileProps({ url: filePathWithoutDotMap, stage })
-				if (fileProps) {
-					let filePath = fileProps.fileString + mapDotExtention
-					response.sendFile(filePath)
+				if (url.endsWith('socket.io.js.map')) {
+					response.sendFile('/usr/nodejs/node_modules/socket.io-client/dist/socket.io.js.map')
 				} else {
-					this._expressOnError(response)
+					let filePathWithoutDotMap = url.substring(0, url.length - 4)
+					let fileProps = await this.worker.getFileProps({ url: filePathWithoutDotMap, stage })
+					if (fileProps) {
+						let filePath = fileProps.fileString + mapDotExtention
+						response.sendFile(filePath)
+					} else {
+						this._expressOnError(response)
+					}
 				}
-			} else if (url.includes('ogImage.')) {
-				response.sendFile('/usr/nodejs/sda/development/site/subsections/multiserver/stageSensitive/ogImage.jpg')
 			} else {
 				let sda = process.env.SDA.substring(0, process.env.SDA.length - 1)
 				let fileString = sda + '/' + stage + '/' + process.env.LABEL + '/subsections' + url
@@ -268,6 +274,13 @@ class Statics extends WorkerSetter {
 			errorString = error.toString()
 		}
 		response.end(errorString)
+	}
+	
+	_isNextJsDev(request) {
+		let url = (request.url + '')
+		if (url.includes('_next') && url.includes('?ts=')) {
+			return true
+		}
 	}
 	
 	_getStageByRequest(request) {

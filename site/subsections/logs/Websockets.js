@@ -19,19 +19,10 @@ class Websockets {
 		}
 	}
 	
-	async _redisOnMessage(message) {
-		try {
-			this._sendNews()
-		} catch (error) {
-			this.onError(this.label, '_redisOnMessage', error)
-		}
-	}
-	
 	_socketOnMessage(socket, message) {
 		if (message && message.lastDate) {
-			if (!this._lastDate || !this._isTooOften(message.lastDate)) {
-				this._lastDate = message.lastDate
-				this._sendNews()
+			if (this._lastDate !== message.lastDate) {
+				this._sendNews(socket)
 			}
 		}
 	}
@@ -47,11 +38,15 @@ class Websockets {
 		}
 	}
 	
-	async _sendNews() {
+	async _sendNews(socket) {
 		try {
-			if (this._lastDate) {
-				let news = await this._getRedisNews()
-				this.webSocketIo.sockets.emit(this.socketLabel, { news })
+			let news = await this._getRedisNews()
+			if (news.ok) {
+				if (socket) {
+					socket.emit(this.socketLabel, { news })
+				} else {
+					this.webSocketIo.sockets.emit(this.socketLabel, { news })
+				}
 			}
 		} catch (error) {
 			this.onError(this.label, '_sendNews', error)
@@ -68,10 +63,18 @@ class Websockets {
 		}
 	}
 	
+	async _redisOnMessage(message) {
+		try {
+			this._sendNews()
+		} catch (error) {
+			this.onError(this.label, '_redisOnMessage', error)
+		}
+	}
+	
 	async _getRedisNews() {
 		try {
 			let result = {}
-			this._newMaxDate = this._lastDate
+			this._newMaxDate = '0'
 			if (!this.redis) {
 				this.redis = new Redis(this.onError)
 			}
@@ -81,9 +84,11 @@ class Websockets {
 					let type = types[i]
 					let dataObject = await this._getRedisDataObject(type)
 					result[type] = dataObject
+					result.ok = true
 				}
 			}
 			result.maxDate = this._newMaxDate
+			this._lastDate = this._newMaxDate
 			return result
 		} catch (error) {
 			this.onError(this.label, '_getRedisNews', error)

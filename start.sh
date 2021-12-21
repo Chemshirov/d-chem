@@ -31,7 +31,7 @@ docker network create tilda 1>/dev/null 2>/dev/null;
 
 sdaStagePath="/mnt/sda/$STAGE/"
 fileString="${sdaStagePath}dockerStats.txt"
-pids=($(ps aux | grep -e "bash.*dockerStatsToFile.sh.*$STAGE" | awk {'print $2'}));
+pids=($(ps aux | grep -e "bash.*dockerStatsToFileStarter.sh.*$STAGE" | awk {'print $2'}));
 for i in "${pids[@]}"
 	do :
 		if [ "$$" -ne "$i" ];
@@ -39,7 +39,7 @@ for i in "${pids[@]}"
 			kill -9 $i 1>/dev/null 2>/dev/null;
 		fi;
 done;
-$path/site/watcher/dockerStatsToFile.sh "$fileString" & disown;
+$path/site/watcher/dockerStatsToFileStarter.sh "$STAGE" "$path" "$fileString" & disown;
 echo Docker stats writing to $fileString.;
 
 docker image prune -f 1>/dev/null 2>/dev/null;

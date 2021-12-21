@@ -12,10 +12,10 @@ class WebsocketOnClient {
 	documentIsHidden?: boolean
 	documentIsHiddenDate?: number
 	
-	constructor(label: string) {
+	constructor(label: string, url?: string) {
 		this.label = label
 		this.socket = false
-		this._setSocket()
+		this._setSocket(url)
 		this._setAwaker()
 	}
 	
@@ -25,14 +25,14 @@ class WebsocketOnClient {
 		}
 	}
 	
-	private _setSocket(): void {
+	private _setSocket(url?: string): void {
 		if (!(this.socket && this.socket.connected)) {
 			if (this.socket) {
 				this.socket.disconnect()
 				this.socket = false
 			}
 			
-			this.socket = (io as any)({
+			this.socket = (io as any)((url || undefined), {
 				query: {
 					label: this.label
 				}

@@ -61,21 +61,21 @@ class Watcher extends Starter {
 			filesWatcher.addStringToIgnore('.old')
 			filesWatcher.addStringToIgnore('.log')
 			filesWatcher.addStringToIgnore('pack_')
-			filesWatcher.addStringToIgnore('.next', true)
 			filesWatcher.addStringToIgnore('next-env.d.ts')
 			filesWatcher.addStringToIgnore('stageSensitive/props.json')
 			filesWatcher.addStringToIgnore('stageSensitive/admins.json')
-			await filesWatcher.watchPath(process.env.TILDA + process.env.STAGE)
-			await filesWatcher.watchPath(sda + this.stageLabelPath + 'subsections/data/files/')
-			await filesWatcher.watchPath(sda + this.stageLabelPath + 'subsections/logs/')
-			await filesWatcher.watchPath(sda + this.stageLabelPath + 'subsections/multiserver/')
-			await filesWatcher.watchPath(sda + 'audiobooks')
-			await filesWatcher.watchPath(sda + 'films')
-			await filesWatcher.watchPath(sda + 'music')
+			await filesWatcher.watch(process.env.TILDA + process.env.STAGE)
+			await filesWatcher.watch(sda + this.stageLabelPath + 'subsections/data/files/')
+			await filesWatcher.watch(sda + this.stageLabelPath + 'subsections/logs/')
+			await filesWatcher.watch(sda + this.stageLabelPath + 'subsections/multiserver/')
+			await filesWatcher.watch(sda + this.stageLabelPath + 'subsections/index/')
+			await filesWatcher.watch(sda + 'audiobooks')
+			await filesWatcher.watch(sda + 'films')
+			await filesWatcher.watch(sda + 'music')
 			if (process.env.STAGE === Settings.developmentStageName) {
-				await filesWatcher.watchPath(process.env.TILDA + 'chem_develop/www')
+				await filesWatcher.watch(process.env.TILDA + 'chem_develop/www')
 			} else {
-				await filesWatcher.watchPath(process.env.TILDA + 'chem/https/www')
+				await filesWatcher.watch(process.env.TILDA + 'chem/https/www')
 			}
 		} catch (error) {
 			this.onError(this.label, '_watch', error)
@@ -84,54 +84,49 @@ class Watcher extends Starter {
 	
 	async _onFileChanged(directory, fileName) {
 		try {
+			let has = this._getHas(directory, fileName)
 			let fileString = (directory + '/' + fileName).replace(/[\/]+/g, '/')
-			await this.staticsSetter.addFile(fileString)
-			if (!directory.includes('stageSensitive')) {
+			if (fileName) {
+				this.staticsSetter.addFile(has.fileString)
+			}
+			if (!has.isStageSensitive && !has.isNextJs) {
 				this.syncer.request(directory)
 			}
 			this.rabbitMQ.send({ type: 'FileHasChanged', directory, fileName })
-			this._updateServiceWorkerFile(directory, fileName)
-			if (!fileString.endsWith('stageSensitive/ogImage.png')) {
-				this.log(fileName + ' has been changed (' + fileString + ')')
+			this._updateServiceWorkerFile(has)
+			
+			if (!has.isOgImage && !has.isServiceWorker && !has.isNextJs) {
+				this.log(fileName + ' has been changed (' + directory + ')')
 			}
 		} catch (error) {
 			this.onError(this.label, '_onFileChanged', error)
 		}
 	}
 	
-	async _updateServiceWorkerFile(directory, fileName) {
+	_getHas(directory, fileName) {
+		let has = {}
+			has.fileString = (directory + '/' + fileName).replace(/[\/]+/g, '/')
+			has.isStageSensitive = (directory + '').includes('stageSensitive')
+			has.isOgImage = has.fileString.endsWith('stageSensitive/ogImage.png')
+			has.isServiceWorker = (fileName === 'serviceWorker.js')
+			has.isNextJs = (directory + '').includes('/.next')
+			has.containsWww = (directory + '').includes('www')
+			has.isFileTreeJson = (has.containsWww && fileName === 'fileTree.json')
+			has.isClientFiles = ((directory + '/') === this.clientFilesPath)
+			has.isSubsections = (directory + '').includes('subsections')
+		return has
+	}
+	
+	async _updateServiceWorkerFile(has) {
 		try {
-			let containsWww = directory.includes('www')
-			let isFileTreeJson = (containsWww && fileName === 'fileTree.json')
-			let isClientFiles = ((directory + '/') === this.clientFilesPath)
-			if ((containsWww && !isFileTreeJson) || isClientFiles) {
-				let writeAcknowledgeThatSyncerHasFinishedLastJob = Settings.standardTimeout * 10
-				let ok = false
-				let itself = fileName.includes('serviceWorker.js')
-				if (itself) {
-					let lastWriteTimeout = Date.now() - (this._serviceWorkerAvoidingLoopTime || 0)
-					if (lastWriteTimeout > writeAcknowledgeThatSyncerHasFinishedLastJob * 2) {
-						await this._readServiceWorker()
-						ok = true
-					}
-				} else {
-					ok = true
-				}
-				if (ok) {
-					if (this._updateServiceWorkerFileST) {
-						clearTimeout(this._updateServiceWorkerFileST)
-					}
-					this._updateServiceWorkerFileST = setTimeout(async () => {
-						try {
-							let firstString = [`let cacheName = 'newCacheDate ${new Date().toLocaleString()}'`]
-							let otherStrings = this._serviceWorkerFileStrings
-							let fileContent = firstString.concat(otherStrings).join('\n')
-							this._serviceWorkerAvoidingLoopTime = Date.now()
-							await this._writeServiceWorker(fileContent)
-						} catch (error) {
-							this.onError(this.label, '_updateServiceWorkerFile setTimeout', error)
-						}
-					}, writeAcknowledgeThatSyncerHasFinishedLastJob)
+			if (!has.isStageSensitive && !has.isServiceWorker && !has.isNextJs) {
+				if ((has.containsWww && !has.isFileTreeJson) || has.isClientFiles || has.isSubsections) {
+					let date = new Date().toLocaleString()
+					let firstString = [`let cacheName = 'newCacheDate ${date}'`]
+					let otherStrings = this._serviceWorkerFileStrings
+					let fileContent = firstString.concat(otherStrings).join('\n')
+					this._serviceWorkerAvoidingLoopTime = Date.now()
+					await this._writeServiceWorker(fileContent)
 				}
 			}
 		} catch (error) {

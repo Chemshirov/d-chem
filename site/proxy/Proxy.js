@@ -42,7 +42,7 @@ class Proxy extends Starter {
 	_masterHandler() {
 		return new Promise(success => {
 			this._masterHandlerSuccess = success
-			this.workersAmount = cpus
+			this.workersAmount = (cpus > 8 ? 8 : cpus)
 			for (let i = 0; i < this.workersAmount; i++) {
 				this._fork()
 			}

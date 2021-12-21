@@ -35,23 +35,24 @@ class SiteSections {
 	}
 	
 	_getProxy(request, isProxy) {
-		let url = this.parentContext.getUrl(request)
+		let url = request.url
+		let shortUrl = this.parentContext.getUrl(request)
 		let { hostDomain, originDomain, refererUrl, socketLabel } = this.parentContext.getHeaders(request)
-		let eventualUrl = url
-		if (socketLabel && refererUrl && typeof request.url === 'string' && request.url.includes('socket.io')) {
+		let eventualUrl = shortUrl
+		if (socketLabel && refererUrl && typeof url === 'string' && url.includes('socket.io')) {
 			eventualUrl = refererUrl
 		}
 		let eventualDomain = originDomain || hostDomain
-		let host = this._getHostByUrlAndDomain(eventualUrl, eventualDomain)
+		let host = this._getHostByUrlAndDomain(url, eventualUrl, eventualDomain, request)
 		if (isProxy) {
-			host = this._getHostByUrlAndDomain(socketLabel, eventualDomain)
+			host = this._getHostByUrlAndDomain(url, socketLabel, eventualDomain, request)
 		}
 		if (host) {
 			return this.hosts[host].proxy
 		}
 	}
 	
-	_getHostByUrlAndDomain(url, domain) {
+	_getHostByUrlAndDomain(url, urlLabel, domain, request) {
 		let result = false
 		if (domain) {
 			let hosts = this.domainsToHosts[domain]
@@ -60,7 +61,7 @@ class SiteSections {
 					let urlMarkers = this.hosts[host].urlMarkers
 					if (urlMarkers) {
 						return urlMarkers.some(marker => {
-							if (url === marker || url.startsWith(marker)) {
+							if (urlLabel === marker || url.includes(marker)) {
 								result = host
 								return true
 							}
@@ -91,6 +92,7 @@ class SiteSections {
 				this.hosts[host] = { domains, proxy }
 				this._addDomains(domains, host)
 				this._addMarker(host, '/' + name)
+				this._addMarker(host, 'label=' + name)
 			}
 		})
 	}
@@ -119,11 +121,10 @@ class SiteSections {
 				port: port || Settings.port
 			},
 			ws: true,
-			// proxyTimeout: Settings.standardTimeout,
-			// timeout: Settings.standardTimeout * 3, ////// stops mp4 playing if removed
 			followRedirects: true,
 		}
 		let proxy = proxyServer.createProxyServer(options)
+		proxy.targetHost = host
 		proxy.on('error', (error, request, response) => {
 			if (!(typeof error && error.code === 'ECONNRESET')) {
 				let url = this.parentContext.getUrl(request)
@@ -176,15 +177,17 @@ class SiteSections {
 	_addOldies() {
 		this._addOldie('chem-node', Settings.productionDomains)
 		this._addOldie('chem-dev', Settings.developmentDomains)
+		this._addMarker('chem-node', '/') //
 	}
 	
 	_addOldie(host, domains) {
 		this._addDomains(domains, host)
 		let proxy = this._getProxie(host)
 		this.hosts[host] = { domains, proxy }
+		this._addMarker(host, 'label=chem')
 		this._addMarker(host, '/data')
-		this._addMarker(host, '/')
-		this._addMarker(host, '/chem')
+		this._addMarker(host, '/mosaic')
+		this._addMarker(host, '/chem') //
 	}
 }
 
