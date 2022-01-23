@@ -101,6 +101,21 @@ class FileHandler {
 		})
 	}
 	
+	addToFile(string) {
+		return new Promise(success => {
+			fs.appendFile(this.fileString, string, error => {
+				if (!error) {
+					success(true)
+				} else {
+					success(false)
+					this.onError(this.label, string + ' addToFile ' + this.fileString, error)
+				}
+			})
+		}).catch(error => {
+			this.onError(this.label, 'addToFile catch', error)
+		})
+	}
+	
 	setChown(callback, callbackValue) {
 		return new Promise(success => {
 			fs.chown(this.fileString, 1000, 1000, error => {

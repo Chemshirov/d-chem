@@ -6,7 +6,7 @@
 
 .lessText {
 	max-height: var(--lessTextMaxHeight);
-	line-height: 1.5em;
+	line-height: 1.5;
 	overflow: hidden;
 }
 

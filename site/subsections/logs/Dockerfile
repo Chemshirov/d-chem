@@ -9,5 +9,6 @@ WORKDIR /usr/nodejs
 COPY *.json /usr/nodejs/
 RUN npm install --no-optional
 RUN npx next telemetry disable
+RUN npm install -D @swc/cli @swc/core
 COPY Start.js /usr/nodejs
 CMD [ "npm", "start" ]

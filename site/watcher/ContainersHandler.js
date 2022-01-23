@@ -8,7 +8,6 @@ class ContainersHandler {
 		this.rabbitMQ = setupObject.rabbitMQ
 		this.redis = setupObject.redis
 		this.label = this.constructor.name
-		
 		this.sKey = 'Containers'
 	}
 	
@@ -34,21 +33,27 @@ class ContainersHandler {
 			if (containersList) {
 				for (let i = 0; i < containersList.length; i++) {
 					let containerName = containersList[i]
-					let hKey = this.sKey + ':' + containerName
-					let memoryUsed = await this.redis.hget(hKey, 'mem')
-					let previousMemoryUsed = this._memoryLimiter[containerName] || 0
-					let limit = Settings.watcherMemoryLimitForContainerName(containerName)
-					if (memoryUsed > limit && previousMemoryUsed > limit) {
-						let containerPath = await this.redis.hget(hKey, 'path')
-						let data = [ containerName, memoryUsed, previousMemoryUsed ]
-						this.log({ label: 'memoryLimitRestart', data })
-						let message = {
-							type: 'start',
-							path: containerPath
+					let hKey = this.sKey + ':metrics'
+					let metrics = await this.redis.hget(hKey, containerName)
+					if (typeof metrics === 'string' && metrics.includes(':')) {
+						let memoryUsed = metrics.split(':')[1]
+						if (!(/^[0-9\.]+$/).test(memoryUsed)) {
+							this.log('_memoryLimiter have encountered strange memoryUsed: ', memoryUsed, containerName)
 						}
-						this.rabbitMQ.send({ label: 'Dockerrun', message })
+						let previousMemoryUsed = this._memoryLimiter[containerName] || 0
+						let limit = Settings.watcherMemoryLimitForContainerName(containerName)
+						if (memoryUsed > limit && previousMemoryUsed > limit) {
+							let containerPath = await this.redis.hget(this.sKey + ':' + containerName, 'path')
+							let data = { containerName, memoryUsed, previousMemoryUsed, limit, containerPath }
+							this.log({ label: 'memoryLimitRestart', data })
+							let message = {
+								type: 'start',
+								path: containerPath
+							}
+							this.rabbitMQ.send({ label: 'Dockerrun', message })
+						}
+						this._memoryLimiter[containerName] = memoryUsed
 					}
-					this._memoryLimiter[containerName] = memoryUsed
 				}
 			}
 		} catch (error) {

@@ -1,37 +1,17 @@
 import * as t from '../types/types'
 import { Component } from 'react'
+import Imager from './Imager'
 import styles from '../styles/noteAtFullscreen.module.css'
 
-export default class NoteAtFullscreen extends Component<t.noteAtFullscreenProps, t.noteAtFullscreenStats> {
+export default class NoteAtFullscreen extends Component<t.noteAtFullscreenProps, t.noteAtFullscreenState> {
+	private _onEventCallbacks: t.obj<t.eventHandler>
+	
 	constructor(props: t.noteAtFullscreenProps) {
 		super(props)
 		this.state = {
 			showHeader: true,
 		}
-		this.props.setKeydownCallback(this._onKeydown.bind(this))
-	}
-	
-	private _getInitialStyle(): t.obj<string> {
-		let style: t.obj<string> = {}
-		if (this.props.data) {
-			let url = this.props.data.note.fileName
-			style.backgroundImage = 'url(' + url + ')'
-			if (this.props.data.anotherDomain) {
-				style.backgroundImage = 'url("https://' + this.props.data.anotherDomain + url + '"), url("' + url + '")'
-			}
-			
-			let imageAspect = this.props.data.note.width / this.props.data.note.height
-			let viewportAspect = this.props.fullscreenWidth / this.props.fullscreenHeight
-			let height = this.props.fullscreenWidth / imageAspect
-			let width = this.props.fullscreenHeight * imageAspect
-			style.backgroundSize = this.props.fullscreenWidth + 'px ' + height + 'px'
-			style.backgroundPosition = '0px ' + ((this.props.fullscreenHeight - height) / 2) + 'px'
-			if (imageAspect < viewportAspect) {
-				style.backgroundSize = width + 'px ' + this.props.fullscreenHeight + 'px'
-				style.backgroundPosition = ((this.props.fullscreenWidth - width) / 2) + 'px 0px'
-			}
-		}
-		return style
+		this._onEventCallbacks = {}
 	}
 	
 	private _onClose(): void {
@@ -42,17 +22,34 @@ export default class NoteAtFullscreen extends Component<t.noteAtFullscreenProps,
 		this.setState({ showHeader: true })
 	}
 	
-	private _onKeydown(event): boolean {
-		if (event.keyCode === 27) {
-			if (!this.state.showHeader) {
-				this._onReturnHeader()
-				return true
+	private _onEvents(event): void {
+		let onEvent = this._onEventCallbacks[event.type]
+		if (typeof onEvent === 'function') {
+			if (!['keydown', 'mousedown', 'mousemove', 'mouseup'].includes(event.type)) {
+				event.preventDefault()
 			}
-		} else if (event.keyCode === 38) {
-			this._onClose()
-		} else if (event.keyCode === 40) {
-			this._onReturnHeader()
+			onEvent(event)
 		}
+		if (event.type === 'keydown') {
+			if (event.keyCode === 27) {
+				if (!this.state.showHeader) {
+					this.props.setKeydownBlock(event.keyCode, this.constructor.name)
+					this._onReturnHeader()
+				} else {
+					this.props.setKeydownBlock(event.keyCode)
+				}
+			} else if (event.keyCode === 38) {
+				event.preventDefault()
+				this._onClose()
+			} else if (event.keyCode === 40) {
+				event.preventDefault()
+				this._onReturnHeader()
+			}
+		}
+	}
+	
+	_setOnEventCallback(type, callback) {
+		this._onEventCallbacks[type] = callback
 	}
 	
 	private _onDownload(): void {
@@ -86,7 +83,7 @@ export default class NoteAtFullscreen extends Component<t.noteAtFullscreenProps,
 						/>
 						<button
 							type="button"
-							className={'button ' + styles.download}
+							className={'button beforeCloseButton ' + styles.download}
 							onClick={this._onDownload.bind(this)}
 						/>
 						<div>
@@ -159,17 +156,35 @@ export default class NoteAtFullscreen extends Component<t.noteAtFullscreenProps,
 	}
 	
 	render(): JSX.Element {
-		let style = this._getInitialStyle()
+		let imageText = this.props.data.note.title
+		if (this.props.data.note.text) {
+			imageText += '. ' + this.props.data.note.text
+		}
 		return (
 			<div
 				className={styles.wh100 + ' ' + styles.fullscreen}
 			>
-				<div
-					className={styles.wh100 + ' ' + styles.image}
-					style={style}
+				<Imager
+					url={this.props.data.note.fileName}
+					anotherDomain={this.props.data.anotherDomain}
+					title={this.props.data.note.title}
+					alt={imageText}
+					frameWidth={this.props.fullscreenWidth}
+					frameHeight={this.props.fullscreenHeight}
+					imageWidth={this.props.data.note.width}
+					imageHeight={this.props.data.note.height}
+					setOnEventCallback={this._setOnEventCallback.bind(this)}
 				/>
 				{this._getHeader()}
 			</div>
 		)
+	}
+	
+	componentDidMount(): void {
+		this.props.setEventHandler('NoteAtFullscreen', this._onEvents.bind(this))
+	}
+	
+	componentWillUnmount(): void {
+		this.props.setEventHandler('NoteAtFullscreen', null)
 	}
 }

@@ -2,7 +2,7 @@ import * as tc from './types'
 import * as io from 'socket.io-client'
 const Settings: tc.settings = require('../../stagePath/_common/Settings')
 
-class WebsocketOnClient {
+export default class WebsocketOnClient {
 	label: string
 	socket: false | io.Socket
 	onData?: (data: object) => void
@@ -26,36 +26,38 @@ class WebsocketOnClient {
 	}
 	
 	private _setSocket(url?: string): void {
-		if (!(this.socket && this.socket.connected)) {
-			if (this.socket) {
-				this.socket.disconnect()
-				this.socket = false
-			}
-			
-			this.socket = (io as any)((url || undefined), {
-				query: {
-					label: this.label
+		if (typeof navigator !== 'undefined') {
+			if (!(this.socket && this.socket.connected)) {
+				if (this.socket) {
+					this.socket.disconnect()
+					this.socket = false
 				}
-			})
-			
-			if (this.socket) {
-				this.socket.on(this.label, (data: any) => {
-					if (data) {
-						if (this.onData) {
-							this.onData(data)
+				
+				this.socket = (io as any)((url || undefined), {
+					query: {
+						label: this.label
+					}
+				})
+				
+				if (this.socket) {
+					this.socket.on(this.label, (data: any) => {
+						if (data) {
+							if (this.onData) {
+								this.onData(data)
+							}
 						}
-					}
-				})
-				this.socket.on('connect', () => {
-					if (this.onConnected) {
-						this.onConnected()
-					}
-				})
-				this.socket.on('disconnect', () => {
-					if (this.onDisconnected) {
-						this.onDisconnected()
-					}
-				})
+					})
+					this.socket.on('connect', () => {
+						if (this.onConnected) {
+							this.onConnected()
+						}
+					})
+					this.socket.on('disconnect', () => {
+						if (this.onDisconnected) {
+							this.onDisconnected()
+						}
+					})
+				}
 			}
 		}
 	}
@@ -93,5 +95,3 @@ class WebsocketOnClient {
 		}
 	}
 }
-
-module.exports = WebsocketOnClient

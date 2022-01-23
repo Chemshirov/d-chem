@@ -56,7 +56,7 @@ export type settings = {
 	readonly timeZone: number,
 }
 
-type RabbitMQreceive = keyValue<string | number | ((object: any) => void)>
+type RabbitMQreceive = keyValue<string | number | ((object: any) => void)> | ((object: any) => void)
 type RabbitMQsend = keyValue<string | number | keyValue<any>>
 
 export type RabbitMQ = {

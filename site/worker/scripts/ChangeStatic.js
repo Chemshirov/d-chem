@@ -90,22 +90,24 @@ class ChangeStatic {
 	}
 	
 	_isCode(fileString) {
-		return (/^.+\.(js|jsx|json|ts|css)$/).test(fileString)
+		let hasRightExtention = (/^.+\.(js|jsx|json|ts|tsx|css|scss|map)$/).test(fileString)
+		let isSocketIoDist = fileString.includes('socket.io')
+		return (hasRightExtention || isSocketIoDist)
 	}
 	
 	async _addToRedis(fromString, object, gzip) {
 		try {
-			let comands = []
+			let commands = []
 			let sKey = 'StaticFiles:List'
-			comands.push(['sadd', sKey, fromString])
+			commands.push(['sadd', sKey, fromString])
 			let hKey = 'StaticFiles:' + fromString
-			comands.push(['hmset', hKey, object])
+			commands.push(['hmset', hKey, object])
 			if (gzip) {
-				comands.push(['set', hKey + ':gzip', gzip])
+				commands.push(['set', hKey + ':gzip', gzip])
 			} else {
-				comands.push(['del', hKey + ':gzip'])
+				commands.push(['del', hKey + ':gzip'])
 			}
-			await this.redis.pipe(comands)
+			await this.redis.pipe(commands)
 		} catch(error) {
 			this.onError(this.label, '_addToRedis', error)
 		}

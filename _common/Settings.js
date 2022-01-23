@@ -258,6 +258,7 @@ class Settings {
 		let subsections = labelPath + 'subsections'
 		let sdaLabelPath = Settings.sda + Settings.stage + '/' + Settings.label + '/'
 		let list = {
+			['/usr/nodejs/node_modules/socket.io-client/dist/']: ['/socket.io/'],
 			[process.env.TILDA + 'libraries/']: ['/libraries/', '/js/'],
 			[labelPath + 'clientFiles/']: ['/'],
 			[subsections +  '/finance6/www_old/']: ['/finance6/'],
@@ -274,7 +275,6 @@ class Settings {
 			[sdaLabelPath + 'subsections/index/']: ['/index/', '/passport/'],
 			[sdaLabelPath + 'subsections/index/stageSensitive/']: ['/index/'],
 			
-			[sdaLabelPath + 'subsections/data/files/']: ['/data/files/'],
 			[Settings.sda + 'audiobooks/']: ['/audiobooks/'],
 			[Settings.sda + 'films/']: ['/films/'],
 			[Settings.sda + 'music/']: ['/music/'],
@@ -288,6 +288,9 @@ class Settings {
 			list[process.env.TILDA + 'chem/https/www/index/'] = ['/index/']
 			list[process.env.TILDA + 'chem/https/www/js/'] = ['/js/']
 		}
+		list[Settings.sda + Settings.productionStageName + '/' + Settings.label + '/subsections/data/files/'] = ['/data/files/']
+		list[Settings.sda + Settings.developmentStageName + '/' + Settings.label + '/subsections/data/files/'] = ['/data/files/']
+		
 		return list
 	}
 	static get staticMimeTypes() {
@@ -326,9 +329,12 @@ class Settings {
 	static watcherMemoryLimitForContainerName(containerName) {
 		let limit = Settings.watcherMemoryLimitStandard
 		if (containerName) {
-			let suffix = '-' + Settings.label + '_'
-			let regExp = new RegExp('^[dp]' + suffix + '(.+)$')
-			let shortName = containerName.replace(regExp, '$1')
+			let shortName = containerName.replace(/^[dp]\-/, '')
+			if (containerName.includes(Settings.label)) {
+				let suffix = '-' + Settings.label + '_'
+				let regExp = new RegExp('^[dp]' + suffix + '(.+)$')
+				shortName = containerName.replace(regExp, '$1')
+			}
 			let containerLimit = Settings.watcherMemoryLimitList[shortName]
 			if (containerLimit) {
 				limit = containerLimit
@@ -341,12 +347,12 @@ class Settings {
 			'logs': 500,
 			'multiserver': 1500,
 			'playwright': 500,
-			'proxy': 750,
+			'proxy': 900,
 			'worker': 2000,
 		}
 	}
 	static get watcherMemoryLimitStandard() {
-		return 300
+		return 400
 	}
 	static get watcherWait() {
 		return 1000 * 60

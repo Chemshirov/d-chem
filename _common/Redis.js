@@ -123,11 +123,14 @@ class Redis {
 		let handler = {
 			apply: (target, thisArg, argumentsList) => {
 				return new Promise(success => {
+					let done = false
 					if (argumentsList.length) {
 						if (this._asyncRedisClient) {
 							argumentsList.push(this._redisCallback.bind(this, target.name, success))
+							done = true
 						} else {
 							success(false)
+							done = true
 						}
 					}
 					setTimeout(() => {

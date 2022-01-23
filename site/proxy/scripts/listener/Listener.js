@@ -4,11 +4,12 @@ const SiteSections = require('./SiteSections.js')
 const Statics = require('../statics/Statics.js')
 
 class Listener {
-	constructor(onError, log, currentPath, port) {
+	constructor(onError, log, currentPath, port, onRequest) {
 		this.onError = onError
 		this.log = log
 		this.currentPath = currentPath
 		this.port = port
+		this.onRequest = onRequest
 		this.label = this.constructor.name
 	}
 	

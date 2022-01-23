@@ -2,10 +2,13 @@
 	position: fixed;
 	top: 0;
 	left: 0;
-	bottom: 0;
 	right: 0;
-	display: block;
+	height: calc(var(--vh, 1vh) * 100);
+	min-height: calc(var(--vh, 1vh) * 100);
+	max-height: calc(var(--vh, 1vh) * 100);
+	display: flex;
 	background-color: white;
+	overflow: hidden;
 }
 
 .hide {
@@ -13,5 +16,5 @@
 }
 
 .button {
-	font-size: 1.5em;
+	font-size: 1.25em;
 }

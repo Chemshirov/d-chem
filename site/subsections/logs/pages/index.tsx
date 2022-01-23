@@ -51,16 +51,17 @@ export default class Logs extends Component<IndexProps, IndexState> {
 		}
 	}
 	
-	protected _setSocket() {
-		let label = this.label.toLowerCase()
-		let lastDate = this.state.lastDate
-		let callback = this._onNews.bind(this)
-		this.websocket = new Websockets(label, lastDate, callback)
-		this.websocket.setLastDate(lastDate)
-		this.websocket.getNews()
+	protected _setSocket(): void {
+		if (!this.websocket) {
+			let label = this.label.toLowerCase()
+			let lastDate = this.state.lastDate
+			let callback = this._onNews.bind(this)
+			this.websocket = new Websockets(label, lastDate, callback)
+			this.websocket.getNews()
+		}
 	}
 	
-	protected _onNews(data) {
+	protected _onNews(data): void {
 		// Error: if no errors at start then no new ones will be added
 		let {logs, errors, tree} = new MakeTree(this.state.logs, this.state.errors, data).get()
 		let newList = this._getList(this.state.showLabel, tree)
@@ -74,7 +75,7 @@ export default class Logs extends Component<IndexProps, IndexState> {
 		this.websocket.setLastDate(data.maxDate)
 	}
 	
-	protected _onNavButtonClick(name) {
+	protected _onNavButtonClick(name): void {
 		let newList = this._getList(name)
 		this.setState({
 			showLabel: name,
@@ -87,7 +88,7 @@ export default class Logs extends Component<IndexProps, IndexState> {
 			showLabel = this.state.showLabel
 		}
 		if (!tree) {
-			tree = this.state.tree
+			tree = Object.assign({}, this.state.tree)
 		}
 		if (showLabel !== Settings.allName) {
 			if (showLabel.startsWith(Settings.typesName)) {

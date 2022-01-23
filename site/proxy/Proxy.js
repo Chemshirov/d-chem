@@ -1,49 +1,66 @@
 const cluster = require('cluster')
 const cpus = require('os').cpus().length
-const FilesWatcher = require('../../_common/FilesWatcher.js')
-const Listener = require('./scripts/listener/Listener.js')
+const Server = require('./scripts/Server.js')
 const Settings = require('../../_common/Settings.js')
+const Smtp = require('./scripts/Smtp.js')
 const Starter = require('../../_common/Starter.js')
 
 class Proxy extends Starter {
-	constructor(currentPath) {
+	constructor() {
 		super()
-		this.currentPath = currentPath
 		this.label = this.constructor.name
+		this._portsWorkers = {
+			[Settings.port]: {},
+			[Settings.portS]: {},
+		}
+		this._requestCount = 0
+		this._onCertificatesChangedST = false
 	}
 	
 	async atStart() {
 		try {
 			if (cluster.isMaster) {
-				this.listener80 = new Listener(this.onError.bind(this), this.log, this.currentPath, Settings.port)
-				await this.listener80.start()
-				this.listener43111 = new Listener(this.onError.bind(this), this.log, this.currentPath, Settings.portChem)
-				await this.listener43111.start()
-				await this._masterHandler()
+				await this.getDomainAndIps()
+				let onRequest = this._onRequest.bind(this)
+				await this._setServer(Settings.portChem, onRequest)
+				await this._setWorkers()
+				this.rabbitMQ.receive({
+					label: 'Watcher',
+					callback: this._onWatcher.bind(this)
+				})
+				// new Smtp(this.boundOnError, this.log, 25)
+				// new Smtp(this.boundOnError, this.log, 465)
+				// this._setRps()
 			} else {
-				this.listener443 = new Listener(this.onError.bind(this), this.log, this.currentPath, Settings.portS)
-				await this.listener443.start()
-				let filesWatcher = new FilesWatcher(this.onError.bind(this))
-				filesWatcher.onFileChanged(this._onCertificatesChanged.bind(this))
-				await filesWatcher.watchPath('/usr/nodejs/le')
+				await this._setServer(Settings.port)
+				await this._setServer(Settings.portS)
 			}
-			this.rabbitMQ.receive({
-				callback: this._onReceive.bind(this)
-			})
-			this.rabbitMQ.receive({
-				label: 'Dockerrun',
-				callback: this._onDockerrunMessage.bind(this)
-			})
 		} catch (error) {
 			this.onError(this.label, 'atStart', error)
 		}
 	}
 	
-	_masterHandler() {
+	async _setServer(port, onRequest) {
+		try {
+			let server = new Server(this.boundOnError, this.log, port, this.rabbitMQ)
+			await server.start(onRequest)
+			if (onRequest) {
+				this.log('Server has started at port ' + port)
+			}
+		} catch (error) {
+			this.onError(this.label, '_setServer', error)
+		}
+	}
+	
+	_onRequest(port) {
+		this._requestCount++
+	}
+	
+	_setWorkers() {
 		return new Promise(success => {
-			this._masterHandlerSuccess = success
-			this.workersAmount = (cpus > 8 ? 8 : cpus)
-			for (let i = 0; i < this.workersAmount; i++) {
+			this._setWorkersSuccess = success
+			this._workersAmount = (cpus > 8 ? (cpus / 2) : cpus)
+			for (let i = 0; i < this._workersAmount; i++) {
 				this._fork()
 			}
 			cluster.on('exit', (worker, code, signal) => {
@@ -60,10 +77,12 @@ class Proxy extends Starter {
 	_fork() {
 		let worker = cluster.fork()
 		worker.on('message', message => {
-			if (message.started) {
-				this._onWorkerHasStarted(worker.id, message.started)
-			} else if (message.label === 'addToCache') {
-				// this._sendToAllWorkers(message)
+			if (message.started && message.port) {
+				let port = message.port
+				this._portsWorkers[port][worker.id] = worker
+				this._ifWorkerIsTheLast(port)
+			} else if (message.onRequest) {
+				this._onRequest(message.onRequest)
 			}
 		})
 		worker.on('error', error => {
@@ -71,67 +90,52 @@ class Proxy extends Starter {
 		})
 	}
 	
-	_onWorkerHasStarted(id, port) {
-		if (!this._onWorkerHasStartedObject) {
-			this._onWorkerHasStartedObject = {}
-		}
-		if (!this._onWorkerHasStartedObject[port]) {
-			this._onWorkerHasStartedObject[port] = {}
-		}
-		this._onWorkerHasStartedObject[port][id] = true
-		
-		let amount = Object.keys(this._onWorkerHasStartedObject[port]).length
-		if (amount === this.workersAmount) {
-			this.log(`Server started with ${this.workersAmount} workers at port ${port}`)
-			if (typeof this._masterHandlerSuccess === 'function') {
-				this._masterHandlerSuccess()
+	_ifWorkerIsTheLast(port) {
+		let ports = Object.keys(this._portsWorkers)
+		let completedPorts = {}
+		ports.forEach(port => {
+			let workers = Object.keys(this._portsWorkers[port])
+			if (workers.length === this._workersAmount) {
+				this.log(`Server has started with ${workers.length} workers at port ${port}`)
+				completedPorts[port] = true
+			}
+		})
+		if (Object.keys(completedPorts).length === ports.length) {
+			if (typeof this._setWorkersSuccess === 'function') {
+				this._setWorkersSuccess()
 			}
 		}
 	}
 	
-	_sendToAllWorkers(message) {
-		if (typeof cluster.workers === 'object') {
-			Object.keys(cluster.workers).forEach(workerId => {
-				let worker = cluster.workers[workerId]
-				worker.send(message)
-			})
-		}
-	}
-	
-	_onCertificatesChanged(directory) {
-		if (this._onCertificatesChangedST) {
-			clearTimeout(this._onCertificatesChangedST)
-		}
-		this._onCertificatesChangedST = setTimeout(() => {
-			let domain = directory.replace(/^\/.+\/([^\/]+)$/, '$1')
-			if (this.listener443) {
-				this.listener443.onCertificatesChanged(domain)
-			}
-		}, Settings.proxyResetTimeout)
-	}
-	
-	_onDockerrunMessage(object) {
-		if (object.type === 'started') {
-			if (object.startedLabel !== this.label) {
-				let listener = this._getListener()
-				if (listener) {
-					listener.restartSection(object.host)
+	_onWatcher(object) {
+		if (object && typeof object === 'object') {
+			if (object.type === 'FileHasChanged') {
+				let directory = (object.directory + '')
+				if (directory.includes('/le/')) {
+					let domain = directory.replace(/^\/.+le\/([^\/]+)\/$/, '$1')
+					if (Settings.domains.includes(domain)) {
+						if (this._onCertificatesChangedST) {
+							clearTimeout(this._onCertificatesChangedST)
+						}
+						this._onCertificatesChangedST = setTimeout(() => {
+							let workers = Object.keys(this._portsWorkers[Settings.portS])
+							workers.forEach(workerId => {
+								let worker = this._portsWorkers[Settings.portS][workerId]
+								worker.send('restart')
+							})
+							this.log('Port ' + Settings.portS + ' has been restarted due to new ssl certificates')
+						}, Settings.proxyResetTimeout)
+					}
 				}
 			}
 		}
 	}
 	
-	_onReceive(object) {
-		if (object.request === 'changeStatic' && object.method === 'add') {
-			let listener = this._getListener()
-			if (listener) {
-				listener.onNewFileList({ fileList: object.result, stage: object.stage })
-			}
-		}
-	}
-	
-	_getListener() {
-		return this.listener80 || this.listener443 || this.listener43111
+	_setRps() {
+		setInterval(() => {
+			// this.log('requests per second: ', this._requestCount)
+			this._requestCount = 0
+		}, 1000)
 	}
 }
 

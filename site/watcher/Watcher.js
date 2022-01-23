@@ -65,6 +65,7 @@ class Watcher extends Starter {
 			filesWatcher.addStringToIgnore('stageSensitive/props.json')
 			filesWatcher.addStringToIgnore('stageSensitive/admins.json')
 			await filesWatcher.watch(process.env.TILDA + process.env.STAGE)
+			await filesWatcher.watch('/usr/nodejs/le')
 			await filesWatcher.watch(sda + this.stageLabelPath + 'subsections/data/files/')
 			await filesWatcher.watch(sda + this.stageLabelPath + 'subsections/logs/')
 			await filesWatcher.watch(sda + this.stageLabelPath + 'subsections/multiserver/')
@@ -89,14 +90,14 @@ class Watcher extends Starter {
 			if (fileName) {
 				this.staticsSetter.addFile(has.fileString)
 			}
-			if (!has.isStageSensitive && !has.isNextJs) {
+			if (!has.isStageSensitive && !has.isNextJs && !has.isLetsEncrypt) {
 				this.syncer.request(directory)
 			}
 			this.rabbitMQ.send({ type: 'FileHasChanged', directory, fileName })
 			this._updateServiceWorkerFile(has)
 			
-			if (!has.isOgImage && !has.isServiceWorker && !has.isNextJs) {
-				this.log(fileName + ' has been changed (' + directory + ')')
+			if (!has.isOgImage && !has.isServiceWorker && !has.isNextJs && has.isNotCurrentLetsEncrypt) {
+				this.log(fileName + ' has been changed (' + directory + ')') 
 			}
 		} catch (error) {
 			this.onError(this.label, '_onFileChanged', error)
@@ -114,12 +115,27 @@ class Watcher extends Starter {
 			has.isFileTreeJson = (has.containsWww && fileName === 'fileTree.json')
 			has.isClientFiles = ((directory + '/') === this.clientFilesPath)
 			has.isSubsections = (directory + '').includes('subsections')
+			has.isUserDataFiles = (directory + '').includes(process.env.LABEL + '/data/files')
+			has.isLetsEncrypt = (directory + '').includes('nodejs/le')
+			
+			let isNotCurrentLetsEncrypt = true
+			let currentDomains = Settings.developmentDomains
+			if (Settings.stage === Settings.productionStageName) {
+				currentDomains = Settings.productionDomains
+			}
+			for (let i = 0; i < currentDomains.length; i++) {
+				let currentDomain = currentDomains[i]
+				if ((directory + '').includes('nodejs/le/' + currentDomain)) {
+					isNotCurrentLetsEncrypt = false
+				}
+			}
+			has.isNotCurrentLetsEncrypt = isNotCurrentLetsEncrypt
 		return has
 	}
 	
 	async _updateServiceWorkerFile(has) {
 		try {
-			if (!has.isStageSensitive && !has.isServiceWorker && !has.isNextJs) {
+			if (!has.isStageSensitive && !has.isServiceWorker && !has.isNextJs && !has.isUserDataFiles) {
 				if ((has.containsWww && !has.isFileTreeJson) || has.isClientFiles || has.isSubsections) {
 					let date = new Date().toLocaleString()
 					let firstString = [`let cacheName = 'newCacheDate ${date}'`]

@@ -32,7 +32,9 @@ export default class Info extends Component<t.infoLinkIndexProps> {
 	private _getText(): Array<JSX.Element> {
 		let jsx = []
 		jsx.push(
-			<span key="span">
+			<span 
+				key="span"
+			>
 				{this.props.text}
 			</span>
 		)
@@ -52,7 +54,7 @@ export default class Info extends Component<t.infoLinkIndexProps> {
 	render(): JSX.Element {
 		let moreLessClass = styles.lessText
 		if (this.props.showMore) {
-			moreLessClass = styles.moreText
+			moreLessClass = ''
 		}
 		return (
 			<div className={styles.block}>

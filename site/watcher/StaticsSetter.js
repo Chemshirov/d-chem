@@ -65,7 +65,7 @@ class StaticsSetter {
 					let array = stdout.split('\n')
 					for (let i = 0; i < array.length; i++) {
 						let filePath = array[i]
-						if (filePath && !(/\.(mp[3-4]|map)$/).test(filePath)) {
+						if (filePath) {
 							files.push(filePath)
 						}
 					}

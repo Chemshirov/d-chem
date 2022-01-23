@@ -6,7 +6,7 @@
 }
 
 .name {
-	font-weight: lighter;
+	font-weight: normal;
 	padding: var(--headerPaddingV) 0.5em;
 	margin: 0;
 }

@@ -1,18 +1,18 @@
 const child_process = require('child_process')
 const proxyServer = require('http-proxy')
-const Settings = require('../../../../_common/Settings.js')
+const RequestHandler = require('./RequestHandler.js')
+const ResponseHandler = require('./ResponseHandler.js')
+const Settings = require('../../../_common/Settings.js')
 
 class SiteSections {
-	constructor(parentContext) {
-		this.parentContext = parentContext
-		this.onError = this.parentContext.onError
+	constructor(onError) {
+		this.onError = onError
 		this.label = this.constructor.name
 		this.hosts = {}
 		this.domainsToHosts = {}
-		this.getProxy = this._getProxy.bind(this)
 	}
 	
-	async getAll() {
+	async start() {
 		try {
 			let developmentList = await this._getDirectories(process.env.TILDA + Settings.developmentStageName)
 			this._addSections(developmentList)
@@ -20,36 +20,40 @@ class SiteSections {
 			this._addSections(productionList)
 			this._addOldies()
 		} catch (error) {
-			this.onError(this.label, 'getAll', error)
+			this.onError(this.label, 'start', error)
 		}
 	}
 	
 	restartSection(host) {
 		let ok = false
 		if (this.hosts[host]) {
-			let proxy = this._getProxie(host)
-			this.hosts[host].proxy = proxy
+			this._addProxy(host)
+			this._addWsProxy(host)
 			ok = true
 		}
 		return ok
 	}
 	
-	_getProxy(request, isSocket) {
-		let url = request.url
-		let shortUrl = this.parentContext.getUrl(request)
-		let { hostDomain, originDomain, refererUrl, socketLabel } = this.parentContext.getHeaders(request)
-		let eventualUrl = shortUrl
+	getProxies(request, isSocket) {
+		let proxy, wsProxy
+		let requestHandler = new RequestHandler(request)
+		let url = requestHandler.url
+		let cleanUrl = requestHandler.getCleanUrl()
+		let { hostDomain, originDomain, refererUrl, socketLabel } = requestHandler.getHeaders(request)
+		let eventualUrl = cleanUrl
 		if (socketLabel && refererUrl && typeof url === 'string' && url.includes('socket.io')) {
 			eventualUrl = refererUrl
 		}
 		let eventualDomain = originDomain || hostDomain
-		let host = this._getHostByUrlAndDomain(url, (isSocket ? socketLabel : eventualUrl), eventualDomain, request)
+		let host = this._getHostByUrlAndDomain(url, (isSocket ? socketLabel : eventualUrl), eventualDomain)
 		if (host) {
-			return this.hosts[host].proxy
+			proxy = this.hosts[host].proxy
+			wsProxy = this.hosts[host].wsProxy
 		}
+		return { proxy, wsProxy }
 	}
 	
-	_getHostByUrlAndDomain(url, urlLabel, domain, request) {
+	_getHostByUrlAndDomain(url, urlLabel, domain) {
 		let result = false
 		if (domain) {
 			let hosts = this.domainsToHosts[domain]
@@ -77,16 +81,17 @@ class SiteSections {
 				let cleanPathOut = new RegExp(/^.+\/([^\/]+)$/)
 				let name = path.replace(cleanPathOut, '$1')
 				
-				let prefix = Settings.developmentStageName.charAt(0)
+				let prefix = Settings.developmentStageName.substring(0, 1)
 				let domains = Settings.developmentDomains
 				if (path.includes(Settings.productionStageName)) {
-					prefix = Settings.productionStageName.charAt(0)
+					prefix = Settings.productionStageName.substring(0, 1)
 					domains = Settings.productionDomains
 				}
 				let host = prefix + '-' + process.env.LABEL + '_' + name
 				
-				let proxy = this._getProxie(host)
-				this.hosts[host] = { domains, proxy }
+				this.hosts[host] = { domains }
+				this._addProxy(host)
+				this._addWsProxy(host)
 				this._addDomains(domains, host)
 				this._addMarker(host, '/' + name)
 				this._addMarker(host, 'label=' + name)
@@ -110,7 +115,7 @@ class SiteSections {
 		this.hosts[host].urlMarkers.push(marker)
 	}
 	
-	_getProxie(host, port) {
+	_getProxy(host, port) {
 		let options = {
 			target: {
 				protocol: 'ws://',
@@ -121,34 +126,62 @@ class SiteSections {
 			followRedirects: true,
 		}
 		let proxy = proxyServer.createProxyServer(options)
-		proxy.targetHost = host
-		proxy.on('error', (error, request, response) => {
-			if (!(typeof error && error.code === 'ECONNRESET')) {
-				let url = this.parentContext.getUrl(request)
-				this.parentContext.onProxyError({ method: '_getProxie', response, error, url })
-			}
-		})
-		let proxyForWebsockets = this._getProxyForWebsockets(host, port)
-		proxy.forWebsockets = proxyForWebsockets
+			proxy.targetHost = host
+			proxy.on('error', this._proxyOnError.bind(this))
 		return proxy
 	}
 	
-	_getProxyForWebsockets(host, port) {
-		let proxyForWebsockets = false
+	_addProxy(host) {
+		let proxy = this._getProxy(host)
+		this.hosts[host].proxy = proxy
+	}
+	
+	_getWsProxy(host) {
+		let proxy = null
+		let port = this._portForWsProxy(host)
+		if (port) {
+			proxy = this._getProxy(host, port)
+		}
+		return proxy
+	}
+	
+	_addWsProxy(host) {
+		let wsProxy = this._getWsProxy(host)
+		if (wsProxy) {
+			this.hosts[host].wsProxy = wsProxy
+		}
+	}
+	
+	_proxyOnError(error, request, response) {
+		let responseHandler = new ResponseHandler(response, this.onError)
+			responseHandler.sendError(error.toString())
+		let isKnownError = false
+		if (error && typeof error === 'object') {
+			let error1 = (error.code === 'ECONNRESET')
+			let error2 = ((error.message + '').includes('ENOTFOUND'))
+			if (error1 || error2) {
+				isKnownError = true
+			}
+		}
+		if (!isKnownError) {
+			let requestHandler = new RequestHandler(request)
+			this.onError(this.label, '_proxyOnError ' + requestHandler.url, error)
+		}
+	}
+	
+	_portForWsProxy(host) {
+		let port = null
 		let isNextJs = false
 		Settings.nextJsList.forEach(name => {
 			if (host.endsWith('_' + name)) {
 				isNextJs = true
 			}
 		})
-		if (isNextJs && !port) {
+		if (isNextJs) {
 			let stage = Settings.stageByContainerName(host)
-			let port = Settings.nextJsWebsocketPortByStage(stage)
-			if (port) {
-				proxyForWebsockets = this._getProxie(host, port)
-			}
+			port = Settings.nextJsWebsocketPortByStage(stage)
 		}
-		return proxyForWebsockets
+		return port
 	}
 	
 	_getDirectories(path) {
@@ -178,12 +211,11 @@ class SiteSections {
 	
 	_addOldie(host, domains) {
 		this._addDomains(domains, host)
-		let proxy = this._getProxie(host)
+		let proxy = this._getProxy(host)
 		this.hosts[host] = { domains, proxy }
 		this._addMarker(host, 'label=chem')
 		this._addMarker(host, '/data')
 		this._addMarker(host, '/mosaic')
-		this._addMarker(host, '/chem') //
 	}
 }
 

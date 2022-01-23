@@ -1,4 +1,5 @@
 const fs = require('fs')
+const FileHandler = require('../../../_common/FileHandler.js')
 const Logger = require('../../../_common/Logger.js')
 const Settings = require('../../../_common/Settings.js')
 
@@ -10,11 +11,12 @@ class LogsHandler {
 		this.loggerLabel = 'Logger'
 		this.commonLabel = 'commonInfo'
 		let labelPath = '/usr/nodejs/sda/' + process.env.STAGE + '/' + process.env.LABEL
-		this.propsFileString = labelPath + '/subsections/logs/stageSensitive/props.json'
+		let propsFileString = labelPath + '/subsections/logs/stageSensitive/props.json'
+		this.propsFileHandler = new FileHandler(this.onError, propsFileString)
 	}
 	
 	async getProps() {
-		return await this._propsFromFile()
+		return await this.propsFileHandler.objectFromFile()
 	}
 	
 	async setProps() {
@@ -24,6 +26,12 @@ class LogsHandler {
 			this._onError('setProps', error)
 		}
 	}
+	
+	// localLog(string) {
+		// // tail -f -n 100 /mnt/sda/development/site/subsections/logs/stageSensitive/local.log
+		// let date = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString().replace(/[TZ]/g, ' ')
+		// this.localLogsFileHandler.addToFile(date + string + '\n')
+	// }
 	
 	async recoveryProps() {
 		try {
@@ -46,7 +54,7 @@ class LogsHandler {
 			this.logs = await this._getByType(this.loggerLabel + ':logs')
 			this.errors = await this._getByType(this.loggerLabel + ':errors')
 			this._composeProps()
-			let ok = await this._propsToFile()
+			let ok = await this.propsFileHandler.objectToFile(this.props)
 			return ok
 		} catch(error) {
 			this._onError('_setProps', error)
@@ -92,58 +100,6 @@ class LogsHandler {
 			revalidate: Settings.nextJsRevalidateSecs,
 			error: false
 		}
-	}
-	
-	_propsToFile() {
-		return new Promise(success => {
-			let string = JSON.stringify(this.props)
-			if (this.lastString !== string) {
-				this.lastString = string
-				let tempFileString = this.propsFileString + '.' + Date.now() + '.temp'
-				fs.writeFile(tempFileString, string, error => {
-					if (!error) {
-						fs.rename(tempFileString, this.propsFileString, error => {
-							if (!error) {
-								fs.chown(this.propsFileString, 1000, 1000, error => {
-									if (!error) {
-										success(true)
-									} else {
-										this._onError('_propsToFile chown', error)
-									}
-								})
-							} else {
-								this._onError('_propsToFile rename', error)
-							}
-						})
-					} else {
-						this._onError('_propsToFile writeFile', error)
-					}
-				})
-			} else {
-				success(false)
-			}
-		}).catch(error => {
-			this._onError('_propsToFile catch', error)
-		})
-	}
-	
-	_propsFromFile() {
-		return new Promise(success => {
-			fs.readFile(this.propsFileString, (error, data) => {
-				if (!error) {
-					try {
-						let props = JSON.parse(data)
-						success(props)
-					} catch (error) {
-						this._onError('_propsFromFile JSON.parse', error)
-					}
-				} else {
-					this._onError('_propsFromFile readFile', error)
-				}
-			})
-		}).catch(error => {
-			this._onError('_propsFromFile catch', error)
-		})
 	}
 	
 	async _recovery(logger, object, type) {

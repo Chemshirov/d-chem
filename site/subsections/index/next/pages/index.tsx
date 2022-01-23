@@ -8,19 +8,49 @@ import Main from '../components/Main.index'
 
 export default class Index extends Component<t.indexProps, t.indexState> {
 	private readonly label: string
+	private _wheelOpt: false | t.obj<boolean>
+	private _wheelEvent: string
+	private _eventHandlers: t.obj<t.eventHandler>
 	
 	constructor(props: t.indexProps) {
 		super(props)
 		this.state = {
-			toFullscreen: false,
+			toFullscreen: null,
+			keydownBlocks: {},
 		}
 		this.label = 'Index'
+		this._wheelOpt = false
+		this._wheelEvent = 'mousewheel'
+		this._eventHandlers = {}
 	}
 	
 	private _setFullscreen(toFullscreen): void {
-		// if (JSON.stringify(this.state.toFullscreen) !== JSON.stringify(toFullscreen)) { //
-			this.setState({ toFullscreen })
-		// }
+		this.setState({ toFullscreen })
+	}
+	
+	private _setEventHandler(name, eventHandler): void {
+		if (eventHandler) {
+			this._eventHandlers[name] = eventHandler
+		} else {
+			if (this._eventHandlers[name]) {
+				delete this._eventHandlers[name]
+			}
+		}
+	}
+	
+	private _setKeydownBlock(keyCode, name?): void {
+		let keydownBlocks = Object.assign({}, this.state.keydownBlocks, {[keyCode]: name})
+		this.setState({ keydownBlocks })
+	}
+	
+	private _onEvent(event): void {
+		let handlersArray = Object.keys(this._eventHandlers)
+		handlersArray.forEach(name => {
+			let eventHandler = this._eventHandlers[name]
+			if (typeof eventHandler === 'function') {
+				eventHandler(event)
+			}
+		})
 	}
 	
 	render(): JSX.Element {
@@ -29,18 +59,19 @@ export default class Index extends Component<t.indexProps, t.indexState> {
 		let description = 'Write me to Telegram: ' + contact
 		let url = 'https://' + this.props.domain + '/'
 		let imageUrl = url + this.label.toLowerCase() + '/ogImage.png'
+		let viewport = 'initial-scale=0.5, width=device-width, user-scalable=no'
 		return (
 			<>
 				<Head>
 					<title>
 						{title}
 					</title>
-					<meta name="viewport" content="initial-scale=0.5, width=device-width, user-scalable=no" />
-					<meta name="description" content={description} />
+					<meta name="viewport" content={viewport} key="viewport" />
+					<meta name="description" content={description} key="description" />
 					<meta property="og:type" content="website" key="type" />
 					<meta property="og:site_name" content={this.props.domain} key="siteName" />
 					<meta property="og:title" content={title} key="title" />
-					<meta property="og:description" content={description} key="description" />
+					<meta property="og:description" content={description} key="og:description" />
 					<meta property="og:url" content={url} key="url" />
 					<meta property="og:image" content={imageUrl} key="image" />
 					<meta name="twitter:card" content="summary_large_image" key="twitter:card" />
@@ -54,9 +85,39 @@ export default class Index extends Component<t.indexProps, t.indexState> {
 				<Fullscreener
 					data={this.state.toFullscreen}
 					setFullscreen={this._setFullscreen.bind(this)}
+					setEventHandler={this._setEventHandler.bind(this)}
+					setKeydownBlock={this._setKeydownBlock.bind(this)}
+					keydownBlocks={this.state.keydownBlocks}
 				/>
 			</>
 		)
+	}
+	
+	componentDidMount(): void {
+		try {
+			window.addEventListener('checkingPassiveSupport', null, Object.defineProperty({}, 'passive', {
+				get: () => {
+					this._wheelOpt = { passive: false }
+				}
+			}))
+		} catch(e) {}
+		if ('onwheel' in document.createElement('div')) {
+			this._wheelEvent = 'wheel'
+		}
+		setTimeout(() => {
+			let onEventBind = this._onEvent.bind(this)
+			window.addEventListener('keydown', onEventBind, true)
+			window.addEventListener('DOMMouseScroll', onEventBind, true)
+			window.addEventListener(this._wheelEvent, onEventBind, this._wheelOpt)
+			window.addEventListener('contextmenu', onEventBind, { passive: false })
+			window.addEventListener('mousedown', onEventBind, { passive: false })
+			window.addEventListener('mousemove', onEventBind, { passive: true })
+			window.addEventListener('mouseup', onEventBind, { passive: true })
+			window.addEventListener('touchstart', onEventBind, { passive: false })
+			window.addEventListener('touchend', onEventBind, { passive: false })
+			window.addEventListener('touchcancel', onEventBind, { passive: false })
+			window.addEventListener('touchmove', onEventBind, { passive: false })
+		})
 	}
 }
 

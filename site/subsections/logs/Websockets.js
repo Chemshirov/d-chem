@@ -27,16 +27,16 @@ class Websockets {
 		}
 	}
 	
-	_isTooOften(lastDate) {
-		if (this._lastDate) {
-			let currentUnixLastDate = new Date(this._lastDate).getTime()
-			let anotherUnixLastDate = new Date(lastDate).getTime()
-			let gap = Math.abs(anotherUnixLastDate - currentUnixLastDate)
-			if (gap < Settings.socketAwait) {
-				return true
-			}
-		}
-	}
+	// _isTooOften(lastDate) {
+		// if (this._lastDate) {
+			// let currentUnixLastDate = new Date(this._lastDate).getTime()
+			// let anotherUnixLastDate = new Date(lastDate).getTime()
+			// let gap = Math.abs(anotherUnixLastDate - currentUnixLastDate)
+			// if (gap < Settings.socketAwait) {
+				// return true
+			// }
+		// }
+	// }
 	
 	async _sendNews(socket) {
 		try {

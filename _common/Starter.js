@@ -4,7 +4,6 @@ const Logger = require('./Logger.js')
 const RabbitMQ = require('./RabbitMQ.js')
 const Redis = require('./Redis.js')
 const Settings = require('./Settings.js')
-const Statistics = require('./Statistics.js')
 
 class Starter {
 	constructor() {
@@ -15,7 +14,6 @@ class Starter {
 		try {
 			this._setUnhandledErrorsHandler()
 			this.redis = new Redis(this.boundOnError)
-			let currentIp = await this.redis.hget('commonInfo', 'currentIp')
 			this.logger = new Logger(this.redis)
 			await this.logger.initiate()
 			this._setLogFunction()
@@ -28,14 +26,9 @@ class Starter {
 			
 			if (typeof this.atStart === 'function') {
 				this.rabbitMQ.setDefaultQueueName(this.label)
-				// if (cluster.isPrimary) {
-					// this.statistics = new Statistics(this.boundOnError, this.boundLog, this.redis)
-					// await this.statistics.connect()
-				// }
 				await this.atStart()
 				if (cluster.isPrimary) {
 					this._sendStartedMessage()
-					// await this.statistics.started()
 					this.log(process.env.HOSTNAME + ' has started')
 				}
 			}
@@ -46,7 +39,9 @@ class Starter {
 	
 	onError(className, method, error) {
 		if (error && !this._notAnError(error)) {
-			this.logger.writeError(className, method, error)
+			if (this.logger) {
+				this.logger.writeError(className, method, error)
+			}
 		}
 	}
 	

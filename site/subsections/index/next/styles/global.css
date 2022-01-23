@@ -14,6 +14,14 @@
 		--lessTextMaxHeight: 1.5em;
 		--linkMarginBottom: 1em;
 	}
+	
+	body{
+		-webkit-text-size-adjust: none;
+	}
+	
+	.closeButton::after {
+		font-weight: bold;
+	}
 }
 
 .link {
@@ -28,7 +36,7 @@
 .button {
 	background-color: transparent;
 	border: none;
-	padding: 0.5em 1em;
+	padding: 0.5rem 1rem;
 	border-radius: 0.25rem;
 	cursor: pointer;
 }
@@ -37,10 +45,21 @@
 	position: absolute;
 	top: 0;
 	right: 0;
-	padding: 0.5em;
-	opacity: 0.5;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 3em;
+	height: 3em;
+	padding: 0.5rem;
+	opacity: 1;
+	border-radius: 3em;
+	background: radial-gradient(circle, #fffffff0 30%, #ffffff80 100%);
 }
 .closeButton::after {
-	content: '\00274C';
-	text-shadow: 0 0 0.5em white;
+	content: '\002573';
+	font-size: 0.8em;
+	color: black;
+}
+.beforeCloseButton {
+	margin-right: 4rem;
 }

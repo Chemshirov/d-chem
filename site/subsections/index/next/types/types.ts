@@ -36,20 +36,50 @@ type data = {
 	notes: notes,
 }
 
+export type eventHandler = (event: KeyboardEvent, noPrevent?: boolean) => void
+
 export type fullscreenerProps = {
-	data: {
+	data?: {
 		note: noteProps['note'],
 		anotherDomain: noteProps['anotherDomain'],
-	} | false,
+	},
 	setFullscreen: ((toFullscreen: any) => void),
+	setEventHandler: ((name: string, eventHandler: eventHandler) => void),
+	setKeydownBlock: ((keyCode: number | string, name?: string) => void),
+	keydownBlocks: indexState['keydownBlocks'],
 }
-export type fullscreenerStats = {
+export type fullscreenerState = {
 	width: number,
 	height: number,
 }
 
 export type headerLinkIndexProps = {
 	name: string,
+}
+
+export type imageProps = {
+	url: note['fileName'],
+	anotherDomain?: fullscreenerProps['data']['anotherDomain'],
+	title: note['title'],
+	alt: string,
+	frameWidth: noteAtFullscreenProps['fullscreenWidth'],
+	frameHeight: noteAtFullscreenProps['fullscreenHeight'],
+	imageWidth: note['width'],
+	imageHeight: note['height'],
+	setOnEventCallback: ((type: string, callback: any) => void),
+}
+export type imageState = {
+	mediumImageSrc: string | null,
+	mediumImageWidth: number,
+	mediumImageHeight: number,
+	bigImageSrc: string | null,
+	top: number,
+	left: number,
+	width: number,
+	height: number,
+	scale: number,
+	translateY: number,
+	translateX: number,
 }
 
 export type indexProps = {
@@ -60,9 +90,11 @@ export type indexProps = {
 	domain?: string,
 	anotherDomain?: string,
 }
-
 export type indexState = {
 	toFullscreen: fullscreenerProps['data'],
+	keydownBlocks: {
+		[keyCode: number | string]: string
+	},
 }
 
 export type infoLinkIndexProps = {
@@ -89,9 +121,13 @@ export type mainIndexProps = {
 
 export type noteAtFullscreenProps = {
 	data: fullscreenerProps['data'],
-	fullscreenWidth: fullscreenerStats['width'],
-	fullscreenHeight: fullscreenerStats['height'],
-	setKeydownCallback: ((callback: fullscreenerProps['setFullscreen']) => void),
+	fullscreenWidth: fullscreenerState['width'],
+	fullscreenHeight: fullscreenerState['height'],
+	setEventHandler: fullscreenerProps['setEventHandler'],
+	setKeydownBlock: fullscreenerProps['setKeydownBlock'],
+}
+export type noteAtFullscreenState = {
+	showHeader: boolean,
 }
 
 export type noteProps = {
@@ -106,8 +142,4 @@ export type notesProps = {
 	showMore: linkIndexState['showMore'],
 	anotherDomain: linkIndexProps['anotherDomain'],
 	setFullscreen: linkIndexProps['setFullscreen'],
-}
-
-export type noteAtFullscreenStats = {
-	showHeader: boolean,
 }

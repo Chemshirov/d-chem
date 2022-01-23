@@ -8,7 +8,7 @@ class Logger {
 		this.label = this.constructor.name
 		this.typesKey = this.label + ':types'
 		this.datesKey = this.label + ':dates'
-		//  tail -f -n 100 /mnt/sda/development/log.log
+		// tail -f -n 100 /mnt/sda/development/log.log
 	}
 	
 	async initiate() {

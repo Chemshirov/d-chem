@@ -18,7 +18,7 @@ class NextHandler {
 	async start() {
 		try {
 			let nextPath = this.projectPath + '.next'
-			let deleteJustFiles = `find ${nextPath} -type f -print0 | xargs -0 rm` // for sure fs.watching
+			let deleteJustFiles = `find ${nextPath} -type f -print0 | xargs -0 rm`
 			// await this._spawn(deleteJustFiles)
 			if (!process.env.SHOW || process.env.STAGE === Settings.productionStageName) {
 				await this._spawn('next build')
@@ -49,7 +49,7 @@ class NextHandler {
 				if (infoString.length > 1) {
 					if (infoString.startsWith('error - ')) {
 						this.onError(this.label, '_spawn next', error)
-					} else if (infoString.includes('error TS')) {
+					} else if (infoString.includes('error TS') || infoString.includes('Warning')) {
 						this._showTsErrors(infoString)
 					} else {
 						this.log(infoString)
@@ -189,6 +189,8 @@ class NextHandler {
 			if (nextJsBug || also) {
 				skip = true
 			}
+		} else if (infoString.includes("Use Image from 'next/image' instead")) {
+			skip = true
 		}
 		return skip
 	}

@@ -2,9 +2,9 @@ const cluster = require('cluster')
 const fs = require('fs')
 const http = require('http')
 const https = require('https')
+const HttpsOptions = require('../HttpsOptions.js')
 const proxyServer = require('http-proxy')
 const Settings = require('../../../../_common/Settings.js')
-const tls = require('tls')
 
 class SetServer {
 	constructor(parentContext) {
@@ -40,7 +40,8 @@ class SetServer {
 			}
 			let serverOnRequest = this._serverOnRequest.bind(this)
 			if (this.port === Settings.portS) {
-				this.server = https.createServer(this._getHttpsCredentials(), serverOnRequest)
+				let options = new HttpsOptions().get()
+				this.server = https.createServer(options, serverOnRequest)
 			} else {
 				this.server = http.createServer(serverOnRequest)
 			}
@@ -63,6 +64,11 @@ class SetServer {
 	}
 	
 	async _router(object) {
+		if (cluster.isMaster) {
+			this.parentContext.onRequest(this.port)
+		} else {
+			process.send({ onRequest: true })
+		}
 		try {
 			let { request, response, socket, head } = object
 			let url = this.parentContext.getUrl(request)
@@ -133,6 +139,7 @@ class SetServer {
 			request.url = '/' + indexName + (shortUrl === '/' ? '' : request.url)
 			proxy.web(request, response)
 		} else {
+			response.setHeader('Connection', 'close')
 			response.statusCode = 404
 			response.end()
 		}
@@ -172,57 +179,6 @@ class SetServer {
 		} else {
 			this.parentContext.onProxyError({ method: '_http80handler', response, errorHasHappend })
 		}
-	}
-	
-	_getHttpsCredentials() {
-		let certsObject = this._getCertificates()
-		let credentials = {
-			SNICallback: (domain, cb) => {
-				let clearDomain = domain
-				Settings.domains.forEach(ownDomain => {
-					let regExp = new RegExp('^.*(' + ownDomain + ').*')
-					if ((regExp).test(domain)) {
-						clearDomain = domain.replace(regExp, '$1')
-					}
-				})
-				
-				let certs = certsObject[clearDomain]
-				if (!certs) {
-					let firstDomain = Object.keys(certsObject)[0]
-					certs = certsObject[firstDomain]
-				}
-				
-				if (cb) {
-					cb(null, certs)
-				} else {
-					return certs
-				}
-			}
-		}
-		return credentials
-	}
-	
-	_getCertificates() {
-		let domains = {}
-		Settings.domains.forEach(domain => {
-			let cert = this._getCertificate(domain)
-			if (cert) {
-				domains[domain] = cert
-			}
-		})
-		return domains
-	}
-	
-	_getCertificate(domain) {
-		let certs = false
-		let path = '/usr/nodejs/le/' + domain + '/'
-		try {
-			certs = tls.createSecureContext({
-				key: fs.readFileSync(path + 'privkey.pem', 'utf8'),
-				cert: fs.readFileSync(path + 'fullchain.pem', 'utf8')
-			})
-		} catch(err) { }
-		return certs
 	}
 }
 
