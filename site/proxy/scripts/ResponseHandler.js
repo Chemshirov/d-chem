@@ -55,17 +55,27 @@ class ResponseHandler {
 								if (encoder === 'deflate') {
 									zlibStream = zlib.createDeflate()
 								}
-								this._response.writeHead(this._statusCodeOk, headers)
-								fs.createReadStream(pathToFile).pipe(zlibStream).pipe(this._response)
-								success(encoder + ' stream')
+								try {
+									this._response.writeHead(this._statusCodeOk, headers)
+									fs.createReadStream(pathToFile).pipe(zlibStream).pipe(this._response)
+									success(encoder + ' stream')
+								} catch (error) {
+									success('error')
+									this.sendError(error)
+								}
 							}
 						} else {
 							if (fileProps.size) {
 								headers['Content-Length'] = fileProps.size
 							}
-							this._response.writeHead(this._statusCodeOk, headers)
-							fs.createReadStream(pathToFile).pipe(this._response)
-							success('plain stream')
+							try {
+								this._response.writeHead(this._statusCodeOk, headers)
+								fs.createReadStream(pathToFile).pipe(this._response)
+								success('plain stream')
+							} catch (error) {
+								success('error')
+								this.sendError(error)
+							}
 						}
 					} else {
 						if (!end) {
@@ -77,9 +87,14 @@ class ResponseHandler {
 						headers['Content-Range'] = 'bytes ' + start + '-' + end + '/' + fileProps.size
 						let rangeReadStream = fs.createReadStream(pathToFile, { start, end })
 						rangeReadStream.on('open', () => {
-							this._response.writeHead(206, headers)
-							rangeReadStream.pipe(this._response)
-							success('range stream')
+							try {
+								this._response.writeHead(206, headers)
+								rangeReadStream.pipe(this._response)
+								success('range stream')
+							} catch (error) {
+								success('error')
+								this.sendError(error)
+							}
 						})
 						rangeReadStream.on('error', error => {
 							this.sendError(error)
@@ -97,14 +112,19 @@ class ResponseHandler {
 	sendFileByStream(pathToFile) {
 		fs.stat(pathToFile, (error, stats) => {
 			if (error) {
-				this.sendNotFound(error)
+				this.sendNotFound(pathToFile + ' is absent')
 			} else if (stats.isDirectory()) {
-				this.sendNotFound(pathToFile + 'is a directory')
+				this.sendNotFound(pathToFile + ' is a directory')
 			} else {
-				let headers = _getHeaders(null, null, stats)
-				this._response.writeHead(this._statusCodeOk, headers)
-				let stream = fs.createReadStream(pathToFile)
-				stream.pipe(this._response)
+				try {
+					let headers = this._getHeaders(null, null, stats)
+					this._response.writeHead(this._statusCodeOk, headers)
+					let stream = fs.createReadStream(pathToFile)
+					stream.pipe(this._response)
+				} catch (error) {
+					success('error')
+					this.sendError(error)
+				}
 			}
 		})
 	}

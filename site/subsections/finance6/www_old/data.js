@@ -211,7 +211,7 @@ data.rate = function(curr,date){
 				if(curr=='OEL')		c = 'GEL';
 			};
 			try{
-				if(day){
+				if (day && (/^[0-9]{4}\-[0-9]{2}\-[0-9]{2}\$/).test(day)) {
 					let rateByDate = data['currencies']['byDate'][c][day]
 					if (rateByDate) {
 						rate = rateByDate

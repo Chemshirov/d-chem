@@ -124,6 +124,8 @@ class SiteSections {
 			},
 			ws: true,
 			followRedirects: true,
+			timeout: Settings.proxyResetTimeout,
+			proxyTimeout: Settings.proxyResetTimeout,
 		}
 		let proxy = proxyServer.createProxyServer(options)
 			proxy.targetHost = host

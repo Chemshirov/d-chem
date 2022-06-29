@@ -20,7 +20,7 @@ class Arbiter {
 		try {
 			this._sendToAnotherServer({ exec: '_connectToAnotherServer' })
 			this.arbiterTime = new ArbiterTime(this.onError, this.redis)
-			await this.arbiterTime.init()
+			// await this.arbiterTime.init()
 			await this.rabbitMQ.receive({
 				label: this.label,
 				callback: this._onArbiter.bind(this)
@@ -28,7 +28,7 @@ class Arbiter {
 			this._getAnotherRedis()
 			await this._connectToAnotherServer(true)
 			await this._choosing()
-			this._setChoosingInterval()
+			// this._setChoosingInterval()
 		} catch(error) {
 			this.onError(this.label, 'init', error)
 		}
@@ -129,28 +129,33 @@ class Arbiter {
 	
 	async _choosing() {
 		try {
-			if (this._isInternetWorks()) {
-				if (await this._isAnotherServerConnected()) {
-					if (await this._wasMasterLastTime()) {
-						if (await this._wasInternetBreach()) {
-							await this._becomeSlave('There was internet breach')
-						} else {
-							if (this._isPredispositionalMaster) {
-								await this._becomeMaster('There was no internet breach')
-							}
-						}
-					} else {
-						await this._becomeSlave({ title: 'was not a master', log: this._wasMasterLastTimeLog })
-					}
-				} else {
-					await this._becomeMaster('Another server has no connection')
-					this._reconnectToAnotherServer()
-				}
+			if (this.currentIp === this.predispositionalMasterIp) {
+				await this._becomeMaster('By hardcode')
 			} else {
-				let message = 'Internet does not work, reason: ' + this._isInternetWorks.reason
-				this.log({ label: this.label, data: message })
-				await this._becomeSlave(message)
+				await this._becomeSlave('By hardcode')
 			}
+			// if (this._isInternetWorks()) {
+				// if (await this._isAnotherServerConnected()) {
+					// if (await this._wasMasterLastTime()) {
+						// if (await this._wasInternetBreach()) {
+							// await this._becomeSlave('There was internet breach')
+						// } else {
+							// if (this._isPredispositionalMaster) {
+								// await this._becomeMaster('There was no internet breach')
+							// }
+						// }
+					// } else {
+						// await this._becomeSlave({ title: 'was not a master', log: this._wasMasterLastTimeLog })
+					// }
+				// } else {
+					// await this._becomeMaster('Another server has no connection')
+					// this._reconnectToAnotherServer()
+				// }
+			// } else {
+				// let message = 'Internet does not work, reason: ' + this._isInternetWorks.reason
+				// this.log({ label: this.label, data: message })
+				// await this._becomeSlave(message)
+			// }
 		} catch(error) {
 			this.onError(this.label, '_choosing', error)
 		}

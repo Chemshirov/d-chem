@@ -91,7 +91,7 @@ class Playwright extends Starter {
 			let newProcess = childProcess.spawn(cmd, {shell: '/bin/bash'})
 			newProcess.stdout.on('data', (data: Buffer) => {
 				if (!cmd.startsWith('npx playwright screenshot')) {
-					this._onResult(data)
+					this._onResult(data, cmd)
 				}
 			})
 			newProcess.stderr.on('data', (error: Buffer) => {
@@ -112,7 +112,7 @@ class Playwright extends Starter {
 		return buffer.toString().replace(/[^\u0020-\u0256]/g,'').trim()
 	}
 	
-	_onResult(data: Buffer): void {
+	_onResult(data: Buffer, cmd: string): void {
 		try {
 			let infoString = this._bufferToString(data)
 			if (infoString.length > 1) {
@@ -126,7 +126,7 @@ class Playwright extends Starter {
 					if (!result.ok) {
 						ok = false
 						let error = result.tests[0].results[0].error
-						this.onError(this.label, '_onResult', error)
+						this.onError(this.label, '_onResult, cmd:' + cmd, error)
 						return true
 					} else {
 						if (result.tests && result.tests[0].results && result.tests[0].results[0].stdout) {
